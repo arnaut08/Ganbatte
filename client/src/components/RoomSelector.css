@@ -2,41 +2,46 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 60vh;
+  min-height: 70vh;
   padding: 2rem;
 }
 
 .selector-container {
   display: flex;
-  gap: 2rem;
-  align-items: center;
+  gap: 3rem;
+  align-items: flex-start;
   flex-wrap: wrap;
   justify-content: center;
-  max-width: 800px;
+  max-width: 900px;
 }
 
 .selector-container.invite-mode {
-  max-width: 520px;
+  max-width: 480px;
 }
 
 .selector-card {
-  background: white;
+  background: #1a1f2e;
   border-radius: 12px;
-  padding: 2rem;
-  border: 1px solid #e0e0e0;
+  padding: 2.5rem 2rem;
+  border: 1px solid #2d3748;
   flex: 1;
-  min-width: 300px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  min-width: 320px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.selector-card:hover {
+  border-color: #4b5563;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .selector-card.active-card {
-  border-color: #4a90e2;
-  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.2);
+  border-color: #60a5fa;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
 }
 
 .selector-card.inactive-card {
-  opacity: 0.88;
+  opacity: 0.6;
 }
 
 .invite-only-card {
@@ -45,26 +50,27 @@
   flex: 0 1 auto;
 }
 
-.selector-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
 .selector-card h2 {
   margin-top: 0;
-  color: #333;
+  margin-bottom: 0.75rem;
+  color: #e8ecf1;
   font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .selector-card p {
-  color: #666;
-  margin-bottom: 1.5rem;
+  color: #a0aec0;
+  margin-bottom: 1.75rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .divider {
-  font-weight: bold;
-  color: #999;
-  font-size: 1.2rem;
+  font-weight: 300;
+  color: #4b5563;
+  font-size: 1.5rem;
+  padding: 0 1rem;
 }
 
 .selector-card form {
@@ -74,15 +80,36 @@
 }
 
 .input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  background: #0f1419;
+  color: #e8ecf1;
+}
+
+.input::placeholder {
+  color: #718096;
 }
 
 .input:focus {
   outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+  background: #1a2332;
+}
+
+@media (max-width: 768px) {
+  .selector-container {
+    gap: 2rem;
+  }
+  
+  .selector-card {
+    min-width: 100%;
+  }
+  
+  .divider {
+    display: none;
+  }
 }
