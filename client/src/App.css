@@ -94,6 +94,10 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .app-header {
+    padding: 1.25rem 1rem;
+  }
+
   .app-header h1 {
     font-size: 1.5rem;
   }
@@ -105,5 +109,15 @@ body {
   .btn {
     padding: 0.65rem 1.25rem;
     font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .btn {
+    width: 100%;
   }
 }

@@ -276,3 +276,49 @@
   font-size: 0.9rem;
   line-height: 1.5;
 }
+
+@media (max-width: 640px) {
+  .assessment {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  .assessment-container {
+    padding: 1.25rem;
+  }
+
+  .player-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .kana-display {
+    font-size: 3.5rem;
+    min-height: 110px;
+  }
+
+  .input-section form {
+    flex-direction: column;
+  }
+
+  .input-section .btn {
+    width: 100%;
+  }
+
+  .submitted-section {
+    padding: 1rem;
+  }
+
+  .hint-section {
+    padding: 0.85rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .assessment-container {
+    padding: 1rem;
+  }
+
+  .kana-display {
+    font-size: 3rem;
+  }
+}

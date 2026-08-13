@@ -194,3 +194,36 @@
   font-size: 0.9rem;
   line-height: 1.5;
 }
+
+@media (max-width: 640px) {
+  .room-lobby {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  .lobby-container {
+    padding: 1.25rem;
+  }
+
+  .room-code-display {
+    padding: 1.25rem;
+  }
+
+  .code-box {
+    font-size: 2.25rem;
+    letter-spacing: 4px;
+  }
+
+  .share-link-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .share-link-row .btn {
+    width: 100%;
+  }
+
+  .instructions {
+    padding: 1rem;
+  }
+}

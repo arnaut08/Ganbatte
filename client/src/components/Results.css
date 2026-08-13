@@ -271,6 +271,47 @@
 }
 
 @media (max-width: 640px) {
+  .results {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  .results-container {
+    padding: 1.25rem;
+  }
+
+  .results-header {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .results-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .player-result {
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+
+  .rank-badge {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .common-correct-answer,
+  .player-answer-cell {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .answer-diff-label {
+    width: auto;
+  }
+
   .results-actions-row {
     flex-direction: column;
     align-items: stretch;

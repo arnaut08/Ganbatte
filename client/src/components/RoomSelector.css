@@ -101,6 +101,11 @@
 }
 
 @media (max-width: 768px) {
+  .room-selector {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
   .selector-container {
     gap: 2rem;
   }
@@ -111,5 +116,11 @@
   
   .divider {
     display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .selector-card {
+    padding: 1.5rem 1rem;
   }
 }
