@@ -6,6 +6,7 @@ export const roomCodeSchema = z.string()
   .transform((value) => value.toUpperCase());
 
 export const usernameSchema = z.string().trim().min(1).max(40);
+export const sessionKeySchema = z.string().trim().min(16).max(100);
 export const answerSchema = z.string().trim().min(1).max(500);
 export const cardCountSchema = z.coerce.number().int().min(1).max(25).default(10);
 

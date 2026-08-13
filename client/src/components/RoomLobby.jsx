@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './RoomLobby.css';
 
 function RoomLobby({ roomCode, room, onStartAssessment, currentSocketId }) {
-  const isReady = room.players.length === 2;
+  const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
   const [copied, setCopied] = useState(false);
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
   const isHost = room.players[0]?.id === currentSocketId;

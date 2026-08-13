@@ -7,6 +7,7 @@ import {
   cardCountSchema,
   cardsSchema,
   roomCodeSchema,
+  sessionKeySchema,
   usernameSchema,
 } from './utils/validation.js';
 import { generateRandomCards } from './services/card-service.js';
@@ -26,6 +27,8 @@ const io = new Server(server, {
 
 // Store rooms in memory
 const rooms = new Map();
+const roomCleanupTimers = new Map();
+const DISCONNECT_GRACE_PERIOD_MS = 5 * 60 * 1000;
 
 // Generate random room code
 function generateRoomCode() {
@@ -36,16 +39,20 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   // Create a new room
-  socket.on('create-room', (hostNameOrCallback, maybeCallback) => {
-    const callback = typeof hostNameOrCallback === 'function' ? hostNameOrCallback : maybeCallback;
-    const parsedHostName = usernameSchema.safeParse(hostNameOrCallback);
-    const hostName = parsedHostName.success ? parsedHostName.data : 'Player 1';
+  socket.on('create-room', (hostName, sessionKey, callback) => {
+    const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
+    const parsedHostName = usernameSchema.safeParse(hostName);
+    if (!parsedSessionKey.success) {
+      if (callback) callback({ success: false, message: 'Invalid session' });
+      return;
+    }
+    const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
     const roomCode = generateRoomCode();
     // generate a fresh kana-sentence card set for this room
     const cards = generateRandomCards(KANA_SENTENCES, 10);
     rooms.set(roomCode, {
       code: roomCode,
-      players: [{ id: socket.id, name: hostName, answers: [] }],
+      players: [{ id: socket.id, sessionKey: parsedSessionKey.data, name: playerName, answers: [], connected: true }],
       cards,
       currentCardIndex: 0,
       status: 'waiting', // waiting, active, completed, review
@@ -57,10 +64,11 @@ io.on('connection', (socket) => {
   });
 
   // Join an existing room
-  socket.on('join-room', (roomCode, username, callback) => {
+  socket.on('join-room', (roomCode, username, sessionKey, callback) => {
     const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
     const parsedUsername = usernameSchema.safeParse(username);
-    if (!parsedRoomCode.success || !parsedUsername.success) {
+    const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
+    if (!parsedRoomCode.success || !parsedUsername.success || !parsedSessionKey.success) {
       if (callback) callback({ success: false, message: 'Invalid room code or username' });
       return;
     }
@@ -77,7 +85,13 @@ io.on('connection', (socket) => {
       return;
     }
 
-    room.players.push({ id: socket.id, name: parsedUsername.data, answers: [] });
+    room.players.push({
+      id: socket.id,
+      sessionKey: parsedSessionKey.data,
+      name: parsedUsername.data,
+      answers: [],
+      connected: true,
+    });
     socket.join(parsedRoomCode.data);
 
     // Notify all players in the room
@@ -85,6 +99,38 @@ io.on('connection', (socket) => {
     // room structure (client expects `data.room`).
     io.to(parsedRoomCode.data).emit('player-joined', { room });
 
+    if (callback) callback({ success: true, room });
+  });
+
+  socket.on('rejoin-room', (roomCode, username, sessionKey, callback) => {
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    const parsedUsername = usernameSchema.safeParse(username);
+    const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
+    if (!parsedRoomCode.success || !parsedUsername.success || !parsedSessionKey.success) {
+      if (callback) callback({ success: false, message: 'Invalid reconnection details' });
+      return;
+    }
+
+    const room = rooms.get(parsedRoomCode.data);
+    const player = room?.players.find(
+      (candidate) => candidate.sessionKey === parsedSessionKey.data
+        && candidate.name === parsedUsername.data,
+    );
+    if (!room || !player) {
+      if (callback) callback({ success: false, message: 'Room session expired' });
+      return;
+    }
+
+    player.id = socket.id;
+    player.connected = true;
+    delete player.disconnectedAt;
+    const cleanupTimer = roomCleanupTimers.get(parsedRoomCode.data);
+    if (cleanupTimer) {
+      clearTimeout(cleanupTimer);
+      roomCleanupTimers.delete(parsedRoomCode.data);
+    }
+    socket.join(parsedRoomCode.data);
+    io.to(parsedRoomCode.data).emit('player-rejoined', { room });
     if (callback) callback({ success: true, room });
   });
 
@@ -304,13 +350,20 @@ io.on('connection', (socket) => {
   // Disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    // Remove player from rooms
     for (const [roomCode, room] of rooms) {
-      room.players = room.players.filter((p) => p.id !== socket.id);
-      if (room.players.length === 0) {
-        rooms.delete(roomCode);
-      } else {
-        io.to(roomCode).emit('player-left', { players: room.players });
+      const player = room.players.find((candidate) => candidate.id === socket.id);
+      if (!player) continue;
+
+      player.connected = false;
+      player.disconnectedAt = Date.now();
+      io.to(roomCode).emit('player-left', { players: room.players });
+
+      if (!room.players.some((candidate) => candidate.connected)) {
+        const cleanupTimer = setTimeout(() => {
+          rooms.delete(roomCode);
+          roomCleanupTimers.delete(roomCode);
+        }, DISCONNECT_GRACE_PERIOD_MS);
+        roomCleanupTimers.set(roomCode, cleanupTimer);
       }
     }
   });
