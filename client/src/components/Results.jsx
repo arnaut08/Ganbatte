@@ -1,20 +1,47 @@
 import { useState } from 'react';
 import './Results.css';
+import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
+
+function renderDifference(answer, expected, side) {
+  const difference = buildRomajiDiff(answer, expected)[side];
+  const tokenClass = side === 'given' ? 'answer-token-wrong' : 'answer-token-correct';
+
+  return (
+    <>
+      <span>{difference.prefix}</span>
+      <span className={tokenClass}>{difference.diff || '∅'}</span>
+      <span>{difference.suffix}</span>
+    </>
+  );
+}
+
+function renderCorrectAnswer(answer) {
+  return <span className="answer-token-correct">{answer}</span>;
+}
 
 function Results({ results, roomCode, kanaCards }) {
   const [showDetails, setShowDetails] = useState(false);
 
   const computeStats = (answers) => {
     let correct = 0;
-    let incorrect = 0;
+    let matchedTokens = 0;
+    let totalTokens = 0;
     const total = kanaCards.length;
     for (let i = 0; i < total; i++) {
       const submitted = answers[i];
-      if (submitted === undefined || submitted === null || submitted === '') continue;
-      if (kanaCards[i] && submitted.toLowerCase().trim() === kanaCards[i].romaji) correct++;
-      else incorrect++;
+      const score = scoreRomajiAnswer(submitted, kanaCards[i]?.romaji);
+      matchedTokens += score.matched;
+      totalTokens += score.total;
+      if (score.matched === score.total) correct++;
     }
-    return { correct, incorrect, total };
+    return {
+      correct,
+      incorrect: total - correct,
+      total,
+      matchedTokens,
+      totalTokens,
+      percentage: totalTokens === 0 ? 0 : Math.round((matchedTokens / totalTokens) * 100),
+    };
   };
 
   return (
@@ -36,7 +63,7 @@ function Results({ results, roomCode, kanaCards }) {
                   <div className="player-result-info">
                     <h4>{player.name}</h4>
                     <p className="player-score">
-                      Correct: {stats.correct} • Incorrect: {stats.incorrect} • Total: {stats.total}
+                      Score: {stats.percentage}% • Correct questions: {stats.correct}/{stats.total}
                     </p>
                   </div>
                 </div>
@@ -85,10 +112,21 @@ function Results({ results, roomCode, kanaCards }) {
             <div className="answers-grid">
               {kanaCards.map((card, i) => (
                 <div key={i} className="answer-row">
-                  <div className="kana-cell">#{i + 1} — {card.kana} ({card.romaji})</div>
+                  <div className="kana-cell">#{i + 1} — {card.kana}</div>
+                  <div className="common-correct-answer">
+                    <span className="answer-diff-label">Correct answer</span>
+                    <span className="answer-diff-value">
+                      {renderCorrectAnswer(card.romaji)}
+                    </span>
+                  </div>
                   {results.map((player, pi) => (
                     <div key={pi} className="player-answer-cell">
-                      <strong>{player.name}:</strong> {player.answers[i] || '-'}
+                      <strong>{player.name}</strong>
+                      <span className="answer-diff-value">
+                        {player.answers[i]
+                          ? renderDifference(player.answers[i], card.romaji, 'given')
+                          : '-'}
+                      </span>
                     </div>
                   ))}
                 </div>

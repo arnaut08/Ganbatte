@@ -5,6 +5,8 @@ import RoomLobby from './components/RoomLobby';
 import Assessment from './components/Assessment';
 import Results from './components/Results';
 import './App.css';
+import { SERVER_URL } from './config';
+import logo from './assets/logo.svg';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -26,7 +28,7 @@ function App() {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io(SERVER_URL);
 
     newSocket.on('connect', () => {
       console.log('Connected to server');
@@ -116,7 +118,7 @@ function App() {
 
   // Fetch kana cards
   useEffect(() => {
-    fetch('http://localhost:3001/api/kana-cards')
+    fetch(`${SERVER_URL}/api/kana-cards`)
       .then((res) => res.json())
       .then((data) => setKanaCards(data))
       .catch((err) => console.error('Error fetching kana cards:', err));
@@ -124,7 +126,7 @@ function App() {
 
   const handleGenerateCards = async (count = 10, startAfter = false) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/generate-cards?count=${count}`, { method: 'POST' });
+      const res = await fetch(`${SERVER_URL}/api/generate-cards?count=${count}`, { method: 'POST' });
       const json = await res.json();
       if (json.cards) {
         setKanaCards(json.cards);
@@ -171,6 +173,7 @@ function App() {
           socket.emit('get-room', code, (room) => {
             if (room) {
               setRoom(room);
+              if (room.cards) setKanaCards(room.cards);
               setStatus('lobby');
               // If the host hasn't set a username, set it to the
               // name assigned by the server for this socket so the
@@ -221,8 +224,16 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Ganbatte 頑張って</h1>
-        <p>Kana Reading Assessment</p>
+        <div className="brand-lockup">
+          <img className="app-logo" src={logo} alt="Ganbatte logo" />
+          <div>
+            <h1>
+              <span className="brand-name">GANBATTE</span>
+              <span className="brand-kana" lang="ja">頑張って</span>
+            </h1>
+            <p>Stop saying 'Nani?' to everything.</p>
+          </div>
+        </div>
       </header>
 
       <main className="app-main">

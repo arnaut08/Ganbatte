@@ -4,13 +4,12 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0f1419;
   min-height: 100vh;
+  color: #e8ecf1;
 }
 
 .app {
@@ -18,26 +17,60 @@ body {
 }
 
 .app-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 2rem;
+  background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+  color: #e8ecf1;
+  padding: 1.1rem 2rem;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #2d3748;
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: left;
+}
+
+.app-logo {
+  width: 3.25rem;
+  height: 3.25rem;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .app-header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin: 0 0 0.3rem 0;
+  color: #f8fafc;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.brand-name {
+  color: #f8fafc;
+}
+
+.brand-kana {
+  color: #93c5fd;
+  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 
 .app-header p {
   margin: 0;
-  font-size: 1.1rem;
-  opacity: 0.9;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: #a0aec0;
 }
 
 .app-main {
-  min-height: calc(100vh - 120px);
+  min-height: calc(100vh - 80px);
 }
 
 /* Buttons */
@@ -45,53 +78,100 @@ body {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  text-align: center;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4a90e2, #357abd);
+  background: #60a5fa;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+  background: #3b82f6;
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  background: #2563eb;
 }
 
 .btn-secondary {
-  background: #f0f0f0;
-  color: #333;
-  border: 1px solid #ddd;
+  background: #374151;
+  color: #e8ecf1;
+  border: 1px solid #4b5563;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #e0e0e0;
-  transform: translateY(-2px);
+  background: #4b5563;
 }
 
 .btn-secondary:active:not(:disabled) {
-  transform: translateY(0);
+  background: #555e6f;
+}
+
+.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+  .app-header {
+    padding: 1.25rem 1rem;
+  }
+
+  .app-logo {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
   .app-header h1 {
-    font-size: 2rem;
+    gap: 0.5rem;
+    font-size: 1.3rem;
+  }
+
+  .brand-kana {
+    font-size: 0.9rem;
   }
 
   .app-header p {
-    font-size: 1rem;
+    font-size: 0.78rem;
+  }
+  
+  .btn {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    gap: 0.4rem;
+    font-size: 1.05rem;
+  }
+
+  .brand-kana {
+    font-size: 0.78rem;
+  }
+
+  .brand-lockup {
+    gap: 0.65rem;
+  }
+
+  .app-logo {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .btn {
+    width: 100%;
   }
 }
