@@ -11,6 +11,7 @@ import { SERVER_URL } from './config';
 
 function App() {
   const [socket, setSocket] = useState(null);
+  const [isSocketReady, setIsSocketReady] = useState(false);
   const [roomCode, setRoomCode] = useState(null);
   const [room, setRoom] = useState(null);
   const [username, setUsername] = useState('');
@@ -34,6 +35,12 @@ function App() {
     newSocket.on('connect', () => {
       console.log('Connected to server');
       setSocket(newSocket);
+      setIsSocketReady(true);
+    });
+
+    newSocket.on('disconnect', () => {
+      setSocket(null);
+      setIsSocketReady(false);
     });
 
     newSocket.on('room-created', (code) => {
@@ -113,6 +120,7 @@ function App() {
     });
 
     return () => {
+      setIsSocketReady(false);
       newSocket.disconnect();
     };
   }, []);
@@ -227,6 +235,7 @@ function App() {
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
             prefillRoomCode={prefillRoomCode}
+            isSocketReady={isSocketReady}
           />
         )}
 

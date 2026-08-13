@@ -69,6 +69,11 @@ body {
   color: #a0aec0;
 }
 
+.connection-status {
+  color: #fcd34d !important;
+  font-size: 0.85rem !important;
+}
+
 .app-main {
   min-height: calc(100vh - 80px);
 }
