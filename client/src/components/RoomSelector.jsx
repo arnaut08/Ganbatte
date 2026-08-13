@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import './RoomSelector.css';
 import { getRoom } from '../services/api';
 
-function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
+function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '', isSocketReady = false }) {
   const [createName, setCreateName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [joinName, setJoinName] = useState('');
@@ -41,7 +41,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
 
   const handleCreate = (e) => {
     e.preventDefault();
-    if (createName.trim()) {
+    if (isSocketReady && createName.trim()) {
       onCreateRoom(createName.trim());
     }
   };
@@ -49,7 +49,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
   const handleJoin = (e) => {
     e.preventDefault();
     const targetCode = (hasInviteCode ? prefillRoomCode : joinCode).trim();
-    if (targetCode && joinName.trim()) {
+    if (isSocketReady && targetCode && joinName.trim()) {
       onJoinRoom(targetCode.toUpperCase(), joinName.trim());
       if (!hasInviteCode) setJoinCode('');
       setJoinName('');
@@ -67,6 +67,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
                 ? `Invited to ${ownerName}'s room. Enter your name to join directly.`
                 : `Invited to a room. Enter your name to join directly.`}
             </p>
+            {!isSocketReady && <p className="connection-status">Connecting to the game server...</p>}
             <form onSubmit={handleJoin}>
               <input
                 ref={joinNameInputRef}
@@ -79,7 +80,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
               <button
                 type="submit"
                 className="btn btn-secondary"
-                disabled={!joinName.trim()}
+                disabled={!isSocketReady || !joinName.trim()}
               >
                 Join Room
               </button>
@@ -101,7 +102,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={!createName.trim()}
+                  disabled={!isSocketReady || !createName.trim()}
                 >
                   Create Room
                 </button>
@@ -113,6 +114,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
             <div className="selector-card join-card">
               <h2>Join a Room</h2>
               <p>Enter the room code your friend shared</p>
+              {!isSocketReady && <p className="connection-status">Connecting to the game server...</p>}
               <form onSubmit={handleJoin}>
                 <input
                   ref={joinNameInputRef}
@@ -132,7 +134,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
                 <button
                   type="submit"
                   className="btn btn-secondary"
-                  disabled={!joinCode.trim() || !joinName.trim()}
+                  disabled={!isSocketReady || !joinCode.trim() || !joinName.trim()}
                 >
                   Join Room
                 </button>
