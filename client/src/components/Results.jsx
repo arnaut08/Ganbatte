@@ -3,16 +3,14 @@ import './Results.css';
 import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
 
 function renderDifference(answer, expected, side) {
-  const difference = buildRomajiDiff(answer, expected)[side];
+  const segments = buildRomajiDiff(answer, expected)[side];
   const tokenClass = side === 'given' ? 'answer-token-wrong' : 'answer-token-correct';
 
-  return (
-    <>
-      <span>{difference.prefix}</span>
-      <span className={tokenClass}>{difference.diff || '∅'}</span>
-      <span>{difference.suffix}</span>
-    </>
-  );
+  return segments.map((segment, index) => (
+    <span key={`${segment.type}-${index}`} className={segment.type === 'diff' ? tokenClass : undefined}>
+      {segment.text}
+    </span>
+  ));
 }
 
 function renderCorrectAnswer(answer) {

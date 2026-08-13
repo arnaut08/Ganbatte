@@ -87,21 +87,73 @@ function buildNormalizedMap(rawValue) {
   return { raw, normalized, spans };
 }
 
-function splitRawAroundDiff(raw, spans, diffStart, diffEnd) {
-  const safeStart = Math.max(0, Math.min(diffStart, spans.length));
-  const safeEnd = Math.max(safeStart, Math.min(diffEnd, spans.length));
-  const rawStart = safeStart >= spans.length ? raw.length : spans[safeStart][0];
-  const rawEnd = safeEnd === 0
-    ? 0
-    : safeEnd > spans.length
-    ? raw.length
-    : spans[safeEnd - 1][1];
+function getRawTokenRange(mapped, token) {
+  const rawStart = token.start >= mapped.spans.length
+    ? mapped.raw.length
+    : mapped.spans[token.start][0];
+  const rawEnd = token.end > mapped.spans.length
+    ? mapped.raw.length
+    : mapped.spans[token.end - 1][1];
 
-  return {
-    prefix: raw.slice(0, rawStart),
-    diff: raw.slice(rawStart, rawEnd),
-    suffix: raw.slice(rawEnd),
-  };
+  return { rawStart, rawEnd };
+}
+
+function findMatchingTokenIndexes(tokens, otherTokens) {
+  const lengths = Array.from({ length: tokens.length + 1 }, () => (
+    Array(otherTokens.length + 1).fill(0)
+  ));
+
+  for (let row = 1; row <= tokens.length; row++) {
+    for (let column = 1; column <= otherTokens.length; column++) {
+      lengths[row][column] = tokens[row - 1].value === otherTokens[column - 1].value
+        ? lengths[row - 1][column - 1] + 1
+        : Math.max(lengths[row - 1][column], lengths[row][column - 1]);
+    }
+  }
+
+  const matches = new Set();
+  let row = tokens.length;
+  let column = otherTokens.length;
+  while (row > 0 && column > 0) {
+    if (tokens[row - 1].value === otherTokens[column - 1].value) {
+      matches.add(row - 1);
+      row--;
+      column--;
+    } else if (lengths[row - 1][column] >= lengths[row][column - 1]) {
+      row--;
+    } else {
+      column--;
+    }
+  }
+
+  return matches;
+}
+
+function buildDiffSegments(mapped, tokens, matchedIndexes) {
+  const segments = [];
+  let rawCursor = 0;
+
+  tokens.forEach((token, index) => {
+
+    const { rawStart, rawEnd } = getRawTokenRange(mapped, token);
+    const leadingText = mapped.raw.slice(rawCursor, rawStart);
+    if (leadingText) {
+      segments.push({ type: 'plain', text: leadingText });
+    }
+
+    segments.push({
+      type: matchedIndexes.has(index) ? 'plain' : 'diff',
+      text: mapped.raw.slice(rawStart, rawEnd),
+    });
+    rawCursor = rawEnd;
+  });
+
+  const trailingText = mapped.raw.slice(rawCursor);
+  if (trailingText) {
+    segments.push({ type: 'plain', text: trailingText });
+  }
+
+  return segments;
 }
 
 export function buildRomajiDiff(givenRaw, expectedRaw) {
@@ -109,26 +161,11 @@ export function buildRomajiDiff(givenRaw, expectedRaw) {
   const expectedMapped = buildNormalizedMap(expectedRaw);
   const given = tokenizeNormalizedRomaji(givenMapped.normalized);
   const expected = tokenizeNormalizedRomaji(expectedMapped.normalized);
-
-  let left = 0;
-  while (left < given.length && left < expected.length && given[left].value === expected[left].value) {
-    left++;
-  }
-
-  let rightGiven = given.length - 1;
-  let rightExpected = expected.length - 1;
-  while (rightGiven >= left && rightExpected >= left && given[rightGiven].value === expected[rightExpected].value) {
-    rightGiven--;
-    rightExpected--;
-  }
-
-  const givenDiffStart = left < given.length ? given[left].start : givenMapped.normalized.length;
-  const givenDiffEnd = rightGiven >= left ? given[rightGiven].end : givenDiffStart;
-  const expectedDiffStart = left < expected.length ? expected[left].start : expectedMapped.normalized.length;
-  const expectedDiffEnd = rightExpected >= left ? expected[rightExpected].end : expectedDiffStart;
+  const givenMatches = findMatchingTokenIndexes(given, expected);
+  const expectedMatches = findMatchingTokenIndexes(expected, given);
 
   return {
-    given: splitRawAroundDiff(givenMapped.raw, givenMapped.spans, givenDiffStart, givenDiffEnd),
-    expected: splitRawAroundDiff(expectedMapped.raw, expectedMapped.spans, expectedDiffStart, expectedDiffEnd),
+    given: buildDiffSegments(givenMapped, given, givenMatches),
+    expected: buildDiffSegments(expectedMapped, expected, expectedMatches),
   };
 }
