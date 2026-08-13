@@ -1,26 +1,25 @@
-import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import cors from 'cors';
+import app from './app.js';
+import { CLIENT_ORIGINS, PORT } from './config/env.js';
+import {
+  answerSchema,
+  cardCountSchema,
+  cardsSchema,
+  roomCodeSchema,
+  usernameSchema,
+} from './utils/validation.js';
+import { generateRandomCards } from './services/card-service.js';
 
-const app = express();
 const server = createServer(app);
+
 const io = new Server(server, {
   cors: {
-    // In development allow the Vite dev server origin (and any origin
-    // that the browser uses to access the frontend). Using a function
-    // allows socket.io to echo back the request origin and avoid CORS
-    // mismatches when accessing the app via localhost or 127.0.0.1.
-    origin: (origin, callback) => {
-      callback(null, true);
-    },
+    origin: CLIENT_ORIGINS,
     methods: ['GET', 'POST'],
     credentials: true,
   },
 });
-
-app.use(cors());
-app.use(express.json());
 
 // Store rooms in memory
 const rooms = new Map();
@@ -36,12 +35,11 @@ io.on('connection', (socket) => {
   // Create a new room
   socket.on('create-room', (hostNameOrCallback, maybeCallback) => {
     const callback = typeof hostNameOrCallback === 'function' ? hostNameOrCallback : maybeCallback;
-    const hostName = typeof hostNameOrCallback === 'string' && hostNameOrCallback.trim()
-      ? hostNameOrCallback.trim()
-      : 'Player 1';
+    const parsedHostName = usernameSchema.safeParse(hostNameOrCallback);
+    const hostName = parsedHostName.success ? parsedHostName.data : 'Player 1';
     const roomCode = generateRoomCode();
     // generate a fresh kana-sentence card set for this room
-    const cards = generateKanaCards(10);
+    const cards = generateRandomCards(KANA_SENTENCES, 10);
     rooms.set(roomCode, {
       code: roomCode,
       players: [{ id: socket.id, name: hostName, answers: [] }],
@@ -57,7 +55,14 @@ io.on('connection', (socket) => {
 
   // Join an existing room
   socket.on('join-room', (roomCode, username, callback) => {
-    const room = rooms.get(roomCode);
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    const parsedUsername = usernameSchema.safeParse(username);
+    if (!parsedRoomCode.success || !parsedUsername.success) {
+      if (callback) callback({ success: false, message: 'Invalid room code or username' });
+      return;
+    }
+
+    const room = rooms.get(parsedRoomCode.data);
 
     if (!room) {
       if (callback) callback({ success: false, message: 'Room not found' });
@@ -69,13 +74,13 @@ io.on('connection', (socket) => {
       return;
     }
 
-    room.players.push({ id: socket.id, name: username || 'Player 2', answers: [] });
-    socket.join(roomCode);
+    room.players.push({ id: socket.id, name: parsedUsername.data, answers: [] });
+    socket.join(parsedRoomCode.data);
 
     // Notify all players in the room
     // Emit the full room object so all clients receive consistent
     // room structure (client expects `data.room`).
-    io.to(roomCode).emit('player-joined', { room });
+    io.to(parsedRoomCode.data).emit('player-joined', { room });
 
     if (callback) callback({ success: true, room });
   });
@@ -90,13 +95,20 @@ io.on('connection', (socket) => {
 
   // Allow setting a custom card set for the room
   socket.on('set-cards', (roomCode, cards, callback) => {
-    const room = rooms.get(roomCode);
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    const parsedCards = cardsSchema.safeParse(cards);
+    if (!parsedRoomCode.success || !parsedCards.success) {
+      if (callback) callback({ success: false, message: 'Invalid room code or card deck' });
+      return;
+    }
+
+    const room = rooms.get(parsedRoomCode.data);
     if (!room) {
       if (callback) callback({ success: false, message: 'Room not found' });
       return;
     }
-    room.cards = cards;
-    io.to(roomCode).emit('cards-updated', { room });
+    room.cards = parsedCards.data;
+    io.to(parsedRoomCode.data).emit('cards-updated', { room });
     if (callback) callback({ success: true, room });
   });
 
@@ -117,7 +129,11 @@ io.on('connection', (socket) => {
 
   // Submit answer
   socket.on('submit-answer', (roomCode, answer) => {
-    const room = rooms.get(roomCode);
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    const parsedAnswer = answerSchema.safeParse(answer);
+    if (!parsedRoomCode.success || !parsedAnswer.success) return;
+
+    const room = rooms.get(parsedRoomCode.data);
     if (room) {
       const player = room.players.find((p) => p.id === socket.id);
       if (player) {
@@ -127,7 +143,7 @@ io.on('connection', (socket) => {
         // captured index and emit that index back to clients. Also
         // auto-mark the submitting player as ready.
         const idx = room.currentCardIndex;
-        player.answers[idx] = answer;
+        player.answers[idx] = parsedAnswer.data;
         player.ready = true;
 
         // Emit the updated answer and ready state
@@ -339,18 +355,6 @@ const KANA_SENTENCES = [
   { kana: 'サッカーのしあいをみて、えんじょうしました。', romaji: 'sakkaa no shiai o mite enjoushimashita', english: 'I watched a soccer match and got excited.' },
 ];
 
-// Generate a set of kana sentence cards (random selection)
-function generateKanaCards(count = 10) {
-  const pool = [...KANA_SENTENCES];
-  const out = [];
-  while (out.length < count && pool.length > 0) {
-    const i = Math.floor(Math.random() * pool.length);
-    const s = pool.splice(i, 1)[0];
-    out.push({ kana: s.kana, romaji: s.romaji, english: s.english });
-  }
-  return out;
-}
-
 // API endpoint to get kana cards
 app.get('/api/kana-cards', (req, res) => {
   res.json(getKanaCards());
@@ -358,20 +362,50 @@ app.get('/api/kana-cards', (req, res) => {
 
 // API endpoint to get room state (players, answers, status)
 app.get('/api/rooms/:code', (req, res) => {
-  const code = req.params.code;
+  const parsedCode = roomCodeSchema.safeParse(req.params.code);
+  if (!parsedCode.success) {
+    res.status(400).json({ error: 'Invalid room code' });
+    return;
+  }
+
+  const code = parsedCode.data;
   const room = rooms.get(code);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
+  if (!room) {
+    res.status(404).json({ error: 'Room not found' });
+    return;
+  }
   res.json(room);
 });
 
 // API to generate a new set of kana sentence cards
 app.post('/api/generate-cards', (req, res) => {
-  const count = parseInt(req.query.count || '10', 10) || 10;
-  const cards = generateKanaCards(count);
+  const parsedCount = cardCountSchema.safeParse(req.query.count);
+  if (!parsedCount.success) {
+    res.status(400).json({ error: 'Count must be an integer between 1 and 25' });
+    return;
+  }
+
+  const cards = generateRandomCards(KANA_SENTENCES, parsedCount.data);
   res.json({ cards });
 });
 
-const PORT = process.env.PORT || 3001;
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+app.use((error, req, res, next) => {
+  console.error('Unhandled server error:', error);
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

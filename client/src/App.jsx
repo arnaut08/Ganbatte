@@ -4,9 +4,10 @@ import RoomSelector from './components/RoomSelector';
 import RoomLobby from './components/RoomLobby';
 import Assessment from './components/Assessment';
 import Results from './components/Results';
+import AppHeader from './components/layout/AppHeader';
 import './App.css';
+import { generateCards, getKanaCards, getRoom } from './services/api';
 import { SERVER_URL } from './config';
-import logo from './assets/logo.svg';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -118,16 +119,14 @@ function App() {
 
   // Fetch kana cards
   useEffect(() => {
-    fetch(`${SERVER_URL}/api/kana-cards`)
-      .then((res) => res.json())
+    getKanaCards()
       .then((data) => setKanaCards(data))
       .catch((err) => console.error('Error fetching kana cards:', err));
   }, []);
 
   const handleGenerateCards = async (count = 10, startAfter = false) => {
     try {
-      const res = await fetch(`${SERVER_URL}/api/generate-cards?count=${count}`, { method: 'POST' });
-      const json = await res.json();
+      const json = await generateCards(count);
       if (json.cards) {
         setKanaCards(json.cards);
         // If in a room, set the room's card set on the server
@@ -170,18 +169,15 @@ function App() {
         // Immediately request the full room from server so the host
         // has the same room object structure as a joined player and
         // the lobby can render correctly.
-          socket.emit('get-room', code, (room) => {
-            if (room) {
+          getRoom(code)
+            .then((room) => {
               setRoom(room);
               if (room.cards) setKanaCards(room.cards);
               setStatus('lobby');
-              // If the host hasn't set a username, set it to the
-              // name assigned by the server for this socket so the
-              // assessment UI can find the current player correctly.
               const me = room.players.find((p) => p.id === socket.id);
               if (me) setUsername(me.name);
-            }
-          });
+            })
+            .catch((error) => console.error('Failed to load room:', error));
       });
     }
   };
@@ -223,18 +219,7 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="brand-lockup">
-          <img className="app-logo" src={logo} alt="Ganbatte logo" />
-          <div>
-            <h1>
-              <span className="brand-name">GANBATTE</span>
-              <span className="brand-kana" lang="ja">頑張って</span>
-            </h1>
-            <p>Stop saying 'Nani?' to everything.</p>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="app-main">
         {status === 'selector' && (
