@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './Assessment.css';
+import { scoreRomajiAnswer } from '../utils/romaji';
 
 function normalizeRomaji(value) {
   return (value || '')
@@ -175,7 +176,7 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
   const otherReady = otherPlayer?.ready === true;
   const otherAnswer = otherPlayer?.answers[room.currentCardIndex];
   const otherCorrect = otherAnswer !== undefined
-    && normalizeRomaji(otherAnswer) === normalizeRomaji(currentCard?.romaji);
+    && scoreRomajiAnswer(otherAnswer, currentCard?.romaji).percentage === 100;
 
   useEffect(() => {
     setAnswer('');
@@ -189,9 +190,9 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
   };
 
   const progress = ((room.currentCardIndex + 1) / kanaCards.length) * 100;
-  const isCorrect = normalizeRomaji(currentPlayer?.answers[room.currentCardIndex])
-    === normalizeRomaji(currentCard?.romaji);
   const submittedAnswer = currentPlayer?.answers[room.currentCardIndex] || '';
+  const answerScore = scoreRomajiAnswer(submittedAnswer, currentCard?.romaji);
+  const isCorrect = answerScore.percentage === 100;
   const answerDiff = !isCorrect
     ? buildRomajiDiff(submittedAnswer, currentCard?.romaji)
     : null;

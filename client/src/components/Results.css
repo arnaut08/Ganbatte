@@ -133,9 +133,94 @@
 }
 
 .answers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
+}
+
+.answer-row {
+  background: #16213e;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.kana-cell {
+  color: #e8ecf1;
+  font-weight: 600;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #2d3748;
+}
+
+.common-correct-answer {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #2d3748;
+}
+
+.common-correct-answer .answer-diff-value {
+  font-size: 0.95rem;
+}
+
+.player-answer-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-top: 0.65rem;
+  color: #a0aec0;
+  font-size: 0.95rem;
+}
+
+.player-answer-cell strong {
+  color: #718096;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.answer-diff-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.answer-diff-label {
+  width: 6rem;
+  flex-shrink: 0;
+  color: #718096;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.answer-diff-value {
+  color: #e8ecf1;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  word-break: break-word;
+}
+
+.answer-diff-value .answer-token-wrong,
+.answer-diff-value .answer-token-correct {
+  display: inline-block;
+  margin: 0 0.08rem;
+  border-radius: 3px;
+  padding: 0.1rem 0.25rem;
+}
+
+.answer-diff-value .answer-token-wrong {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.answer-diff-value .answer-token-correct {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .answer-box {
