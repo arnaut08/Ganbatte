@@ -171,6 +171,7 @@ function App() {
           socket.emit('get-room', code, (room) => {
             if (room) {
               setRoom(room);
+              if (room.cards) setKanaCards(room.cards);
               setStatus('lobby');
               // If the host hasn't set a username, set it to the
               // name assigned by the server for this socket so the
