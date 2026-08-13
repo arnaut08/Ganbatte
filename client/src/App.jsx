@@ -9,6 +9,21 @@ import './App.css';
 import { generateCards, getKanaCards, getRoom } from './services/api';
 import { SERVER_URL } from './config';
 
+const SESSION_KEY_STORAGE = 'ganbatte-session-key';
+const ROOM_SESSION_STORAGE = 'ganbatte-room-session';
+
+function getSessionKey() {
+  const existingKey = sessionStorage.getItem(SESSION_KEY_STORAGE);
+  if (existingKey) return existingKey;
+  const sessionKey = crypto.randomUUID();
+  sessionStorage.setItem(SESSION_KEY_STORAGE, sessionKey);
+  return sessionKey;
+}
+
+function saveRoomSession(roomCode, username) {
+  sessionStorage.setItem(ROOM_SESSION_STORAGE, JSON.stringify({ roomCode, username }));
+}
+
 function App() {
   const [socket, setSocket] = useState(null);
   const [isSocketReady, setIsSocketReady] = useState(false);
@@ -36,6 +51,34 @@ function App() {
       console.log('Connected to server');
       setSocket(newSocket);
       setIsSocketReady(true);
+      const savedSession = sessionStorage.getItem(ROOM_SESSION_STORAGE);
+      if (savedSession) {
+        try {
+          const { roomCode: savedRoomCode, username: savedUsername } = JSON.parse(savedSession);
+          if (savedRoomCode && savedUsername) {
+            newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), (response) => {
+              if (response?.success) {
+                setRoomCode(savedRoomCode);
+                setUsername(savedUsername);
+                setRoom(response.room);
+                setKanaCards(response.room.cards || []);
+                setStatus(response.room.status === 'active' ? 'assessment' : 'lobby');
+              } else {
+                sessionStorage.removeItem(ROOM_SESSION_STORAGE);
+              }
+            });
+          }
+        } catch {
+          sessionStorage.removeItem(ROOM_SESSION_STORAGE);
+        }
+      }
+    });
+
+    newSocket.on('player-rejoined', (data) => {
+      if (data?.room) {
+        setRoom(data.room);
+        setKanaCards(data.room.cards || []);
+      }
     });
 
     newSocket.on('disconnect', () => {
@@ -172,8 +215,9 @@ function App() {
       const hostName = (name || '').trim();
       if (!hostName) return;
       setUsername(hostName);
-      socket.emit('create-room', hostName, (code) => {
+      socket.emit('create-room', hostName, getSessionKey(), (code) => {
         setRoomCode(code);
+        saveRoomSession(code, hostName);
         // Immediately request the full room from server so the host
         // has the same room object structure as a joined player and
         // the lobby can render correctly.
@@ -193,9 +237,10 @@ function App() {
   const handleJoinRoom = (code, name) => {
     if (socket) {
       setUsername(name);
-      socket.emit('join-room', code, name, (response) => {
+      socket.emit('join-room', code, name, getSessionKey(), (response) => {
         if (response.success) {
           setRoomCode(code);
+          saveRoomSession(code, name);
           setRoom(response.room);
           setStatus('lobby');
         } else {
