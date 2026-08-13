@@ -1,102 +1,180 @@
 # Ganbatte 頑張って - Kana Reading Assessment
 
-A real-time, multiplayer web app for testing Kana reading skills. Two players can join a room and go through flashcards together, typing the romaji for each Kana character.
+A real-time, multiplayer web app for testing Kana (Japanese hiragana and katakana) reading skills. Two players can join a room and go through flashcards together, typing the romaji for each Kana character with intelligent input validation.
 
 ## Features
 
-✨ **Socket Connection**: Automatic socket connection when opening the app
-🚪 **Room Management**: Create a room and share the code with a friend
-👥 **Multiplayer**: Two players can join the same room for a shared assessment
-🃏 **Flashcard Assessment**: Flash card style interface with Kana characters
-📝 **Romaji Input**: Type the romaji (Latin characters) to answer each card
-📊 **Real-time Feedback**: Immediate feedback on correct/incorrect answers
-🏆 **Results**: View assessment results and answers at the end
+✨ **Real-time Socket Connection**: Automatic WebSocket connection for live multiplayer synchronization  
+🚪 **Room Management**: Create a room and share the code with friends via shareable links  
+👥 **Multiplayer Gameplay**: Two players can join the same room for a synchronized shared assessment  
+🃏 **Flashcard Assessment**: Interactive flashcard interface displaying Kana characters  
+📝 **Smart Romaji Input**: Type romaji (Latin characters) with intelligent tokenization and normalization  
+✅ **Advanced Input Validation**: Handles variations like "shi/si", "tsu/tu", "wo/o" with smart normalization  
+📊 **Real-time Feedback**: Immediate correct/incorrect response as you type  
+🏆 **Detailed Results**: View assessment results with player scoring and answer breakdowns  
+🔗 **Shareable Links**: Pass room code via URL parameters for easy joining  
+
+## Technology Stack
+
+- **Frontend**: React 18 + Vite
+- **Backend**: Express.js + Socket.io
+- **Real-time Communication**: Socket.io WebSockets
+- **Build Tool**: Vite
+- **Package Manager**: npm
 
 ## Project Structure
 
 ```
 ganbatte/
-├── server/              # Express + Socket.io backend
-│   ├── index.js        # Main server file
+├── server/                    # Express + Socket.io backend
+│   ├── index.js              # Main server file with room management & socket handlers
 │   └── package.json
-├── client/             # React frontend
+├── client/                    # React frontend with Vite
 │   ├── index.html
-│   ├── src/
-│   │   ├── main.jsx
-│   │   ├── App.jsx
-│   │   ├── App.css
-│   │   ├── index.css
-│   │   └── components/
-│   │       ├── RoomSelector.jsx
-│   │       ├── RoomLobby.jsx
-│   │       ├── Assessment.jsx
-│   │       ├── Results.jsx
-│   │       └── (respective CSS files)
 │   ├── vite.config.js
-│   └── package.json
-└── package.json        # Root package for workspace scripts
+│   ├── package.json
+│   └── src/
+│       ├── main.jsx          # Entry point
+│       ├── App.jsx           # Main app component with state management
+│       ├── App.css
+│       ├── index.css
+│       └── components/
+│           ├── RoomSelector.jsx       # Room creation & joining UI
+│           ├── RoomSelector.css
+│           ├── RoomLobby.jsx          # Waiting room for players
+│           ├── RoomLobby.css
+│           ├── Assessment.jsx         # Flashcard assessment interface
+│           ├── Assessment.css
+│           ├── Results.jsx            # Results & scoring display
+│           └── Results.css
+└── package.json              # Root workspace configuration
 ```
 
 ## Setup & Installation
 
 ### Prerequisites
-- Node.js (v14+)
-- npm or yarn
+- **Node.js** v14 or higher
+- **npm** (comes with Node.js)
 
-### Installation
+### Installation Steps
 
-1. **Clone/Navigate to the project directory**
+1. **Navigate to the project directory**
 ```bash
 cd ganbatte
 ```
 
-2. **Install dependencies for both server and client**
+2. **Install root dependencies**
 ```bash
 npm install
 ```
 
-This will install the root dependencies and prepare both server and client.
-
 3. **Install server dependencies**
 ```bash
-cd server
-npm install
+cd server && npm install && cd ..
 ```
 
 4. **Install client dependencies**
 ```bash
-cd client
-npm install
-cd ..
+cd client && npm install && cd ..
 ```
 
-## Running the App
+## Running the Application
 
-### Development Mode
-Run both server and client simultaneously:
+### Development Mode (Recommended)
+
+Run both server and client concurrently:
 
 ```bash
 npm run dev
 ```
 
-This will start:
-- **Server**: http://localhost:3001
-- **Client**: http://localhost:5173
+**Output:**
+- **Server**: Running on `http://localhost:3001`
+- **Client**: Running on `http://localhost:5173` (Vite dev server)
 
-### Server Only
+### Individual Commands
+
+**Start server only** (file watching enabled):
 ```bash
 npm run server:dev
 ```
 
-### Client Only
+**Start client only** (Vite dev server):
 ```bash
 npm run client:dev
 ```
 
-### Production Build
+**Build for production**:
 ```bash
 npm run build
 ```
+
+**Start production server**:
+```bash
+npm start
+```
+
+## How to Play
+
+1. **Start the App**: Open `http://localhost:5173` in your browser
+2. **Choose Your Role**:
+   - Click **Create Room** to host a new assessment
+   - Click **Join Room** to join an existing room by entering a room code
+3. **Invite a Friend**:
+   - Share the room code displayed on the lobby screen
+   - Or share the URL with the room code: `http://localhost:5173?room=ROOMCODE`
+4. **Take the Assessment**:
+   - When both players are ready, the assessment starts
+   - A Kana character appears on screen
+   - Type the romaji (Latin characters) for that character
+   - Press Enter or click Submit to move to the next card
+5. **View Results**:
+   - After all cards are completed, see your performance
+   - Results show correct/incorrect counts for each player
+   - Option to review answers and take another assessment
+
+## Romaji Input Rules
+
+The app supports flexible romaji input with smart normalization:
+
+- **Case-insensitive**: "KA" = "ka" = "Ka"
+- **Whitespace-tolerant**: "k a" = "ka"
+- **Alternative spellings**:
+  - "shi" or "si" both accepted for しゆ
+  - "chi" or "ti" both accepted for ちゆ
+  - "tsu" or "tu" both accepted for つゆ
+  - "fu" or "hu" both accepted for ふゆ
+  - "wo" automatically normalized to "o"
+- **Long vowels**: Supports multiple romanization patterns
+
+## API & Socket Events
+
+### Server Socket Events
+
+- `create-room`: Create a new assessment room
+- `join-room`: Join an existing room with code
+- `get-room`: Retrieve current room data
+- `set-cards`: Set custom card deck for a room
+- `start-assessment`: Begin the assessment
+- `submit-answer`: Submit an answer for a card
+- `get-assessment-results`: Fetch final results
+
+### Client Events Received
+
+- `room-created`: Emitted when a room is successfully created
+- `player-joined`: Emitted when a player joins the room
+- `assessment-started`: Emitted when assessment begins
+- `next-card`: Emitted when advancing to next card
+- `assessment-completed`: Emitted when all cards are answered
+- `cards-updated`: Emitted when card deck is updated
+
+## Development Notes
+
+- The server generates random 6-character room codes
+- Each room stores up to 2 players
+- Kana cards are generated with associated romaji answers
+- Input tokenization splits complex romaji into syllables for validation
+- Results are computed in real-time as answers are submitted
 
 ### Start Production Server
 ```bash
