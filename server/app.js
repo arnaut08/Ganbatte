@@ -3,14 +3,20 @@ import cors from 'cors';
 import helmet from 'helmet';
 import hpp from 'hpp';
 import rateLimit from 'express-rate-limit';
-import { CLIENT_ORIGINS, JSON_BODY_LIMIT } from './config/env.js';
+import { isAllowedOrigin, JSON_BODY_LIMIT } from './config/env.js';
 
 const app = express();
 
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
-  origin: CLIENT_ORIGINS,
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin is not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(hpp());

@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import app from './app.js';
-import { CLIENT_ORIGINS, PORT } from './config/env.js';
+import { isAllowedOrigin, PORT } from './config/env.js';
 import {
   answerSchema,
   cardCountSchema,
@@ -16,7 +16,9 @@ const server = createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_ORIGINS,
+    origin: (origin, callback) => {
+      callback(null, isAllowedOrigin(origin));
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
