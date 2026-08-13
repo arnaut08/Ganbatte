@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch index.js",
+    "build": "node --check index.js",
     "start": "node index.js"
   },
   "dependencies": {
