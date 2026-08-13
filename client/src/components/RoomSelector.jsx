@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import './RoomSelector.css';
+import { SERVER_URL } from '../config';
 
 function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
   const [createName, setCreateName] = useState('');
@@ -23,7 +24,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
     }
 
     let cancelled = false;
-    fetch(`http://localhost:3001/api/rooms/${encodeURIComponent(prefillRoomCode)}`)
+    fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(prefillRoomCode)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((room) => {
         if (cancelled) return;
