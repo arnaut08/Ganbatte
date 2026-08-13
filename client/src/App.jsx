@@ -6,6 +6,7 @@ import Assessment from './components/Assessment';
 import Results from './components/Results';
 import './App.css';
 import { SERVER_URL } from './config';
+import logo from './assets/logo.svg';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -223,8 +224,16 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Ganbatte 頑張って</h1>
-        <p>Kana Reading Assessment</p>
+        <div className="brand-lockup">
+          <img className="app-logo" src={logo} alt="Ganbatte logo" />
+          <div>
+            <h1>
+              <span className="brand-name">GANBATTE</span>
+              <span className="brand-kana" lang="ja">頑張って</span>
+            </h1>
+            <p>Stop saying 'Nani?' to everything.</p>
+          </div>
+        </div>
       </header>
 
       <main className="app-main">
