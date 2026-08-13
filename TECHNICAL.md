@@ -1,0 +1,216 @@
+# Ganbatte Technical Guide
+
+This document contains setup, architecture, deployment, and implementation details for contributors and maintainers.
+
+## Technology Stack
+
+- Frontend: React 18, Vite, Socket.io Client
+- Backend: Node.js, Express.js, Socket.io
+- Validation: Zod
+- Server middleware: Helmet, CORS, HPP, rate limiting, payload limits
+- Runtime: Node.js and npm
+- Deployment: Vercel-compatible client and Render-compatible server
+
+## Project Structure
+
+```text
+Ganbatte/
+├── client/
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx
+│       ├── App.css
+│       ├── index.css
+│       ├── config.js
+│       ├── assets/logo.svg
+│       ├── components/
+│       │   ├── layout/AppHeader.jsx
+│       │   ├── RoomSelector.jsx
+│       │   ├── RoomLobby.jsx
+│       │   ├── Assessment.jsx
+│       │   └── Results.jsx
+│       ├── services/api.js
+│       └── utils/romaji.js
+├── server/
+│   ├── index.js
+│   ├── app.js
+│   ├── package.json
+│   ├── config/env.js
+│   ├── data/kana-sentences.js
+│   ├── services/card-service.js
+│   └── utils/validation.js
+├── .github/copilot-instructions.md
+└── package.json
+```
+
+## Requirements
+
+- Node.js 18 or newer
+- npm
+
+## Installation
+
+From the repository root:
+
+```bash
+npm install
+cd server && npm install
+cd ../client && npm install
+cd ..
+```
+
+## Local Development
+
+Start the server and client together:
+
+```bash
+npm run dev
+```
+
+Default local URLs:
+
+- Client: `http://localhost:5173`
+- Server: `http://localhost:3001`
+
+Run either side independently:
+
+```bash
+npm run server:dev
+npm run client:dev
+```
+
+## Client Environment
+
+The client reads the server URL from `VITE_SERVER_URL`.
+
+Create `client/.env`:
+
+```env
+VITE_SERVER_URL=http://localhost:3001
+```
+
+For a deployed client:
+
+```env
+VITE_SERVER_URL=https://your-server.onrender.com
+```
+
+The repository includes `client/.env.example`. The client falls back to the browser origin when the variable is not set.
+
+## Deployment
+
+### Server on Render
+
+Configure a Render web service with:
+
+- Root directory: `server`
+- Build command: `npm run build`
+- Start command: `npm start`
+- Health check path: `/health`
+- `CLIENT_ORIGINS`: comma-separated allowed client origins
+
+The server build command runs `node --check index.js` because the backend is plain JavaScript and does not require compilation.
+
+### Client on Vercel
+
+Configure the Vercel project with:
+
+- Root directory: `client`
+- Build command: `npm run build`
+- Output directory: `dist`
+- `VITE_SERVER_URL`: the public Render server URL
+
+## Dataset and Randomization
+
+Sentence records are stored in `server/data/kana-sentences.js`.
+
+The current dataset is generated from independent beginner vocabulary dimensions:
+
+- 20 subjects
+- 15 everyday places
+- 20 activities
+- 6,000 unique sentence combinations
+
+`server/services/card-service.js` selects random records without duplicates within a deck. New rooms and the card-generation endpoint each receive a random set of 10 prompts.
+
+## Romaji and Scoring
+
+- Answers are case-insensitive.
+- Whitespace is ignored during normalization.
+- `wo` is normalized to `o`.
+- Romaji is tokenized using `client/src/utils/romaji.js`.
+- Each expected token is worth one possible point.
+- A token receives credit when it matches the expected token at the same position.
+- The percentage is calculated from matched tokens over expected tokens.
+- A question is fully correct only when all expected tokens match.
+- Difference review aligns matching tokens and highlights actual submitted or expected differences, including separated errors.
+
+## API Endpoints
+
+- `GET /health` - Health check for deployment monitoring.
+- `GET /api/kana-cards` - Returns a random deck of 10 sentence cards.
+- `POST /api/generate-cards?count=10` - Generates a random deck with 1-25 cards.
+- `GET /api/rooms/:code` - Returns the current room state.
+
+## Socket Events
+
+Client to server:
+
+- `create-room`
+- `join-room`
+- `get-room`
+- `set-cards`
+- `start-assessment`
+- `submit-answer`
+- `player-ready`
+
+Server to client:
+
+- `room-created`
+- `player-joined`
+- `cards-updated`
+- `assessment-started`
+- `answer-submitted`
+- `both-submitted`
+- `player-ready-updated`
+- `card-updated`
+- `assessment-completed`
+- `player-left`
+
+## Scripts
+
+Root:
+
+```bash
+npm run dev
+npm run server:dev
+npm run client:dev
+npm run build
+npm start
+```
+
+Server:
+
+```bash
+npm run dev
+npm run build
+npm start
+```
+
+Client:
+
+```bash
+npm run dev
+npm run build
+npm run preview
+```
+
+## Customization
+
+- Add vocabulary dimensions or sentence templates in `server/data/kana-sentences.js`.
+- Adjust random deck selection in `server/services/card-service.js`.
+- Adjust scoring and difference behavior in `client/src/utils/romaji.js`.
+- Update the logo in `client/src/assets/logo.svg`.
+- Customize the visual theme in the CSS files under `client/src/`.
