@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import './RoomSelector.css';
-import { SERVER_URL } from '../config';
+import { getRoom } from '../services/api';
 
 function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
   const [createName, setCreateName] = useState('');
@@ -24,8 +24,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '' }) {
     }
 
     let cancelled = false;
-    fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(prefillRoomCode)}`)
-      .then((res) => (res.ok ? res.json() : null))
+    getRoom(prefillRoomCode)
       .then((room) => {
         if (cancelled) return;
         const owner = room?.players?.[0]?.name?.trim?.();
