@@ -6,12 +6,12 @@ Ganbatte is a real-time multiplayer Japanese kana reading assessment. Challenge 
 
 ## Features
 
-✨ **Play Together**: Challenge a friend in a live two-player room
-🎲 **Fresh Questions**: Get a new selection of kana sentences every time
-🈁 **Learn Japanese**: Practice hiragana and katakana with English translations
-✍️ **Flexible Answers**: Type romaji naturally without worrying about capitalization or spacing
-📊 **Clear Results**: See your percentage score and correctly answered questions
-🔎 **Review Mistakes**: Compare your answer with the correct reading after each question
+✨ **Play Together**: Challenge a friend in a live two-player room  
+🎲 **Fresh Questions**: Get a new selection of kana sentences every time  
+🈁 **Learn Japanese**: Practice hiragana and katakana with English translations  
+✍️ **Flexible Answers**: Type romaji naturally without worrying about capitalization or spacing  
+📊 **Clear Results**: See your percentage score and correctly answered questions  
+🔎 **Review Mistakes**: Compare your answer with the correct reading after each question  
 📱 **Play Anywhere**: Enjoy the assessment on desktop or mobile
 
 ## How to Play
