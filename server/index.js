@@ -10,6 +10,7 @@ import {
   usernameSchema,
 } from './utils/validation.js';
 import { generateRandomCards } from './services/card-service.js';
+import { KANA_SENTENCES } from './data/kana-sentences.js';
 
 const server = createServer(app);
 
@@ -158,7 +159,7 @@ io.on('connection', (socket) => {
         // into review (for non-final cards) or complete the assessment
         // immediately if this was the last card. Use the room's card set
         // when available.
-        const kanaCards = room.cards || getKanaCards();
+        const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
         const allSubmitted = room.players.length > 0 && room.players.every((p) => p.answers[idx] !== undefined);
         if (allSubmitted) {
           console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
@@ -204,7 +205,7 @@ io.on('connection', (socket) => {
       room.currentCardIndex++;
       // when advancing, clear ready flags
       room.players.forEach((p) => (p.ready = false));
-      const kanaCards = room.cards || getKanaCards();
+      const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
 
       if (room.currentCardIndex >= kanaCards.length) {
         room.status = 'completed';
@@ -239,7 +240,7 @@ io.on('connection', (socket) => {
     // If all players are ready, advance the card
     const idx = room.currentCardIndex;
     const allReady = room.players.length > 0 && room.players.every((p) => p.ready === true);
-    const kanaCards = room.cards || getKanaCards();
+    const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
     if (allReady) {
       room.currentCardIndex++;
       // clear ready flags for next card
@@ -270,7 +271,7 @@ io.on('connection', (socket) => {
   function tryAdvanceIfAllSubmitted(roomCode) {
     const room = rooms.get(roomCode);
     if (!room) return;
-    const kanaCards = room.cards || getKanaCards();
+    const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
     const idx = room.currentCardIndex;
 
     const allSubmitted = room.players.length > 0 && room.players.every((p) => p.answers[idx] !== undefined);
@@ -313,51 +314,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Kana cards data
-function getKanaCards() {
-  return [
-    { kana: 'あ', romaji: 'a', hiragana: true },
-    { kana: 'い', romaji: 'i', hiragana: true },
-    { kana: 'う', romaji: 'u', hiragana: true },
-    { kana: 'え', romaji: 'e', hiragana: true },
-    { kana: 'お', romaji: 'o', hiragana: true },
-    { kana: 'か', romaji: 'ka', hiragana: true },
-    { kana: 'き', romaji: 'ki', hiragana: true },
-  ];
-}
-
-// A small pool of kana-only sentences (hiragana/katakana only, no kanji)
-const KANA_SENTENCES = [
-  { kana: 'わたしはがくせいで、きょうはレポートをかきます。', romaji: 'watashi wa gakusei de kyou wa repooto o kakimasu', english: 'I am a student, and today I will write a report.' },
-  { kana: 'きのうスーパーでチーズケーキをかって、うちでたべました。', romaji: 'kinou suupaa de chiizukeeki o katte uchi de tabemashita', english: 'Yesterday I bought cheesecake at the supermarket and ate it at home.' },
-  { kana: 'スマートフォンでしゃしんをとって、アルバムにいれます。', romaji: 'sumaato fon de shashin o totte arubamu ni iremasu', english: 'I take photos with my smartphone and put them in an album.' },
-  { kana: 'あしたのばんごはんはパスタとサラダをつくります。', romaji: 'ashita no bangohan wa pasuta to sarada o tsukurimasu', english: 'For tomorrow dinner, I will make pasta and salad.' },
-  { kana: 'ともだちとカフェでコーヒーをのみながらはなしました。', romaji: 'tomodachi to kafe de koohii o nominagara hanashimashita', english: 'I talked with a friend while drinking coffee at a cafe.' },
-  { kana: 'にほんごのクラスでながいぶんしょうをよみます。', romaji: 'nihongo no kurasu de nagai bunshou o yomimasu', english: 'In Japanese class, I read long passages.' },
-  { kana: 'えいがをみてから、いっしょにさんぽにいきました。', romaji: 'eiga o mite kara issho ni sanpo ni ikimashita', english: 'After watching a movie, we went for a walk together.' },
-  { kana: 'コンサートでおんがくをきいて、たのしいじかんをすごしました。', romaji: 'konsaato de ongaku o kiite tanoshii jikan o sugoshimashita', english: 'I listened to music at the concert and had a great time.' },
-  { kana: 'パソコンでしゅくだいをして、そのあとテレビをみました。', romaji: 'pasokon de shukudai o shite sono ato terebi o mimashita', english: 'I did homework on the computer, and then watched TV.' },
-  { kana: 'にわでやさいをそだてて、あかるいうちにせいさんします。', romaji: 'niwa de yasai o sodate te akarui uchi ni seisan shimasu', english: 'I grow vegetables in the garden and harvest them while it is still bright.' },
-  { kana: 'まいにちジョギングをして、からだをげんきにします。', romaji: 'mainichi jogingu o shite karada o genki ni shimasu', english: 'I jog every day to keep my body healthy.' },
-  { kana: 'きょうはデパートでくだものやおみやげをかいました。', romaji: 'kyou wa depaato de kudamono ya omiyage o kaimashita', english: 'Today I bought fruit and souvenirs at the department store.' },
-  { kana: 'にほんのえいがをみて、ことばをべんきょうしました。', romaji: 'nihon no eiga o mite kotoba o benkyou shimashita', english: 'I watched a Japanese movie and studied vocabulary.' },
-  { kana: 'せんせいといっしょにプロジェクトについてそうだんしました。', romaji: 'sensei to issho ni purojekuto ni tsuite soudan shimashita', english: 'I discussed the project with my teacher.' },
-  { kana: 'あさごはんにトーストとたまごとジュースをのみました。', romaji: 'asagohan ni toosuto to tamago to juusu o nomimashita', english: 'For breakfast, I had toast, eggs, and juice.' },
-  { kana: 'フルーツやヨーグルトをたべて、からだにいいえいようをとります。', romaji: 'furuutsu ya yooguruto o tabete karada ni ii eiyou o torimasu', english: 'I eat fruit and yogurt to get good nutrition.' },
-  { kana: 'きのうのよる、えいがかんでドラマティックなえいがをみました。', romaji: 'kinou no yoru eigakan de doramachikku na eiga o mimashita', english: 'Last night, I watched a dramatic movie at the cinema.' },
-  { kana: 'でんしゃのまどからけしきがきれいにみえました。', romaji: 'densha no mado kara keshiki ga kirei ni miemashita', english: 'The scenery looked beautiful from the train window.' },
-  { kana: 'せんたくをしてからへやをそうじしました。', romaji: 'sentaku o shite kara heya o souji shimashita', english: 'After doing laundry, I cleaned my room.' },
-  { kana: 'コンピューターのプログラムをかいてテストをしました。', romaji: 'konpyuutaa no puroguramu o kaite tesuto o shimashita', english: 'I wrote a computer program and ran tests.' },
-  { kana: 'あたらしいほんをよんで、いろいろなアイデアをまなびました。', romaji: 'atarashii hon o yonde iroiro na aidea o manabimashita', english: 'I read a new book and learned many ideas.' },
-  { kana: 'パーティーでみんなとわらってたのしいじかんをすごしました。', romaji: 'paatii de minna to waratte tanoshii jikan o sugoshimashita', english: 'I laughed with everyone at the party and had fun.' },
-  { kana: 'カメラでしゃしんをとって、あとでアルバムをつくります。', romaji: 'kamera de shashin o totte ato de arubamu o tsukurimasu', english: 'I take pictures with a camera and make an album later.' },
-  { kana: 'にわのはながきれいにさいていていいにおいがしました。', romaji: 'niwa no hana ga kirei ni saite ite ii nioi ga shimashita', english: 'The flowers in the garden were blooming beautifully and smelled nice.' },
-  { kana: 'サッカーのしあいをみて、えんじょうしました。', romaji: 'sakkaa no shiai o mite enjoushimashita', english: 'I watched a soccer match and got excited.' },
-];
-
 // API endpoint to get kana cards
 app.get('/api/kana-cards', (req, res) => {
-  res.json(getKanaCards());
+  res.json(generateRandomCards(KANA_SENTENCES, 10));
 });
 
 // API endpoint to get room state (players, answers, status)

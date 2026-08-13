@@ -1,0 +1,71 @@
+const SUBJECTS = [
+  { kana: 'わたし', romaji: 'watashi', english: 'I' },
+  { kana: 'たなかさん', romaji: 'tanaka san', english: 'Tanaka' },
+  { kana: 'りなさん', romaji: 'rina san', english: 'Rina' },
+  { kana: 'けんさん', romaji: 'ken san', english: 'Ken' },
+  { kana: 'せんせい', romaji: 'sensei', english: 'The teacher' },
+  { kana: 'がくせいたち', romaji: 'gakuseitachi', english: 'The students' },
+  { kana: 'かぞく', romaji: 'kazoku', english: 'My family' },
+  { kana: 'ともだち', romaji: 'tomodachi', english: 'My friend' },
+  { kana: 'いもうと', romaji: 'imouto', english: 'My younger sister' },
+  { kana: 'おとうと', romaji: 'otouto', english: 'My younger brother' },
+  { kana: 'あなた', romaji: 'anata', english: 'You' },
+  { kana: 'かれ', romaji: 'kare', english: 'He' },
+  { kana: 'かのじょ', romaji: 'kanojo', english: 'She' },
+  { kana: 'ちち', romaji: 'chichi', english: 'My father' },
+  { kana: 'はは', romaji: 'haha', english: 'My mother' },
+  { kana: 'あに', romaji: 'ani', english: 'My older brother' },
+  { kana: 'あね', romaji: 'ane', english: 'My older sister' },
+  { kana: 'おじいさん', romaji: 'ojiisan', english: 'My grandfather' },
+  { kana: 'おばあさん', romaji: 'obaasan', english: 'My grandmother' },
+  { kana: 'せんぱい', romaji: 'senpai', english: 'My senior' },
+];
+
+const PLACES = [
+  { kana: 'としょかん', romaji: 'toshokan', english: 'the library' },
+  { kana: 'きょうしつ', romaji: 'kyoushitsu', english: 'the classroom' },
+  { kana: 'カフェ', romaji: 'kafe', english: 'the cafe' },
+  { kana: 'こうえん', romaji: 'kouen', english: 'the park' },
+  { kana: 'えき', romaji: 'eki', english: 'the station' },
+  { kana: 'うち', romaji: 'uchi', english: 'home' },
+  { kana: 'びょういん', romaji: 'byouin', english: 'the hospital' },
+  { kana: 'ぎんこう', romaji: 'ginkou', english: 'the bank' },
+  { kana: 'ゆうびんきょく', romaji: 'yuubinkyoku', english: 'the post office' },
+  { kana: 'スーパー', romaji: 'suupaa', english: 'the supermarket' },
+  { kana: 'ほんや', romaji: 'honya', english: 'the bookstore' },
+  { kana: 'がっこう', romaji: 'gakkou', english: 'school' },
+  { kana: 'かいしゃ', romaji: 'kaisha', english: 'the office' },
+  { kana: 'レストラン', romaji: 'resutoran', english: 'the restaurant' },
+  { kana: 'みせ', romaji: 'mise', english: 'the shop' },
+];
+
+const ACTIVITIES = [
+  { kana: 'ほんをよみます', romaji: 'hon o yomimasu', english: 'read a book' },
+  { kana: 'にほんごをべんきょうします', romaji: 'nihongo o benkyoushimasu', english: 'study Japanese' },
+  { kana: 'おんがくをききます', romaji: 'ongaku o kikimasu', english: 'listen to music' },
+  { kana: 'しゃしんをとります', romaji: 'shashin o torimasu', english: 'take photos' },
+  { kana: 'えをかきます', romaji: 'e o kakimasu', english: 'draw a picture' },
+  { kana: 'コーヒーをのみます', romaji: 'koohii o nomimasu', english: 'drink coffee' },
+  { kana: 'てがみをかきます', romaji: 'tegami o kakimasu', english: 'write a letter' },
+  { kana: 'しんぶんをよみます', romaji: 'shinbun o yomimasu', english: 'read the newspaper' },
+  { kana: 'りょうりをします', romaji: 'ryouri o shimasu', english: 'cook' },
+  { kana: 'えいがをみます', romaji: 'eiga o mimasu', english: 'watch a movie' },
+  { kana: 'ごはんをたべます', romaji: 'gohan o tabemasu', english: 'eat a meal' },
+  { kana: 'みずをのみます', romaji: 'mizu o nomimasu', english: 'drink water' },
+  { kana: 'てをあらいます', romaji: 'te o araimasu', english: 'wash my hands' },
+  { kana: 'でんわをかけます', romaji: 'denwa o kakemasu', english: 'make a phone call' },
+  { kana: 'テレビをみます', romaji: 'terebi o mimasu', english: 'watch television' },
+  { kana: 'てがみをよみます', romaji: 'tegami o yomimasu', english: 'read a letter' },
+  { kana: 'かいものをします', romaji: 'kaimono o shimasu', english: 'go shopping' },
+  { kana: 'スポーツをします', romaji: 'supootsu o shimasu', english: 'play sports' },
+  { kana: 'ともだちとはなします', romaji: 'tomodachi to hanashimasu', english: 'talk with a friend' },
+  { kana: 'うたをうたいます', romaji: 'uta o utaimasu', english: 'sing a song' },
+];
+
+export const KANA_SENTENCES = SUBJECTS.flatMap((subject) => PLACES.flatMap((place) => (
+  ACTIVITIES.map((activity) => ({
+    kana: `${subject.kana}は${place.kana}で${activity.kana}。`,
+    romaji: `${subject.romaji} wa ${place.romaji} de ${activity.romaji}`,
+    english: `${subject.english} ${activity.english} at ${place.english}.`,
+  }))
+)));
