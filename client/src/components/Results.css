@@ -1,0 +1,174 @@
+.results {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.results-container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid #e0e0e0;
+  max-width: 800px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.results-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.results-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 2rem;
+}
+
+.results-header p {
+  margin: 0;
+  color: #666;
+}
+
+.results-leaderboard {
+  margin-bottom: 2rem;
+}
+
+.results-leaderboard h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.leaderboard-table {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.player-result {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.rank-badge {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.player-result-info {
+  flex: 1;
+}
+
+.player-result-info h4 {
+  margin: 0 0 0.25rem 0;
+  color: #333;
+}
+
+.player-score {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.results-details {
+  margin-bottom: 2rem;
+}
+
+.results-details h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.player-answers {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f0f8ff;
+  border-radius: 8px;
+  border: 1px solid #b3d9ff;
+}
+
+.player-answers h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.answers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+
+.answer-box {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.answer-index {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.answer-value {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.results-actions {
+  text-align: center;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+.results-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.results-actions-row .btn {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .results-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .results-actions-row .btn {
+    width: 100%;
+  }
+}
+
+.room-code-info {
+  color: #666;
+  margin: 0;
+  font-size: 0.95rem;
+}
