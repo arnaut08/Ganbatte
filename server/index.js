@@ -1,26 +1,26 @@
-import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import cors from 'cors';
+import app from './app.js';
+import { CLIENT_ORIGINS, PORT } from './config/env.js';
+import {
+  answerSchema,
+  cardCountSchema,
+  cardsSchema,
+  roomCodeSchema,
+  usernameSchema,
+} from './utils/validation.js';
+import { generateRandomCards } from './services/card-service.js';
+import { KANA_SENTENCES } from './data/kana-sentences.js';
 
-const app = express();
 const server = createServer(app);
+
 const io = new Server(server, {
   cors: {
-    // In development allow the Vite dev server origin (and any origin
-    // that the browser uses to access the frontend). Using a function
-    // allows socket.io to echo back the request origin and avoid CORS
-    // mismatches when accessing the app via localhost or 127.0.0.1.
-    origin: (origin, callback) => {
-      callback(null, true);
-    },
+    origin: CLIENT_ORIGINS,
     methods: ['GET', 'POST'],
     credentials: true,
   },
 });
-
-app.use(cors());
-app.use(express.json());
 
 // Store rooms in memory
 const rooms = new Map();
@@ -36,12 +36,11 @@ io.on('connection', (socket) => {
   // Create a new room
   socket.on('create-room', (hostNameOrCallback, maybeCallback) => {
     const callback = typeof hostNameOrCallback === 'function' ? hostNameOrCallback : maybeCallback;
-    const hostName = typeof hostNameOrCallback === 'string' && hostNameOrCallback.trim()
-      ? hostNameOrCallback.trim()
-      : 'Player 1';
+    const parsedHostName = usernameSchema.safeParse(hostNameOrCallback);
+    const hostName = parsedHostName.success ? parsedHostName.data : 'Player 1';
     const roomCode = generateRoomCode();
     // generate a fresh kana-sentence card set for this room
-    const cards = generateKanaCards(10);
+    const cards = generateRandomCards(KANA_SENTENCES, 10);
     rooms.set(roomCode, {
       code: roomCode,
       players: [{ id: socket.id, name: hostName, answers: [] }],
@@ -57,7 +56,14 @@ io.on('connection', (socket) => {
 
   // Join an existing room
   socket.on('join-room', (roomCode, username, callback) => {
-    const room = rooms.get(roomCode);
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    const parsedUsername = usernameSchema.safeParse(username);
+    if (!parsedRoomCode.success || !parsedUsername.success) {
+      if (callback) callback({ success: false, message: 'Invalid room code or username' });
+      return;
+    }
+
+    const room = rooms.get(parsedRoomCode.data);
 
     if (!room) {
       if (callback) callback({ success: false, message: 'Room not found' });
@@ -69,13 +75,13 @@ io.on('connection', (socket) => {
       return;
     }
 
-    room.players.push({ id: socket.id, name: username || 'Player 2', answers: [] });
-    socket.join(roomCode);
+    room.players.push({ id: socket.id, name: parsedUsername.data, answers: [] });
+    socket.join(parsedRoomCode.data);
 
     // Notify all players in the room
     // Emit the full room object so all clients receive consistent
     // room structure (client expects `data.room`).
-    io.to(roomCode).emit('player-joined', { room });
+    io.to(parsedRoomCode.data).emit('player-joined', { room });
 
     if (callback) callback({ success: true, room });
   });
@@ -90,13 +96,20 @@ io.on('connection', (socket) => {
 
   // Allow setting a custom card set for the room
   socket.on('set-cards', (roomCode, cards, callback) => {
-    const room = rooms.get(roomCode);
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    const parsedCards = cardsSchema.safeParse(cards);
+    if (!parsedRoomCode.success || !parsedCards.success) {
+      if (callback) callback({ success: false, message: 'Invalid room code or card deck' });
+      return;
+    }
+
+    const room = rooms.get(parsedRoomCode.data);
     if (!room) {
       if (callback) callback({ success: false, message: 'Room not found' });
       return;
     }
-    room.cards = cards;
-    io.to(roomCode).emit('cards-updated', { room });
+    room.cards = parsedCards.data;
+    io.to(parsedRoomCode.data).emit('cards-updated', { room });
     if (callback) callback({ success: true, room });
   });
 
@@ -117,7 +130,11 @@ io.on('connection', (socket) => {
 
   // Submit answer
   socket.on('submit-answer', (roomCode, answer) => {
-    const room = rooms.get(roomCode);
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    const parsedAnswer = answerSchema.safeParse(answer);
+    if (!parsedRoomCode.success || !parsedAnswer.success) return;
+
+    const room = rooms.get(parsedRoomCode.data);
     if (room) {
       const player = room.players.find((p) => p.id === socket.id);
       if (player) {
@@ -127,7 +144,7 @@ io.on('connection', (socket) => {
         // captured index and emit that index back to clients. Also
         // auto-mark the submitting player as ready.
         const idx = room.currentCardIndex;
-        player.answers[idx] = answer;
+        player.answers[idx] = parsedAnswer.data;
         player.ready = true;
 
         // Emit the updated answer and ready state
@@ -142,7 +159,7 @@ io.on('connection', (socket) => {
         // into review (for non-final cards) or complete the assessment
         // immediately if this was the last card. Use the room's card set
         // when available.
-        const kanaCards = room.cards || getKanaCards();
+        const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
         const allSubmitted = room.players.length > 0 && room.players.every((p) => p.answers[idx] !== undefined);
         if (allSubmitted) {
           console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
@@ -188,7 +205,7 @@ io.on('connection', (socket) => {
       room.currentCardIndex++;
       // when advancing, clear ready flags
       room.players.forEach((p) => (p.ready = false));
-      const kanaCards = room.cards || getKanaCards();
+      const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
 
       if (room.currentCardIndex >= kanaCards.length) {
         room.status = 'completed';
@@ -223,7 +240,7 @@ io.on('connection', (socket) => {
     // If all players are ready, advance the card
     const idx = room.currentCardIndex;
     const allReady = room.players.length > 0 && room.players.every((p) => p.ready === true);
-    const kanaCards = room.cards || getKanaCards();
+    const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
     if (allReady) {
       room.currentCardIndex++;
       // clear ready flags for next card
@@ -254,7 +271,7 @@ io.on('connection', (socket) => {
   function tryAdvanceIfAllSubmitted(roomCode) {
     const room = rooms.get(roomCode);
     if (!room) return;
-    const kanaCards = room.cards || getKanaCards();
+    const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
     const idx = room.currentCardIndex;
 
     const allSubmitted = room.players.length > 0 && room.players.every((p) => p.answers[idx] !== undefined);
@@ -297,81 +314,57 @@ io.on('connection', (socket) => {
   });
 });
 
-// Kana cards data
-function getKanaCards() {
-  return [
-    { kana: 'あ', romaji: 'a', hiragana: true },
-    { kana: 'い', romaji: 'i', hiragana: true },
-    { kana: 'う', romaji: 'u', hiragana: true },
-    { kana: 'え', romaji: 'e', hiragana: true },
-    { kana: 'お', romaji: 'o', hiragana: true },
-    { kana: 'か', romaji: 'ka', hiragana: true },
-    { kana: 'き', romaji: 'ki', hiragana: true },
-  ];
-}
-
-// A small pool of kana-only sentences (hiragana/katakana only, no kanji)
-const KANA_SENTENCES = [
-  { kana: 'わたしはがくせいで、きょうはレポートをかきます。', romaji: 'watashi wa gakusei de kyou wa repooto o kakimasu', english: 'I am a student, and today I will write a report.' },
-  { kana: 'きのうスーパーでチーズケーキをかって、うちでたべました。', romaji: 'kinou suupaa de chiizukeeki o katte uchi de tabemashita', english: 'Yesterday I bought cheesecake at the supermarket and ate it at home.' },
-  { kana: 'スマートフォンでしゃしんをとって、アルバムにいれます。', romaji: 'sumaato fon de shashin o totte arubamu ni iremasu', english: 'I take photos with my smartphone and put them in an album.' },
-  { kana: 'あしたのばんごはんはパスタとサラダをつくります。', romaji: 'ashita no bangohan wa pasuta to sarada o tsukurimasu', english: 'For tomorrow dinner, I will make pasta and salad.' },
-  { kana: 'ともだちとカフェでコーヒーをのみながらはなしました。', romaji: 'tomodachi to kafe de koohii o nominagara hanashimashita', english: 'I talked with a friend while drinking coffee at a cafe.' },
-  { kana: 'にほんごのクラスでながいぶんしょうをよみます。', romaji: 'nihongo no kurasu de nagai bunshou o yomimasu', english: 'In Japanese class, I read long passages.' },
-  { kana: 'えいがをみてから、いっしょにさんぽにいきました。', romaji: 'eiga o mite kara issho ni sanpo ni ikimashita', english: 'After watching a movie, we went for a walk together.' },
-  { kana: 'コンサートでおんがくをきいて、たのしいじかんをすごしました。', romaji: 'konsaato de ongaku o kiite tanoshii jikan o sugoshimashita', english: 'I listened to music at the concert and had a great time.' },
-  { kana: 'パソコンでしゅくだいをして、そのあとテレビをみました。', romaji: 'pasokon de shukudai o shite sono ato terebi o mimashita', english: 'I did homework on the computer, and then watched TV.' },
-  { kana: 'にわでやさいをそだてて、あかるいうちにせいさんします。', romaji: 'niwa de yasai o sodate te akarui uchi ni seisan shimasu', english: 'I grow vegetables in the garden and harvest them while it is still bright.' },
-  { kana: 'まいにちジョギングをして、からだをげんきにします。', romaji: 'mainichi jogingu o shite karada o genki ni shimasu', english: 'I jog every day to keep my body healthy.' },
-  { kana: 'きょうはデパートでくだものやおみやげをかいました。', romaji: 'kyou wa depaato de kudamono ya omiyage o kaimashita', english: 'Today I bought fruit and souvenirs at the department store.' },
-  { kana: 'にほんのえいがをみて、ことばをべんきょうしました。', romaji: 'nihon no eiga o mite kotoba o benkyou shimashita', english: 'I watched a Japanese movie and studied vocabulary.' },
-  { kana: 'せんせいといっしょにプロジェクトについてそうだんしました。', romaji: 'sensei to issho ni purojekuto ni tsuite soudan shimashita', english: 'I discussed the project with my teacher.' },
-  { kana: 'あさごはんにトーストとたまごとジュースをのみました。', romaji: 'asagohan ni toosuto to tamago to juusu o nomimashita', english: 'For breakfast, I had toast, eggs, and juice.' },
-  { kana: 'フルーツやヨーグルトをたべて、からだにいいえいようをとります。', romaji: 'furuutsu ya yooguruto o tabete karada ni ii eiyou o torimasu', english: 'I eat fruit and yogurt to get good nutrition.' },
-  { kana: 'きのうのよる、えいがかんでドラマティックなえいがをみました。', romaji: 'kinou no yoru eigakan de doramachikku na eiga o mimashita', english: 'Last night, I watched a dramatic movie at the cinema.' },
-  { kana: 'でんしゃのまどからけしきがきれいにみえました。', romaji: 'densha no mado kara keshiki ga kirei ni miemashita', english: 'The scenery looked beautiful from the train window.' },
-  { kana: 'せんたくをしてからへやをそうじしました。', romaji: 'sentaku o shite kara heya o souji shimashita', english: 'After doing laundry, I cleaned my room.' },
-  { kana: 'コンピューターのプログラムをかいてテストをしました。', romaji: 'konpyuutaa no puroguramu o kaite tesuto o shimashita', english: 'I wrote a computer program and ran tests.' },
-  { kana: 'あたらしいほんをよんで、いろいろなアイデアをまなびました。', romaji: 'atarashii hon o yonde iroiro na aidea o manabimashita', english: 'I read a new book and learned many ideas.' },
-  { kana: 'パーティーでみんなとわらってたのしいじかんをすごしました。', romaji: 'paatii de minna to waratte tanoshii jikan o sugoshimashita', english: 'I laughed with everyone at the party and had fun.' },
-  { kana: 'カメラでしゃしんをとって、あとでアルバムをつくります。', romaji: 'kamera de shashin o totte ato de arubamu o tsukurimasu', english: 'I take pictures with a camera and make an album later.' },
-  { kana: 'にわのはながきれいにさいていていいにおいがしました。', romaji: 'niwa no hana ga kirei ni saite ite ii nioi ga shimashita', english: 'The flowers in the garden were blooming beautifully and smelled nice.' },
-  { kana: 'サッカーのしあいをみて、えんじょうしました。', romaji: 'sakkaa no shiai o mite enjoushimashita', english: 'I watched a soccer match and got excited.' },
-];
-
-// Generate a set of kana sentence cards (random selection)
-function generateKanaCards(count = 10) {
-  const pool = [...KANA_SENTENCES];
-  const out = [];
-  while (out.length < count && pool.length > 0) {
-    const i = Math.floor(Math.random() * pool.length);
-    const s = pool.splice(i, 1)[0];
-    out.push({ kana: s.kana, romaji: s.romaji, english: s.english });
-  }
-  return out;
-}
-
 // API endpoint to get kana cards
 app.get('/api/kana-cards', (req, res) => {
-  res.json(getKanaCards());
+  res.json(generateRandomCards(KANA_SENTENCES, 10));
 });
 
 // API endpoint to get room state (players, answers, status)
 app.get('/api/rooms/:code', (req, res) => {
-  const code = req.params.code;
+  const parsedCode = roomCodeSchema.safeParse(req.params.code);
+  if (!parsedCode.success) {
+    res.status(400).json({ error: 'Invalid room code' });
+    return;
+  }
+
+  const code = parsedCode.data;
   const room = rooms.get(code);
-  if (!room) return res.status(404).json({ error: 'Room not found' });
+  if (!room) {
+    res.status(404).json({ error: 'Room not found' });
+    return;
+  }
   res.json(room);
 });
 
 // API to generate a new set of kana sentence cards
 app.post('/api/generate-cards', (req, res) => {
-  const count = parseInt(req.query.count || '10', 10) || 10;
-  const cards = generateKanaCards(count);
+  const parsedCount = cardCountSchema.safeParse(req.query.count);
+  if (!parsedCount.success) {
+    res.status(400).json({ error: 'Count must be an integer between 1 and 25' });
+    return;
+  }
+
+  const cards = generateRandomCards(KANA_SENTENCES, parsedCount.data);
   res.json({ cards });
 });
 
-const PORT = process.env.PORT || 3001;
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+app.use((error, req, res, next) => {
+  console.error('Unhandled server error:', error);
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

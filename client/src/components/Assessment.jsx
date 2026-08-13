@@ -1,165 +1,6 @@
 import { useState, useEffect } from 'react';
 import './Assessment.css';
-import { scoreRomajiAnswer } from '../utils/romaji';
-
-function normalizeRomaji(value) {
-  return (value || '')
-    .toLowerCase()
-    .trim()
-    .split(/\s+/)
-    .map((part) => (part === 'wo' ? 'o' : part))
-    .join('');
-}
-
-const ROMAJI_SYLLABLES = [
-  'kyo', 'kyu', 'kya', 'gyo', 'gyu', 'gya', 'sho', 'shu', 'sha',
-  'jyo', 'jyu', 'jya', 'jo', 'ju', 'ja', 'cho', 'chu', 'cha',
-  'nyo', 'nyu', 'nya', 'hyo', 'hyu', 'hya', 'byo', 'byu', 'bya',
-  'pyo', 'pyu', 'pya', 'myo', 'myu', 'mya', 'ryo', 'ryu', 'rya',
-  'shi', 'chi', 'tsu', 'fu',
-  'ka', 'ki', 'ku', 'ke', 'ko', 'ga', 'gi', 'gu', 'ge', 'go',
-  'sa', 'si', 'su', 'se', 'so', 'za', 'zi', 'zu', 'ze', 'zo',
-  'ta', 'ti', 'tu', 'te', 'to', 'da', 'di', 'du', 'de', 'do',
-  'na', 'ni', 'nu', 'ne', 'no', 'ha', 'hi', 'hu', 'he', 'ho',
-  'ba', 'bi', 'bu', 'be', 'bo', 'pa', 'pi', 'pu', 'pe', 'po',
-  'ma', 'mi', 'mu', 'me', 'mo', 'ya', 'yu', 'yo',
-  'ra', 'ri', 'ru', 're', 'ro', 'wa', 'we', 'wi',
-  'a', 'i', 'u', 'e', 'o', 'n',
-];
-
-function tokenizeRomaji(value) {
-  const normalized = normalizeRomaji(value);
-  return tokenizeNormalizedRomaji(normalized).map((token) => token.value);
-}
-
-function tokenizeNormalizedRomaji(normalized) {
-  const tokens = [];
-  let i = 0;
-
-  while (i < normalized.length) {
-    let matched = null;
-
-    for (const syllable of ROMAJI_SYLLABLES) {
-      if (normalized.startsWith(syllable, i)) {
-        matched = syllable;
-        break;
-      }
-    }
-
-    if (matched) {
-      tokens.push({ value: matched, start: i, end: i + matched.length });
-      i += matched.length;
-      continue;
-    }
-
-    tokens.push({ value: normalized[i], start: i, end: i + 1 });
-    i += 1;
-  }
-
-  return tokens;
-}
-
-function buildNormalizedMap(rawValue) {
-  const raw = rawValue || '';
-  const lower = raw.toLowerCase();
-  const words = [...lower.matchAll(/\S+/g)];
-  let normalized = '';
-  const spans = [];
-
-  words.forEach((match) => {
-    const word = match[0];
-    const start = match.index;
-    if (start === undefined) {
-      return;
-    }
-
-    if (word === 'wo') {
-      normalized += 'o';
-      spans.push([start, start + word.length]);
-      return;
-    }
-
-    for (let i = 0; i < word.length; i++) {
-      normalized += word[i];
-      spans.push([start + i, start + i + 1]);
-    }
-  });
-
-  return { raw, normalized, spans };
-}
-
-function splitRawAroundDiff(raw, spans, diffStart, diffEnd) {
-  const normalizedLength = spans.length;
-  const safeStart = Math.max(0, Math.min(diffStart, normalizedLength));
-  const safeEnd = Math.max(safeStart, Math.min(diffEnd, normalizedLength));
-
-  const rawStart = safeStart >= normalizedLength ? raw.length : spans[safeStart][0];
-  const rawEnd = safeEnd === 0
-    ? 0
-    : safeEnd > normalizedLength
-    ? raw.length
-    : spans[safeEnd - 1][1];
-
-  return {
-    prefix: raw.slice(0, rawStart),
-    diff: raw.slice(rawStart, rawEnd),
-    suffix: raw.slice(rawEnd),
-  };
-}
-
-function buildRomajiDiff(givenRaw, expectedRaw) {
-  const givenMapped = buildNormalizedMap(givenRaw);
-  const expectedMapped = buildNormalizedMap(expectedRaw);
-  const given = tokenizeNormalizedRomaji(givenMapped.normalized);
-  const expected = tokenizeNormalizedRomaji(expectedMapped.normalized);
-
-  let left = 0;
-  while (
-    left < given.length
-    && left < expected.length
-    && given[left].value === expected[left].value
-  ) {
-    left++;
-  }
-
-  let rightGiven = given.length - 1;
-  let rightExpected = expected.length - 1;
-  while (
-    rightGiven >= left
-    && rightExpected >= left
-    && given[rightGiven].value === expected[rightExpected].value
-  ) {
-    rightGiven--;
-    rightExpected--;
-  }
-
-  const givenDiffStart = left < given.length ? given[left].start : givenMapped.normalized.length;
-  const givenDiffEnd = rightGiven >= left ? given[rightGiven].end : givenDiffStart;
-  const expectedDiffStart = left < expected.length ? expected[left].start : expectedMapped.normalized.length;
-  const expectedDiffEnd = rightExpected >= left ? expected[rightExpected].end : expectedDiffStart;
-
-  const givenSplit = splitRawAroundDiff(
-    givenMapped.raw,
-    givenMapped.spans,
-    givenDiffStart,
-    givenDiffEnd,
-  );
-  const expectedSplit = splitRawAroundDiff(
-    expectedMapped.raw,
-    expectedMapped.spans,
-    expectedDiffStart,
-    expectedDiffEnd,
-  );
-
-  return {
-    givenPrefix: givenSplit.prefix,
-    givenDiff: givenSplit.diff,
-    givenSuffix: givenSplit.suffix,
-    expectedPrefix: expectedSplit.prefix,
-    expectedDiff: expectedSplit.diff,
-    expectedSuffix: expectedSplit.suffix,
-  };
-}
+import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
 
 function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
   const [answer, setAnswer] = useState('');
@@ -196,6 +37,12 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
   const answerDiff = !isCorrect
     ? buildRomajiDiff(submittedAnswer, currentCard?.romaji)
     : null;
+
+  const renderDifference = (segments, tokenClass) => segments.map((segment, index) => (
+    <span key={`${segment.type}-${index}`} className={segment.type === 'diff' ? tokenClass : undefined}>
+      {segment.text}
+    </span>
+  ));
 
   return (
     <div className="assessment">
@@ -260,9 +107,7 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
                       <span>{submittedAnswer}</span>
                     ) : (
                       <>
-                        <span>{answerDiff.givenPrefix}</span>
-                        <span className="answer-token-wrong">{answerDiff.givenDiff || '∅'}</span>
-                        <span>{answerDiff.givenSuffix}</span>
+                        {renderDifference(answerDiff.given, 'answer-token-wrong')}
                       </>
                     )}
                   </div>
@@ -274,9 +119,7 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
                       <span>{currentCard?.romaji}</span>
                     ) : (
                       <>
-                        <span>{answerDiff.expectedPrefix}</span>
-                        <span className="answer-token-correct">{answerDiff.expectedDiff || '∅'}</span>
-                        <span>{answerDiff.expectedSuffix}</span>
+                        {renderDifference(answerDiff.expected, 'answer-token-correct')}
                       </>
                     )}
                   </div>
