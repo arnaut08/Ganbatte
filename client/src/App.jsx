@@ -6,6 +6,7 @@ import Assessment from './components/Assessment';
 import Results from './components/Results';
 import AuthPage from './components/AuthPage';
 import KanjiStudy from './components/KanjiStudy';
+import AssessmentHistory from './components/AssessmentHistory';
 import AppHeader from './components/layout/AppHeader';
 import './App.css';
 import { generateCards, getKanaCards, getRoom } from './services/api';
@@ -183,7 +184,7 @@ function App() {
       const resultsArr = (data && data.results)
         ? data.results
         : data && data.room
-        ? data.room.players.map((p) => ({ name: p.name, answers: p.answers }))
+        ? data.room.players.map((p) => ({ name: p.name, userId: p.userId, answers: p.answers }))
         : null;
       setResults(resultsArr);
       setStatus('results');
@@ -332,11 +333,12 @@ function App() {
   };
 
   const handleOpenKanjiStudy = () => setStatus('kanji-study');
+  const handleOpenHistory = () => setStatus('history');
   const handleBackToPractice = () => setStatus('selector');
 
   return (
     <div className="app">
-      <AppHeader onLogout={handleLogout} />
+      <AppHeader onLogout={handleLogout} onOpenHistory={handleOpenHistory} />
 
       <main className="app-main">
         {authLoading && <div className="auth-loading">Loading account...</div>}
@@ -354,6 +356,8 @@ function App() {
         )}
 
         {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
+
+        {status === 'history' && <AssessmentHistory onBack={handleBackToPractice} />}
 
         {status === 'lobby' && room && (
           <RoomLobby
@@ -376,7 +380,7 @@ function App() {
         )}
 
         {status === 'results' && results && (
-          <Results results={results} roomCode={roomCode} kanaCards={kanaCards} />
+          <Results results={results} roomCode={roomCode} kanaCards={kanaCards} username={username} user={user} />
         )}
           </>
         )}

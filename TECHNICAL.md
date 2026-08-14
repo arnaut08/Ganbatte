@@ -45,6 +45,7 @@ Ganbatte/
 │   ├── config/redis.js
 │   ├── database/migrations/001_create_kana_sentences.sql
 │   ├── database/migrations/002_create_profiles.sql
+│   ├── database/migrations/003_create_assessment_results.sql
 │   ├── data/kana-sentences.js
 │   ├── data/kanji.js
 │   ├── repositories/kana-sentence-repository.js
@@ -194,6 +195,7 @@ The current dataset is generated from independent beginner vocabulary dimensions
 - `GET /api/kanji-cards` - Returns grouped Kanji study cards.
 - `POST /api/generate-cards?count=10` - Generates a random deck with 1-25 cards.
 - `GET /api/rooms/:code` - Returns the current room state.
+- Assessment history is stored in Supabase by the authenticated client after a completed assessment.
 
 ## Socket Events
 

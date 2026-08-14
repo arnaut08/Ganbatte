@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './Results.css';
 import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
+import { supabase } from '../config/supabase';
 
 function renderDifference(answer, expected, side) {
   const segments = buildRomajiDiff(answer, expected)[side];
@@ -17,8 +18,9 @@ function renderCorrectAnswer(answer) {
   return <span className="answer-token-correct">{answer}</span>;
 }
 
-function Results({ results, roomCode, kanaCards }) {
+function Results({ results, roomCode, kanaCards, username, user }) {
   const [showDetails, setShowDetails] = useState(false);
+  const savedResult = useRef(false);
 
   const computeStats = (answers) => {
     let correct = 0;
@@ -41,6 +43,25 @@ function Results({ results, roomCode, kanaCards }) {
       percentage: totalTokens === 0 ? 0 : Math.round((matchedTokens / totalTokens) * 100),
     };
   };
+
+  const currentPlayer = results.find((player) => player.name === username) || results[0];
+  const currentStats = computeStats(currentPlayer?.answers || []);
+
+  useEffect(() => {
+    if (savedResult.current || !supabase || !user || !currentPlayer) return;
+    savedResult.current = true;
+    supabase.from('assessment_results').insert({
+      user_id: user.id,
+      assessment_type: 'kana-reading',
+      score_percentage: currentStats.percentage,
+      correct_questions: currentStats.correct,
+      total_questions: currentStats.total,
+      companion_user_id: results.find((player) => player.name !== username)?.userId || null,
+      details: { answers: currentPlayer.answers || [] },
+    }).then(({ error }) => {
+      if (error) console.error('Unable to save assessment result:', error);
+    });
+  }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user]);
 
   return (
     <div className="results">
