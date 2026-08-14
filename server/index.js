@@ -14,6 +14,7 @@ import {
 } from './utils/validation.js';
 import { generateRandomCards } from './services/card-service.js';
 import { KANA_SENTENCES } from './data/kana-sentences.js';
+import { KANJI_CARDS, KANJI_GROUPS } from './data/kanji.js';
 import { isCorrectRomajiAnswer } from './utils/romaji.js';
 
 const server = createServer(app);
@@ -404,6 +405,10 @@ io.on('connection', (socket) => {
 // API endpoint to get kana cards
 app.get('/api/kana-cards', (req, res) => {
   res.json(generateRandomCards(KANA_SENTENCES, 10));
+});
+
+app.get('/api/kanji-cards', (req, res) => {
+  res.json({ groups: KANJI_GROUPS, cards: KANJI_CARDS });
 });
 
 // API endpoint to get room state (players, answers, status)

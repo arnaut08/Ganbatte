@@ -5,6 +5,7 @@ import RoomLobby from './components/RoomLobby';
 import Assessment from './components/Assessment';
 import Results from './components/Results';
 import AuthPage from './components/AuthPage';
+import KanjiStudy from './components/KanjiStudy';
 import AppHeader from './components/layout/AppHeader';
 import './App.css';
 import { generateCards, getKanaCards, getRoom } from './services/api';
@@ -317,6 +318,9 @@ function App() {
     });
   };
 
+  const handleOpenKanjiStudy = () => setStatus('kanji-study');
+  const handleBackToPractice = () => setStatus('selector');
+
   return (
     <div className="app">
       <AppHeader />
@@ -330,10 +334,13 @@ function App() {
           <RoomSelector
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
+            onOpenKanjiStudy={handleOpenKanjiStudy}
             prefillRoomCode={prefillRoomCode}
             isSocketReady={isSocketReady}
           />
         )}
+
+        {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
 
         {status === 'lobby' && room && (
           <RoomLobby

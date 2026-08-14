@@ -28,6 +28,7 @@ Ganbatte/
 │       ├── components/
 │       │   ├── layout/AppHeader.jsx
 │       │   ├── AuthPage.jsx
+│       │   ├── KanjiStudy.jsx
 │       │   ├── RoomSelector.jsx
 │       │   ├── RoomLobby.jsx
 │       │   ├── Assessment.jsx
@@ -45,6 +46,7 @@ Ganbatte/
 │   ├── database/migrations/001_create_kana_sentences.sql
 │   ├── database/migrations/002_create_profiles.sql
 │   ├── data/kana-sentences.js
+│   ├── data/kanji.js
 │   ├── repositories/kana-sentence-repository.js
 │   ├── services/card-service.js
 │   └── utils/validation.js
@@ -189,6 +191,7 @@ The current dataset is generated from independent beginner vocabulary dimensions
 
 - `GET /health` - Health check for deployment monitoring.
 - `GET /api/kana-cards` - Returns a random deck of 10 sentence cards.
+- `GET /api/kanji-cards` - Returns grouped Kanji study cards.
 - `POST /api/generate-cards?count=10` - Generates a random deck with 1-25 cards.
 - `GET /api/rooms/:code` - Returns the current room state.
 
@@ -248,6 +251,7 @@ npm run preview
 ## Customization
 
 - Add vocabulary dimensions or sentence templates in `server/data/kana-sentences.js`.
+- Add or update Kanji study records in `server/data/kanji.js`.
 - Adjust random deck selection in `server/services/card-service.js`.
 - Adjust scoring and difference behavior in `client/src/utils/romaji.js`.
 - Update the logo in `client/src/assets/logo.svg`.
