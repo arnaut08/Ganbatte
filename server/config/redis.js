@@ -3,6 +3,8 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { REDIS_URL } from './env.js';
 
 let redisClient;
+let redisSubscriber;
+const USER_CONNECTION_TTL_SECONDS = 120;
 
 export function isRedisConfigured() {
   return Boolean(REDIS_URL);
@@ -21,9 +23,56 @@ export async function configureRedisAdapter(io) {
   await Promise.all([pubClient.connect(), subClient.connect()]);
   io.adapter(createAdapter(pubClient, subClient));
   redisClient = pubClient;
+  redisSubscriber = subClient;
+  console.log('Redis Socket.io adapter configured successfully.');
   return redisClient;
+}
+
+export async function claimUserConnection(userId, socketId) {
+  if (!redisClient?.isReady || !userId) return null;
+
+  return redisClient.eval(
+    `local previous = redis.call('GET', KEYS[1])
+     redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+     return previous`,
+    {
+      keys: [`ganbatte:user-connection:${userId}`],
+      arguments: [socketId, String(USER_CONNECTION_TTL_SECONDS)],
+    },
+  );
+}
+
+export async function refreshUserConnection(userId, socketId) {
+  if (!redisClient?.isReady || !userId) return;
+
+  await redisClient.eval(
+    `if redis.call('GET', KEYS[1]) == ARGV[1] then
+       return redis.call('EXPIRE', KEYS[1], ARGV[2])
+     end
+     return 0`,
+    {
+      keys: [`ganbatte:user-connection:${userId}`],
+      arguments: [socketId, String(USER_CONNECTION_TTL_SECONDS)],
+    },
+  );
+}
+
+export async function releaseUserConnection(userId, socketId) {
+  if (!redisClient?.isReady || !userId) return;
+
+  await redisClient.eval(
+    `if redis.call('GET', KEYS[1]) == ARGV[1] then
+       return redis.call('DEL', KEYS[1])
+     end
+     return 0`,
+    {
+      keys: [`ganbatte:user-connection:${userId}`],
+      arguments: [socketId],
+    },
+  );
 }
 
 export async function closeRedis() {
   if (redisClient?.isOpen) await redisClient.quit();
+  if (redisSubscriber?.isOpen) await redisSubscriber.quit();
 }
