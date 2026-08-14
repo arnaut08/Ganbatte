@@ -1,8 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import logo from '../../assets/logo.svg';
 
-function AppHeader({ onLogout }) {
+function AppHeader({ onLogout, onOpenHistory }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (!menuRef.current?.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setIsMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMenuOpen]);
 
   return (
     <header className="app-header">
@@ -16,7 +37,7 @@ function AppHeader({ onLogout }) {
           <p>Stop saying 'Nani?' to everything.</p>
         </div>
       </div>
-      <div className="user-menu">
+      <div className="user-menu" ref={menuRef}>
         <button
           type="button"
           className="user-menu-trigger"
@@ -32,6 +53,7 @@ function AppHeader({ onLogout }) {
         </button>
         {isMenuOpen && (
           <div className="user-menu-dropdown">
+            <button type="button" onClick={onOpenHistory}>Assessment history</button>
             <button type="button" onClick={onLogout}>Log out</button>
           </div>
         )}

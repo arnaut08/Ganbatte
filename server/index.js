@@ -56,6 +56,14 @@ const rooms = new Map();
 const roomCleanupTimers = new Map();
 const DISCONNECT_GRACE_PERIOD_MS = 5 * 60 * 1000;
 
+function buildAssessmentResults(room) {
+  return room.players.map((player) => ({
+    name: player.name,
+    userId: player.userId,
+    answers: player.answers,
+  }));
+}
+
 // Generate random room code
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -78,7 +86,7 @@ io.on('connection', (socket) => {
     const cards = generateRandomCards(KANA_SENTENCES, 10);
     rooms.set(roomCode, {
       code: roomCode,
-      players: [{ id: socket.id, sessionKey: parsedSessionKey.data, name: playerName, answers: [], connected: true }],
+      players: [{ id: socket.id, userId: socket.data.user?.id, sessionKey: parsedSessionKey.data, name: playerName, answers: [], connected: true }],
       cards,
       currentCardIndex: 0,
       status: 'waiting', // waiting, active, completed, review
@@ -113,6 +121,7 @@ io.on('connection', (socket) => {
 
     room.players.push({
       id: socket.id,
+      userId: socket.data.user?.id,
       sessionKey: parsedSessionKey.data,
       name: parsedUsername.data,
       answers: [],
@@ -148,6 +157,7 @@ io.on('connection', (socket) => {
     }
 
     player.id = socket.id;
+    player.userId = socket.data.user?.id || player.userId;
     player.connected = true;
     delete player.disconnectedAt;
     const cleanupTimer = roomCleanupTimers.get(parsedRoomCode.data);
@@ -255,10 +265,7 @@ io.on('connection', (socket) => {
         console.log(`assessment-completed (next-card): room=${roomCode}`);
         io.to(roomCode).emit('assessment-completed', {
           room,
-          results: room.players.map((p) => ({
-            name: p.name,
-            answers: p.answers,
-          })),
+          results: buildAssessmentResults(room),
         });
       } else {
         console.log(`card-updated (next-card): room=${roomCode} index=${room.currentCardIndex}`);
@@ -300,10 +307,7 @@ io.on('connection', (socket) => {
         console.log(`assessment-completed (ready): room=${roomCode}`);
         io.to(roomCode).emit('assessment-completed', {
           room,
-          results: room.players.map((p) => ({
-            name: p.name,
-            answers: p.answers,
-          })),
+          results: buildAssessmentResults(room),
         });
       } else {
         room.status = 'active';
@@ -367,7 +371,7 @@ io.on('connection', (socket) => {
       console.log(`assessment-completed (tryAdvanceIfAllSubmitted): room=${roomCode}`);
       io.to(roomCode).emit('assessment-completed', {
         room,
-        results: room.players.map((p) => ({ name: p.name, answers: p.answers })),
+        results: buildAssessmentResults(room),
       });
     } else {
       // when advancing, clear ready flags
