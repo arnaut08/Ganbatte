@@ -318,12 +318,25 @@ function App() {
     });
   };
 
+  const handleLogout = async () => {
+    if (socket) socket.disconnect();
+    clearRoomSession();
+    sessionStorage.removeItem(SESSION_KEY_STORAGE);
+    setRoomCode(null);
+    setRoom(null);
+    setUsername('');
+    setResults(null);
+    setPrefillRoomCode('');
+    setStatus('selector');
+    await supabase?.auth.signOut();
+  };
+
   const handleOpenKanjiStudy = () => setStatus('kanji-study');
   const handleBackToPractice = () => setStatus('selector');
 
   return (
     <div className="app">
-      <AppHeader />
+      <AppHeader onLogout={handleLogout} />
 
       <main className="app-main">
         {authLoading && <div className="auth-loading">Loading account...</div>}
