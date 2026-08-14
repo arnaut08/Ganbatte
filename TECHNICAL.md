@@ -27,18 +27,24 @@ Ganbatte/
 │       ├── assets/logo.svg
 │       ├── components/
 │       │   ├── layout/AppHeader.jsx
+│       │   ├── AuthPage.jsx
 │       │   ├── RoomSelector.jsx
 │       │   ├── RoomLobby.jsx
 │       │   ├── Assessment.jsx
 │       │   └── Results.jsx
 │       ├── services/api.js
+│       ├── config/supabase.js
 │       └── utils/romaji.js
 ├── server/
 │   ├── index.js
 │   ├── app.js
 │   ├── package.json
 │   ├── config/env.js
+│   ├── config/supabase.js
+│   ├── database/migrations/001_create_kana_sentences.sql
+│   ├── database/migrations/002_create_profiles.sql
 │   ├── data/kana-sentences.js
+│   ├── repositories/kana-sentence-repository.js
 │   ├── services/card-service.js
 │   └── utils/validation.js
 ├── .github/copilot-instructions.md
@@ -99,6 +105,21 @@ VITE_SERVER_URL=https://your-server.onrender.com
 
 The repository includes `client/.env.example`. The client falls back to the browser origin when the variable is not set.
 
+## Authentication Setup
+
+The client uses Supabase Auth with the publishable/anon key. The service role key remains server-only.
+
+Add these variables to `client/.env` for local development and to the Vercel project for deployment:
+
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-publishable-or-anon-key
+```
+
+Run `server/database/migrations/002_create_profiles.sql` after the sentence migration. It creates a `profiles` table linked to `auth.users` and automatically creates a profile from the signup name.
+
+In Supabase Auth settings, configure the site URL and redirect URLs for the local client and deployed Vercel client. If email confirmation is enabled, users must confirm their email before entering the app.
+
 ## Deployment
 
 ### Server on Render
@@ -121,6 +142,21 @@ Configure the Vercel project with:
 - Build command: `npm run build`
 - Output directory: `dist`
 - `VITE_SERVER_URL`: the public Render server URL
+
+## Supabase Setup
+
+The initial Supabase infrastructure is server-only and uses the service role key. Never add the service role key to the client or commit it to Git.
+
+1. Create a Supabase project.
+2. Run `server/database/migrations/001_create_kana_sentences.sql` in the Supabase SQL Editor.
+3. Add these environment variables to the server service:
+
+```env
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+The repository currently exposes `getRandomKanaSentences()` as the database access boundary. Existing in-memory sentence generation remains active until the Supabase table is seeded and room generation is switched to the repository.
 
 ## Dataset and Randomization
 
