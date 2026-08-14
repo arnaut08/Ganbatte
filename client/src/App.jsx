@@ -65,6 +65,17 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+    useEffect(() => {
+      if (room?.status !== 'completed' || !room.players?.length || results) return;
+
+      setResults(room.players.map((player) => ({
+        name: player.name,
+        userId: player.userId,
+        answers: player.answers,
+      })));
+      setStatus('results');
+    }, [room, results]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const roomFromUrl = (params.get('room') || '').trim().toUpperCase();
@@ -202,6 +213,16 @@ function App() {
       newSocket.disconnect();
     };
   }, [user]);
+
+  useEffect(() => {
+    if (room?.status !== 'completed' || !room.players?.length || results) return;
+    setResults(room.players.map((player) => ({
+      name: player.name,
+      userId: player.userId,
+      answers: player.answers,
+    })));
+    setStatus('results');
+  }, [room, results]);
 
   // Fetch kana cards
   useEffect(() => {

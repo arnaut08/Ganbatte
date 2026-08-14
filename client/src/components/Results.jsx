@@ -142,9 +142,7 @@ function Results({ results, roomCode, kanaCards, username, user }) {
                     <div key={pi} className="player-answer-cell">
                       <strong>{player.name}</strong>
                       <span className="answer-diff-value">
-                        {player.answers[i]
-                          ? renderDifference(player.answers[i], card.romaji, 'given')
-                          : '-'}
+                        {renderDifference(player.answers[i] || '', card.romaji, 'given')}
                       </span>
                     </div>
                   ))}
