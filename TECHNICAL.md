@@ -27,18 +27,28 @@ Ganbatte/
 │       ├── assets/logo.svg
 │       ├── components/
 │       │   ├── layout/AppHeader.jsx
+│       │   ├── AuthPage.jsx
+│       │   ├── KanjiStudy.jsx
 │       │   ├── RoomSelector.jsx
 │       │   ├── RoomLobby.jsx
 │       │   ├── Assessment.jsx
 │       │   └── Results.jsx
 │       ├── services/api.js
+│       ├── config/supabase.js
 │       └── utils/romaji.js
 ├── server/
 │   ├── index.js
 │   ├── app.js
 │   ├── package.json
 │   ├── config/env.js
+│   ├── config/supabase.js
+│   ├── config/redis.js
+│   ├── database/migrations/001_create_kana_sentences.sql
+│   ├── database/migrations/002_create_profiles.sql
+│   ├── database/migrations/003_create_assessment_results.sql
 │   ├── data/kana-sentences.js
+│   ├── data/kanji.js
+│   ├── repositories/kana-sentence-repository.js
 │   ├── services/card-service.js
 │   └── utils/validation.js
 ├── .github/copilot-instructions.md
@@ -99,6 +109,21 @@ VITE_SERVER_URL=https://your-server.onrender.com
 
 The repository includes `client/.env.example`. The client falls back to the browser origin when the variable is not set.
 
+## Authentication Setup
+
+The client uses Supabase Auth with the publishable/anon key. The service role key remains server-only.
+
+Add these variables to `client/.env` for local development and to the Vercel project for deployment:
+
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-publishable-or-anon-key
+```
+
+Run `server/database/migrations/002_create_profiles.sql` after the sentence migration. It creates a `profiles` table linked to `auth.users` and automatically creates a profile from the signup name.
+
+In Supabase Auth settings, configure the site URL and redirect URLs for the local client and deployed Vercel client. If email confirmation is enabled, users must confirm their email before entering the app.
+
 ## Deployment
 
 ### Server on Render
@@ -110,6 +135,7 @@ Configure a Render web service with:
 - Start command: `npm start`
 - Health check path: `/health`
 - `CLIENT_ORIGINS`: comma-separated allowed client origins
+- `REDIS_URL`: Redis connection URL for shared Socket.io rooms
 
 The server build command runs `node --check index.js` because the backend is plain JavaScript and does not require compilation.
 
@@ -121,6 +147,21 @@ Configure the Vercel project with:
 - Build command: `npm run build`
 - Output directory: `dist`
 - `VITE_SERVER_URL`: the public Render server URL
+
+## Supabase Setup
+
+The initial Supabase infrastructure is server-only and uses the service role key. Never add the service role key to the client or commit it to Git.
+
+1. Create a Supabase project.
+2. Run `server/database/migrations/001_create_kana_sentences.sql` in the Supabase SQL Editor.
+3. Add these environment variables to the server service:
+
+```env
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+The repository currently exposes `getRandomKanaSentences()` as the database access boundary. Existing in-memory sentence generation remains active until the Supabase table is seeded and room generation is switched to the repository.
 
 ## Dataset and Randomization
 
@@ -151,8 +192,10 @@ The current dataset is generated from independent beginner vocabulary dimensions
 
 - `GET /health` - Health check for deployment monitoring.
 - `GET /api/kana-cards` - Returns a random deck of 10 sentence cards.
+- `GET /api/kanji-cards` - Returns grouped Kanji study cards.
 - `POST /api/generate-cards?count=10` - Generates a random deck with 1-25 cards.
 - `GET /api/rooms/:code` - Returns the current room state.
+- Assessment history is stored in Supabase by the authenticated client after a completed assessment.
 
 ## Socket Events
 
@@ -210,6 +253,7 @@ npm run preview
 ## Customization
 
 - Add vocabulary dimensions or sentence templates in `server/data/kana-sentences.js`.
+- Add or update Kanji study records in `server/data/kanji.js`.
 - Adjust random deck selection in `server/services/card-service.js`.
 - Adjust scoring and difference behavior in `client/src/utils/romaji.js`.
 - Update the logo in `client/src/assets/logo.svg`.

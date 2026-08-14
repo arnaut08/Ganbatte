@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import './RoomSelector.css';
 import { getRoom } from '../services/api';
 
-function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '', isSocketReady = false }) {
+function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomCode = '', isSocketReady = false }) {
   const [createName, setCreateName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [joinName, setJoinName] = useState('');
   const [ownerName, setOwnerName] = useState('');
+  const [screen, setScreen] = useState(prefillRoomCode ? 'assessment' : 'home');
   const joinNameInputRef = useRef(null);
   const hasInviteCode = Boolean(prefillRoomCode);
 
@@ -38,6 +39,10 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '', isSocket
       cancelled = true;
     };
   }, [hasInviteCode, prefillRoomCode]);
+
+  useEffect(() => {
+    if (prefillRoomCode) setScreen('assessment');
+  }, [prefillRoomCode]);
 
   const handleCreate = (e) => {
     e.preventDefault();
@@ -86,8 +91,48 @@ function RoomSelector({ onCreateRoom, onJoinRoom, prefillRoomCode = '', isSocket
               </button>
             </form>
           </div>
+        ) : screen === 'home' ? (
+          <div className="selector-home">
+            <section className="selector-section learning-section">
+              <p className="selector-section-kicker">Build your foundation</p>
+              <h2>Learning</h2>
+              <p>Study essential Japanese characters at your own pace.</p>
+              <button type="button" className="btn btn-primary" onClick={() => setScreen('learning')}>
+                Explore learning
+              </button>
+            </section>
+            <section className="selector-section assessment-section">
+              <p className="selector-section-kicker">Put it into practice</p>
+              <h2>Assessment</h2>
+              <p>Read kana sentences and challenge yourself with a friend.</p>
+              <button type="button" className="btn btn-secondary" onClick={() => setScreen('assessment')}>
+                Start an assessment
+              </button>
+            </section>
+          </div>
+        ) : screen === 'learning' ? (
+          <div className="selector-section learning-screen">
+            <p className="selector-section-kicker">Learning</p>
+            <h2>Study Japanese characters</h2>
+            <p>Review 100 essential N5 Kanji grouped by everyday themes.</p>
+            <button type="button" className="btn btn-primary" onClick={onOpenKanjiStudy}>
+              Study 100 N5 Kanji
+            </button>
+            <button type="button" className="btn btn-secondary selector-back-button" onClick={() => setScreen('home')}>
+              Back to home
+            </button>
+          </div>
         ) : (
           <>
+            <div className="assessment-heading">
+              <button type="button" className="btn btn-secondary selector-back-button" onClick={() => setScreen('home')}>
+                Back to home
+              </button>
+              <div>
+                <p className="selector-section-kicker">Assessment</p>
+                <h2>Practice with a friend</h2>
+              </div>
+            </div>
             <div className="selector-card create-card active-card">
               <h2>Create a Room</h2>
               <p>Start a new assessment session</p>

@@ -2,6 +2,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import app from './app.js';
 import { isAllowedOrigin, PORT } from './config/env.js';
+import { getSupabaseClient, isSupabaseConfigured } from './config/supabase.js';
+import { configureRedisAdapter } from './config/redis.js';
 import {
   answerSchema,
   cardCountSchema,
@@ -12,6 +14,8 @@ import {
 } from './utils/validation.js';
 import { generateRandomCards } from './services/card-service.js';
 import { KANA_SENTENCES } from './data/kana-sentences.js';
+import { KANJI_CARDS, KANJI_GROUPS } from './data/kanji.js';
+import { isCorrectRomajiAnswer } from './utils/romaji.js';
 
 const server = createServer(app);
 
@@ -25,10 +29,40 @@ const io = new Server(server, {
   },
 });
 
+io.use(async (socket, next) => {
+  if (!isSupabaseConfigured()) {
+    next();
+    return;
+  }
+
+  const accessToken = socket.handshake.auth?.accessToken;
+  if (!accessToken) {
+    next(new Error('Authentication required'));
+    return;
+  }
+
+  const { data, error } = await getSupabaseClient().auth.getUser(accessToken);
+  if (error || !data.user) {
+    next(new Error('Invalid authentication token'));
+    return;
+  }
+
+  socket.data.user = data.user;
+  next();
+});
+
 // Store rooms in memory
 const rooms = new Map();
 const roomCleanupTimers = new Map();
 const DISCONNECT_GRACE_PERIOD_MS = 5 * 60 * 1000;
+
+function buildAssessmentResults(room) {
+  return room.players.map((player) => ({
+    name: player.name,
+    userId: player.userId,
+    answers: player.answers,
+  }));
+}
 
 // Generate random room code
 function generateRoomCode() {
@@ -52,7 +86,7 @@ io.on('connection', (socket) => {
     const cards = generateRandomCards(KANA_SENTENCES, 10);
     rooms.set(roomCode, {
       code: roomCode,
-      players: [{ id: socket.id, sessionKey: parsedSessionKey.data, name: playerName, answers: [], connected: true }],
+      players: [{ id: socket.id, userId: socket.data.user?.id, sessionKey: parsedSessionKey.data, name: playerName, answers: [], connected: true }],
       cards,
       currentCardIndex: 0,
       status: 'waiting', // waiting, active, completed, review
@@ -87,6 +121,7 @@ io.on('connection', (socket) => {
 
     room.players.push({
       id: socket.id,
+      userId: socket.data.user?.id,
       sessionKey: parsedSessionKey.data,
       name: parsedUsername.data,
       answers: [],
@@ -122,6 +157,7 @@ io.on('connection', (socket) => {
     }
 
     player.id = socket.id;
+    player.userId = socket.data.user?.id || player.userId;
     player.connected = true;
     delete player.disconnectedAt;
     const cleanupTimer = roomCleanupTimers.get(parsedRoomCode.data);
@@ -189,13 +225,13 @@ io.on('connection', (socket) => {
         // Capture the current card index at the moment of submission to
         // avoid races where the server advances the index between two
         // near-simultaneous submissions. Store the answer at that
-        // captured index and emit that index back to clients. Also
-        // auto-mark the submitting player as ready.
+        // captured index and emit that index back to clients.
         const idx = room.currentCardIndex;
         player.answers[idx] = parsedAnswer.data;
-        player.ready = true;
+        const currentCard = room.cards?.[idx];
+        player.ready = Boolean(currentCard && isCorrectRomajiAnswer(parsedAnswer.data, currentCard.romaji));
 
-        // Emit the updated answer and ready state
+        // Emit the updated answer and keep both players in review mode
         io.to(roomCode).emit('answer-submitted', {
           room,
           playerId: socket.id,
@@ -203,44 +239,13 @@ io.on('connection', (socket) => {
         });
         io.to(roomCode).emit('player-ready-updated', { room });
 
-        // If everyone has submitted for that captured index, either move
-        // into review (for non-final cards) or complete the assessment
-        // immediately if this was the last card. Use the room's card set
-        // when available.
-        const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+        // Both submissions reveal the review state. Advancement happens
+        // only after every player explicitly presses the ready button.
         const allSubmitted = room.players.length > 0 && room.players.every((p) => p.answers[idx] !== undefined);
         if (allSubmitted) {
           console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
-          // Notify clients they can review this card
           io.to(roomCode).emit('both-submitted', { room, cardIndex: idx });
-
-          // Schedule automatic advance 3s after the second submission.
-          // Use a per-room timeout so we don't schedule multiple advances.
-          if (room._advanceTimeout) {
-            clearTimeout(room._advanceTimeout);
-          }
-          room._advanceTimeout = setTimeout(() => {
-            // Only advance if the room is still on the same index
-            if (room.currentCardIndex === idx) {
-              // If this was the last card, complete immediately
-              if (idx >= kanaCards.length - 1) {
-                room.status = 'completed';
-                console.log(`assessment-completed (auto-advance final): room=${roomCode}`);
-                io.to(roomCode).emit('assessment-completed', {
-                  room,
-                  results: room.players.map((p) => ({ name: p.name, answers: p.answers })),
-                });
-              } else {
-                room.currentCardIndex++;
-                // clear ready flags for next card
-                room.players.forEach((p) => (p.ready = false));
-                room.status = 'active';
-                console.log(`card-updated (auto-advance): room=${roomCode} index=${room.currentCardIndex}`);
-                io.to(roomCode).emit('card-updated', { currentCardIndex: room.currentCardIndex, room });
-              }
-            }
-            room._advanceTimeout = null;
-          }, 10000);
+          advanceRoomIfReady(roomCode);
         }
       }
     }
@@ -260,10 +265,7 @@ io.on('connection', (socket) => {
         console.log(`assessment-completed (next-card): room=${roomCode}`);
         io.to(roomCode).emit('assessment-completed', {
           room,
-          results: room.players.map((p) => ({
-            name: p.name,
-            answers: p.answers,
-          })),
+          results: buildAssessmentResults(room),
         });
       } else {
         console.log(`card-updated (next-card): room=${roomCode} index=${room.currentCardIndex}`);
@@ -284,6 +286,12 @@ io.on('connection', (socket) => {
 
     io.to(roomCode).emit('player-ready-updated', { room });
     console.log(`player-ready-updated: room=${roomCode} player=${player.id}`);
+    advanceRoomIfReady(roomCode);
+  });
+
+  function advanceRoomIfReady(roomCode) {
+    const room = rooms.get(roomCode);
+    if (!room) return;
 
     // If all players are ready, advance the card
     const idx = room.currentCardIndex;
@@ -296,23 +304,52 @@ io.on('connection', (socket) => {
 
       if (room.currentCardIndex >= kanaCards.length) {
         room.status = 'completed';
-        console.log(`assessment-completed (player-ready): room=${roomCode}`);
+        console.log(`assessment-completed (ready): room=${roomCode}`);
         io.to(roomCode).emit('assessment-completed', {
           room,
-          results: room.players.map((p) => ({
-            name: p.name,
-            answers: p.answers,
-          })),
+          results: buildAssessmentResults(room),
         });
       } else {
         room.status = 'active';
-        console.log(`card-updated (player-ready): room=${roomCode} index=${room.currentCardIndex}`);
+        console.log(`card-updated (ready): room=${roomCode} index=${room.currentCardIndex}`);
         io.to(roomCode).emit('card-updated', {
           currentCardIndex: room.currentCardIndex,
           room,
         });
       }
     }
+  }
+
+  socket.on('leave-room', (roomCode, callback) => {
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    if (!parsedRoomCode.success) {
+      if (callback) callback({ success: false, message: 'Invalid room code' });
+      return;
+    }
+
+    const normalizedRoomCode = parsedRoomCode.data;
+    const room = rooms.get(normalizedRoomCode);
+    if (!room) {
+      if (callback) callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    room.players = room.players.filter((player) => player.id !== socket.id);
+    socket.leave(normalizedRoomCode);
+
+    const cleanupTimer = roomCleanupTimers.get(normalizedRoomCode);
+    if (cleanupTimer) {
+      clearTimeout(cleanupTimer);
+      roomCleanupTimers.delete(normalizedRoomCode);
+    }
+
+    if (room.players.length === 0) {
+      rooms.delete(normalizedRoomCode);
+    } else {
+      io.to(normalizedRoomCode).emit('player-left', { players: room.players });
+    }
+
+    if (callback) callback({ success: true });
   });
 
   // Helper to advance the card when all players have submitted
@@ -334,7 +371,7 @@ io.on('connection', (socket) => {
       console.log(`assessment-completed (tryAdvanceIfAllSubmitted): room=${roomCode}`);
       io.to(roomCode).emit('assessment-completed', {
         room,
-        results: room.players.map((p) => ({ name: p.name, answers: p.answers })),
+        results: buildAssessmentResults(room),
       });
     } else {
       // when advancing, clear ready flags
@@ -372,6 +409,10 @@ io.on('connection', (socket) => {
 // API endpoint to get kana cards
 app.get('/api/kana-cards', (req, res) => {
   res.json(generateRandomCards(KANA_SENTENCES, 10));
+});
+
+app.get('/api/kanji-cards', (req, res) => {
+  res.json({ groups: KANJI_GROUPS, cards: KANJI_CARDS });
 });
 
 // API endpoint to get room state (players, answers, status)
@@ -420,6 +461,7 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
+await configureRedisAdapter(io);
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

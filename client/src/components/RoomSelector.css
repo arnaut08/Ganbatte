@@ -19,6 +19,95 @@
   max-width: 480px;
 }
 
+.selector-home {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.selector-section {
+  padding: 2rem;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  background: #1a1f2e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.learning-section {
+  background: linear-gradient(145deg, #1a2b3f, #16213e);
+  border-color: #315477;
+}
+
+.assessment-section {
+  background: linear-gradient(145deg, #1f2937, #1a1f2e);
+}
+
+.selector-section-kicker {
+  margin: 0 0 0.5rem;
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selector-section h2 {
+  margin: 0 0 0.6rem;
+  color: #f8fafc;
+  font-size: 1.4rem;
+}
+
+.selector-section > p:not(.selector-section-kicker) {
+  min-height: 3rem;
+  margin: 0 0 1.5rem;
+  color: #a0aec0;
+  line-height: 1.5;
+}
+
+.selector-section .btn {
+  width: 100%;
+}
+
+.learning-screen {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.selector-back-button {
+  display: block;
+  margin: 1rem auto 0;
+}
+
+.assessment-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.25rem;
+  flex: 0 0 100%;
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.assessment-heading h2,
+.assessment-heading p {
+  text-align: left;
+}
+
+.assessment-heading h2 {
+  margin: 0;
+  color: #e8ecf1;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.assessment-heading .selector-back-button {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 .selector-card {
   background: #1a1f2e;
   border-radius: 12px;
@@ -73,6 +162,11 @@
   padding: 0 1rem;
 }
 
+.kanji-study-link {
+  flex: 0 0 100%;
+  width: auto;
+}
+
 .selector-card form {
   display: flex;
   flex-direction: column;
@@ -113,9 +207,33 @@
   .selector-card {
     min-width: 100%;
   }
-  
+
+  .selector-home {
+    grid-template-columns: 1fr;
+  }
+
+  .selector-section {
+    padding: 1.5rem;
+  }
+
   .divider {
     display: none;
+  }
+
+  .assessment-heading {
+    align-items: flex-start;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    margin-bottom: 0;
+  }
+
+  .assessment-heading h2,
+  .assessment-heading p {
+    text-align: left;
+  }
+
+  .assessment-heading .selector-back-button {
+    width: 100%;
   }
 }
 

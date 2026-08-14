@@ -17,11 +17,98 @@ body {
 }
 
 .app-header {
+  position: relative;
   background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
   color: #e8ecf1;
   padding: 1.1rem 2rem;
   text-align: center;
   border-bottom: 1px solid #2d3748;
+}
+
+.user-menu {
+  position: absolute;
+  top: 50%;
+  right: 2rem;
+  transform: translateY(-50%);
+}
+
+.user-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid #4b5563;
+  border-radius: 50%;
+  background: #16213e;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.user-menu-trigger:hover,
+.user-menu-trigger[aria-expanded='true'] {
+  border-color: #60a5fa;
+  background: #243b5a;
+  color: #ffffff;
+}
+
+.user-avatar {
+  position: relative;
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.user-avatar-head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.user-avatar-body {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0.95rem;
+  height: 0.52rem;
+  border-radius: 0.6rem 0.6rem 0.25rem 0.25rem;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 10;
+  min-width: 8rem;
+  padding: 0.35rem;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #1a1f2e;
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.35);
+}
+
+.user-menu-dropdown button {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #e8ecf1;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.user-menu-dropdown button:hover {
+  background: #243b5a;
 }
 
 .brand-lockup {
@@ -78,6 +165,12 @@ body {
   min-height: calc(100vh - 80px);
 }
 
+.auth-loading {
+  padding: 3rem 1rem;
+  color: #a0aec0;
+  text-align: center;
+}
+
 /* Buttons */
 .btn {
   padding: 0.75rem 1.5rem;
@@ -131,6 +224,10 @@ body {
 @media (max-width: 768px) {
   .app-header {
     padding: 1.25rem 1rem;
+  }
+
+  .user-menu {
+    right: 1rem;
   }
 
   .app-logo {

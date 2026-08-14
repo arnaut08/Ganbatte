@@ -4,10 +4,14 @@ import RoomSelector from './components/RoomSelector';
 import RoomLobby from './components/RoomLobby';
 import Assessment from './components/Assessment';
 import Results from './components/Results';
+import AuthPage from './components/AuthPage';
+import KanjiStudy from './components/KanjiStudy';
+import AssessmentHistory from './components/AssessmentHistory';
 import AppHeader from './components/layout/AppHeader';
 import './App.css';
 import { generateCards, getKanaCards, getRoom } from './services/api';
 import { SERVER_URL } from './config';
+import { supabase } from './config/supabase';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
 const ROOM_SESSION_STORAGE = 'ganbatte-room-session';
@@ -24,6 +28,11 @@ function saveRoomSession(roomCode, username) {
   sessionStorage.setItem(ROOM_SESSION_STORAGE, JSON.stringify({ roomCode, username }));
 }
 
+function clearRoomSession() {
+  sessionStorage.removeItem(ROOM_SESSION_STORAGE);
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 function App() {
   const [socket, setSocket] = useState(null);
   const [isSocketReady, setIsSocketReady] = useState(false);
@@ -34,6 +43,27 @@ function App() {
   const [kanaCards, setKanaCards] = useState([]);
   const [results, setResults] = useState(null);
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return undefined;
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user || null);
+      setAuthLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      setAuthLoading(false);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -45,7 +75,12 @@ function App() {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(SERVER_URL);
+    const newSocket = io(SERVER_URL, {
+      auth: async (callback) => {
+        const { data } = await supabase?.auth.getSession() || { data: { session: null } };
+        callback({ accessToken: data.session?.access_token || null });
+      },
+    });
 
     newSocket.on('connect', () => {
       console.log('Connected to server');
@@ -149,7 +184,7 @@ function App() {
       const resultsArr = (data && data.results)
         ? data.results
         : data && data.room
-        ? data.room.players.map((p) => ({ name: p.name, answers: p.answers }))
+        ? data.room.players.map((p) => ({ name: p.name, userId: p.userId, answers: p.answers }))
         : null;
       setResults(resultsArr);
       setStatus('results');
@@ -166,7 +201,7 @@ function App() {
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  }, []);
+  }, [user]);
 
   // Fetch kana cards
   useEffect(() => {
@@ -270,25 +305,66 @@ function App() {
     }
   };
 
+  const handleLeaveRoom = () => {
+    if (!socket || !roomCode) return;
+    socket.emit('leave-room', roomCode, (response) => {
+      if (!response?.success) return;
+      clearRoomSession();
+      setRoomCode(null);
+      setRoom(null);
+      setUsername('');
+      setResults(null);
+      setPrefillRoomCode('');
+      setStatus('selector');
+    });
+  };
+
+  const handleLogout = async () => {
+    if (socket) socket.disconnect();
+    clearRoomSession();
+    sessionStorage.removeItem(SESSION_KEY_STORAGE);
+    setRoomCode(null);
+    setRoom(null);
+    setUsername('');
+    setResults(null);
+    setPrefillRoomCode('');
+    setStatus('selector');
+    await supabase?.auth.signOut();
+  };
+
+  const handleOpenKanjiStudy = () => setStatus('kanji-study');
+  const handleOpenHistory = () => setStatus('history');
+  const handleBackToPractice = () => setStatus('selector');
+
   return (
     <div className="app">
-      <AppHeader />
+      <AppHeader onLogout={handleLogout} onOpenHistory={handleOpenHistory} />
 
       <main className="app-main">
+        {authLoading && <div className="auth-loading">Loading account...</div>}
+        {!authLoading && !user && <AuthPage />}
+        {!authLoading && user && (
+          <>
         {status === 'selector' && (
           <RoomSelector
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
+            onOpenKanjiStudy={handleOpenKanjiStudy}
             prefillRoomCode={prefillRoomCode}
             isSocketReady={isSocketReady}
           />
         )}
+
+        {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
+
+        {status === 'history' && <AssessmentHistory onBack={handleBackToPractice} />}
 
         {status === 'lobby' && room && (
           <RoomLobby
             roomCode={roomCode}
             room={room}
             onStartAssessment={handleStartAssessment}
+            onLeaveRoom={handleLeaveRoom}
             currentSocketId={socket?.id || ''}
           />
         )}
@@ -304,7 +380,9 @@ function App() {
         )}
 
         {status === 'results' && results && (
-          <Results results={results} roomCode={roomCode} kanaCards={kanaCards} />
+          <Results results={results} roomCode={roomCode} kanaCards={kanaCards} username={username} user={user} />
+        )}
+          </>
         )}
       </main>
     </div>
