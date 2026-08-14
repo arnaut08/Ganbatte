@@ -4,6 +4,7 @@ import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
 
 function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
   const [answer, setAnswer] = useState('');
+  const [showOpponentStatus, setShowOpponentStatus] = useState(true);
 
   const currentCard = kanaCards[room.currentCardIndex];
   const currentPlayer = room.players.find((p) => p.name === username);
@@ -70,16 +71,28 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
           </div>
         </div>
 
-        <div className="opponent-bar">
-          {otherPlayer ? (
-            <div>
-              <strong>{otherPlayer.name}</strong>
-              <span className="op-status"> — {otherSubmitted ? (otherCorrect ? '✓ Submitted' : '✗ Submitted') : '⏳ Not submitted'}</span>
-              {otherReady && <span className="op-ready"> • ✅ Ready</span>}
+        <div className="opponent-status-section">
+          {showOpponentStatus && (
+            <div className="opponent-bar">
+              {otherPlayer ? (
+                <div>
+                  <strong>{otherPlayer.name}</strong>
+                  <span className="op-status"> — {otherSubmitted ? (otherCorrect ? '✓ Submitted' : '✗ Submitted') : '⏳ Not submitted'}</span>
+                  {otherReady && <span className="op-ready"> • ✅ Ready</span>}
+                </div>
+              ) : (
+                <div className="op-status">Waiting for opponent...</div>
+              )}
             </div>
-          ) : (
-            <div className="op-status">Waiting for opponent...</div>
           )}
+          <label className="opponent-status-toggle">
+            <input
+              type="checkbox"
+              checked={showOpponentStatus}
+              onChange={(event) => setShowOpponentStatus(event.target.checked)}
+            />
+            Show opponent status
+          </label>
         </div>
 
         <div className="input-section">

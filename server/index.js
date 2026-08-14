@@ -189,13 +189,12 @@ io.on('connection', (socket) => {
         // Capture the current card index at the moment of submission to
         // avoid races where the server advances the index between two
         // near-simultaneous submissions. Store the answer at that
-        // captured index and emit that index back to clients. Also
-        // auto-mark the submitting player as ready.
+        // captured index and emit that index back to clients.
         const idx = room.currentCardIndex;
         player.answers[idx] = parsedAnswer.data;
-        player.ready = true;
+        player.ready = false;
 
-        // Emit the updated answer and ready state
+        // Emit the updated answer and keep both players in review mode
         io.to(roomCode).emit('answer-submitted', {
           room,
           playerId: socket.id,
@@ -203,44 +202,12 @@ io.on('connection', (socket) => {
         });
         io.to(roomCode).emit('player-ready-updated', { room });
 
-        // If everyone has submitted for that captured index, either move
-        // into review (for non-final cards) or complete the assessment
-        // immediately if this was the last card. Use the room's card set
-        // when available.
-        const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+        // Both submissions reveal the review state. Advancement happens
+        // only after every player explicitly presses the ready button.
         const allSubmitted = room.players.length > 0 && room.players.every((p) => p.answers[idx] !== undefined);
         if (allSubmitted) {
           console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
-          // Notify clients they can review this card
           io.to(roomCode).emit('both-submitted', { room, cardIndex: idx });
-
-          // Schedule automatic advance 3s after the second submission.
-          // Use a per-room timeout so we don't schedule multiple advances.
-          if (room._advanceTimeout) {
-            clearTimeout(room._advanceTimeout);
-          }
-          room._advanceTimeout = setTimeout(() => {
-            // Only advance if the room is still on the same index
-            if (room.currentCardIndex === idx) {
-              // If this was the last card, complete immediately
-              if (idx >= kanaCards.length - 1) {
-                room.status = 'completed';
-                console.log(`assessment-completed (auto-advance final): room=${roomCode}`);
-                io.to(roomCode).emit('assessment-completed', {
-                  room,
-                  results: room.players.map((p) => ({ name: p.name, answers: p.answers })),
-                });
-              } else {
-                room.currentCardIndex++;
-                // clear ready flags for next card
-                room.players.forEach((p) => (p.ready = false));
-                room.status = 'active';
-                console.log(`card-updated (auto-advance): room=${roomCode} index=${room.currentCardIndex}`);
-                io.to(roomCode).emit('card-updated', { currentCardIndex: room.currentCardIndex, room });
-              }
-            }
-            room._advanceTimeout = null;
-          }, 10000);
         }
       }
     }

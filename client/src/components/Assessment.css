@@ -113,6 +113,24 @@
   font-weight: 600;
 }
 
+.opponent-status-section {
+  margin-bottom: 1rem;
+}
+
+.opponent-status-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  color: #718096;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.opponent-status-toggle input {
+  accent-color: #60a5fa;
+}
+
 .answer-feedback {
   padding: 0.9rem 1.25rem;
   border-radius: 6px;
