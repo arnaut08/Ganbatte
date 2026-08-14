@@ -280,15 +280,26 @@
 @media (max-width: 640px) {
   .assessment {
     align-items: flex-start;
+    min-height: auto;
     padding: 1rem;
+    scroll-padding-top: 1rem;
   }
 
   .assessment-container {
     padding: 1.25rem;
   }
 
+  .cards-section {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-top: 0.25rem;
+    background: #1a1f2e;
+  }
+
   .player-card {
     padding: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(15, 20, 25, 0.35);
   }
 
   .kana-display {
