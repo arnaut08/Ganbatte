@@ -9,6 +9,7 @@ Ganbatte is a real-time multiplayer Japanese kana reading assessment. Challenge 
 ✨ **Play Together**: Challenge a friend in a live two-player room  
 🎲 **Fresh Questions**: Get a new selection of kana sentences every time  
 🈁 **Learn Japanese**: Practice hiragana and katakana with English translations  
+漢 **Study Kanji**: Learn 100 beginner Kanji grouped by everyday themes<br>
 ✍️ **Flexible Answers**: Type romaji naturally without worrying about capitalization or spacing  
 📊 **Clear Results**: See your percentage score and correctly answered questions  
 🔎 **Review Mistakes**: Compare your answer with the correct reading after each question  
@@ -24,6 +25,8 @@ Ganbatte is a real-time multiplayer Japanese kana reading assessment. Challenge 
 6. Mark yourself ready to continue.
 7. View your final score and correctly answered questions.
 8. Choose **Generate New Set & Replay** to play another round.
+
+To study Kanji, choose **Study 100 N5 Kanji** from the practice screen, select a topic, and reveal each card's reading and meaning.
 
 ## Answer Tips
 

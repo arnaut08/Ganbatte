@@ -1,0 +1,171 @@
+export const KANJI_GROUPS = [
+  {
+    id: 'numbers',
+    name: 'Numbers and Counters',
+    cards: [
+      ['一', 'いち', 'one'], ['二', 'に', 'two'], ['三', 'さん', 'three'], ['四', 'よん', 'four'], ['五', 'ご', 'five'],
+      ['六', 'ろく', 'six'], ['七', 'なな', 'seven'], ['八', 'はち', 'eight'], ['九', 'きゅう', 'nine'], ['十', 'じゅう', 'ten'],
+      ['百', 'ひゃく', 'hundred'], ['千', 'せん', 'thousand'], ['万', 'まん', 'ten thousand'], ['円', 'えん', 'yen / circle'], ['半', 'はん', 'half'],
+    ],
+  },
+  {
+    id: 'people-family',
+    name: 'People and Family',
+    cards: [
+      ['人', 'ひと / じん', 'person'], ['男', 'おとこ', 'man'], ['女', 'おんな', 'woman'], ['子', 'こ', 'child'], ['父', 'ちち / とうさん', 'father'],
+      ['母', 'はは / かあさん', 'mother'], ['兄', 'あに / おにいさん', 'older brother'], ['姉', 'あね / おねえさん', 'older sister'], ['弟', 'おとうと', 'younger brother'], ['妹', 'いもうと', 'younger sister'],
+      ['友', 'ともだち', 'friend'], ['先', 'せんせい / さき', 'previous / teacher'], ['生', 'せい / いきる', 'life / student'], ['名', 'なまえ / めい', 'name'], ['家', 'いえ / か', 'house / family'],
+    ],
+  },
+  {
+    id: 'time-dates',
+    name: 'Time and Dates',
+    cards: [
+      ['日', 'ひ / にち', 'day / sun'], ['月', 'つき / げつ', 'month / moon'], ['火', 'ひ / か', 'fire / Tuesday'], ['水', 'みず / すい', 'water / Wednesday'], ['木', 'き / もく', 'tree / Thursday'],
+      ['金', 'かね / きん', 'money / Friday'], ['土', 'つち / ど', 'earth / Saturday'], ['曜', 'よう', 'weekday'], ['年', 'とし / ねん', 'year'], ['時', 'じ / とき', 'time / hour'],
+      ['分', 'ふん / ぶん', 'minute / part'], ['今', 'いま / こん', 'now'], ['毎', 'まい', 'every'], ['週', 'しゅう', 'week'], ['間', 'あいだ / かん', 'interval / between'],
+    ],
+  },
+  {
+    id: 'places-directions',
+    name: 'Places and Directions',
+    cards: [
+      ['上', 'うえ / じょう', 'up / above'], ['下', 'した / か', 'down / below'], ['中', 'なか / ちゅう', 'inside / middle'], ['外', 'そと / がい', 'outside'], ['左', 'ひだり', 'left'],
+      ['右', 'みぎ', 'right'], ['前', 'まえ', 'front / before'], ['後', 'うしろ / あと', 'behind / after'], ['東', 'ひがし', 'east'], ['西', 'にし', 'west'],
+      ['南', 'みなみ', 'south'], ['北', 'きた', 'north'], ['国', 'くに / こく', 'country'], ['駅', 'えき', 'station'], ['店', 'みせ', 'shop'],
+    ],
+  },
+  {
+    id: 'nature-weather',
+    name: 'Nature and Weather',
+    cards: [
+      ['山', 'やま', 'mountain'], ['川', 'かわ', 'river'], ['田', 'た / だ', 'rice field'], ['天', 'てん', 'heaven / sky'], ['気', 'き', 'feeling / air'],
+      ['雨', 'あめ', 'rain'], ['雪', 'ゆき', 'snow'], ['風', 'かぜ', 'wind'], ['空', 'そら', 'sky'], ['花', 'はな', 'flower'],
+      ['草', 'くさ', 'grass'], ['林', 'はやし', 'woods'], ['森', 'もり', 'forest'], ['海', 'うみ', 'sea'], ['魚', 'さかな', 'fish'],
+    ],
+  },
+  {
+    id: 'school-actions',
+    name: 'School and Everyday Actions',
+    cards: [
+      ['学', 'がく / まなぶ', 'study'], ['校', 'こう', 'school'], ['文', 'ぶん', 'sentence / writing'], ['字', 'じ', 'character'], ['本', 'ほん', 'book'],
+      ['語', 'ご', 'language / word'], ['話', 'はなす / はなし', 'speak / story'], ['読', 'よむ', 'read'], ['書', 'かく', 'write'], ['見', 'みる', 'see'],
+      ['聞', 'きく', 'hear / ask'], ['言', 'いう / こと', 'say / word'], ['行', 'いく / おこなう', 'go / do'], ['来', 'くる', 'come'], ['帰', 'かえる', 'return home'],
+      ['食', 'たべる', 'eat'], ['飲', 'のむ', 'drink'], ['買', 'かう', 'buy'], ['休', 'やすむ', 'rest'], ['住', 'すむ', 'live'],
+      ['車', 'くるま', 'car'], ['電', 'でん', 'electricity'], ['門', 'もん', 'gate'], ['道', 'みち', 'road / way'], ['力', 'ちから', 'strength'],
+    ],
+  },
+];
+
+const NUMBER_EXAMPLES = {
+  一: ['りんごが一こあります。', 'There is one apple.'],
+  二: ['りんごが二こあります。', 'There are two apples.'],
+  三: ['りんごが三こあります。', 'There are three apples.'],
+  四: ['りんごが四こあります。', 'There are four apples.'],
+  五: ['りんごが五こあります。', 'There are five apples.'],
+  六: ['りんごが六こあります。', 'There are six apples.'],
+  七: ['りんごが七こあります。', 'There are seven apples.'],
+  八: ['りんごが八こあります。', 'There are eight apples.'],
+  九: ['りんごが九こあります。', 'There are nine apples.'],
+  十: ['りんごが十こあります。', 'There are ten apples.'],
+  百: ['百えんです。', 'It is one hundred yen.'],
+  千: ['千えんです。', 'It is one thousand yen.'],
+  万: ['万えんです。', 'It is ten thousand yen.'],
+  円: ['円をつかいます。', 'I use yen.'],
+  半: ['半ぶんたべます。', 'I eat half.'],
+};
+
+const TIME_EXAMPLES = {
+  日: ['日ようびにやすみます。', 'I rest on Sunday.'],
+  月: ['月ようびにはたらきます。', 'I work on Monday.'],
+  火: ['火ようびにいきます。', 'I go on Tuesday.'],
+  水: ['水をのみます。', 'I drink water.'],
+  木: ['木ようびにべんきょうします。', 'I study on Thursday.'],
+  金: ['金ようびにかえります。', 'I return on Friday.'],
+  土: ['土ようびにやすみます。', 'I rest on Saturday.'],
+  曜: ['曜びをおぼえます。', 'I memorize the days of the week.'],
+  年: ['年がかわります。', 'The year changes.'],
+  時: ['時におきます。', 'I wake up at the time.'],
+  分: ['分まちます。', 'I wait for a minute.'],
+  今: ['今いきます。', 'I am going now.'],
+  毎: ['毎あさあるきます。', 'I walk every morning.'],
+  週: ['週にいちどいきます。', 'I go once a week.'],
+  間: ['間をあけます。', 'I leave a space.'],
+};
+
+const ACTION_EXAMPLES = {
+  学: ['学をべんきょうします。', 'I study the character for study.'],
+  校: ['校へいきます。', 'I go to school.'],
+  文: ['文をよみます。', 'I read a sentence.'],
+  字: ['字をかきます。', 'I write a character.'],
+  本: ['本をよみます。', 'I read a book.'],
+  語: ['語をおぼえます。', 'I memorize a word.'],
+  話: ['話します。', 'I speak.'],
+  読: ['読みます。', 'I read.'],
+  書: ['書きます。', 'I write.'],
+  見: ['見ます。', 'I look.'],
+  聞: ['聞きます。', 'I listen.'],
+  言: ['言います。', 'I say it.'],
+  行: ['行きます。', 'I go.'],
+  来: ['来ます。', 'I come.'],
+  帰: ['帰ります。', 'I return home.'],
+  食: ['食べます。', 'I eat.'],
+  飲: ['飲みます。', 'I drink.'],
+  買: ['買います。', 'I buy.'],
+  休: ['休みます。', 'I rest.'],
+  住: ['住みます。', 'I live.'],
+  車: ['車でいきます。', 'I go by car.'],
+  電: ['電きをつかいます。', 'I use electricity.'],
+  門: ['門をとおります。', 'I pass through the gate.'],
+  道: ['道をあるきます。', 'I walk along the road.'],
+  力: ['力があります。', 'I have strength.'],
+};
+
+const KANJI_EXAMPLES = {
+  一: ['一こください。', 'Please give me one.'], 二: ['二ばんです。', 'It is number two.'], 三: ['三にんいます。', 'There are three people.'],
+  四: ['四つあります。', 'There are four.'], 五: ['五ふんまちます。', 'I wait five minutes.'], 六: ['六じにおきます。', 'I wake up at six.'],
+  七: ['七がつです。', 'It is July.'], 八: ['八じにねます。', 'I go to bed at eight.'], 九: ['九さいです。', 'I am nine years old.'],
+  十: ['十えんです。', 'It is ten yen.'], 百: ['百えんあります。', 'I have one hundred yen.'], 千: ['千えんつかいます。', 'I use one thousand yen.'],
+  万: ['万えんたまります。', 'Ten thousand yen accumulates.'], 円: ['円をはらいます。', 'I pay yen.'], 半: ['半ぶんのこします。', 'I leave half.'],
+  人: ['人がきます。', 'A person comes.'], 男: ['男のこです。', 'He is a boy.'], 女: ['女のこです。', 'She is a girl.'],
+  子: ['子どもがあそびます。', 'A child plays.'], 父: ['父はげんきです。', 'My father is well.'], 母: ['母がわらいます。', 'My mother smiles.'],
+  兄: ['兄とあるきます。', 'I walk with my older brother.'], 姉: ['姉とでかけます。', 'I go out with my older sister.'], 弟: ['弟がうたいます。', 'My younger brother sings.'],
+  妹: ['妹とあそびます。', 'I play with my younger sister.'], 友: ['友にてがみをかきます。', 'I write a letter to a friend.'],
+  先: ['先にどうぞ。', 'Please go first.'], 生: ['生きています。', 'I am alive.'], 名: ['名をかきます。', 'I write a name.'], 家: ['家にかえります。', 'I return home.'],
+  日: ['日がながいです。', 'The daytime is long.'], 月: ['月がきれいです。', 'The moon is beautiful.'], 火: ['火があかるいです。', 'The fire is bright.'],
+  水: ['水がつめたいです。', 'The water is cold.'], 木: ['木がたかいです。', 'The tree is tall.'], 金: ['金がひつようです。', 'Money is necessary.'],
+  土: ['土をさわります。', 'I touch the soil.'], 曜: ['曜びをかきます。', 'I write the day of the week.'], 年: ['年をかぞえます。', 'I count the years.'],
+  時: ['時をまちます。', 'I wait for the time.'], 分: ['分をわけます。', 'I divide the parts.'], 今: ['今はひまです。', 'I am free now.'],
+  毎: ['毎あさはしります。', 'I run every morning.'], 週: ['週にいちどいきます。', 'I go once a week.'], 間: ['間をあけます。', 'I leave a space.'],
+  上: ['上をみます。', 'I look up.'], 下: ['下をみます。', 'I look down.'], 中: ['中にはいります。', 'I go inside.'],
+  外: ['外であそびます。', 'I play outside.'], 左: ['左をみます。', 'I look left.'], 右: ['右をみます。', 'I look right.'],
+  前: ['前にすすみます。', 'I move forward.'], 後: ['後でいきます。', 'I will go later.'], 東: ['東へいきます。', 'I go east.'],
+  西: ['西にひがあります。', 'The sun is in the west.'], 南: ['南はあたたかいです。', 'The south is warm.'], 北: ['北はさむいです。', 'The north is cold.'],
+  国: ['国へかえります。', 'I return to my country.'], 駅: ['駅でまちます。', 'I wait at the station.'], 店: ['店にはいります。', 'I enter the shop.'],
+  山: ['山にのぼります。', 'I climb a mountain.'], 川: ['川であそびます。', 'I play by the river.'], 田: ['田でしごとをします。', 'I work in the rice field.'],
+  天: ['天をみあげます。', 'I look up at the sky.'], 気: ['気をつけます。', 'I take care.'], 雨: ['雨がふります。', 'It rains.'],
+  雪: ['雪がつもります。', 'Snow piles up.'], 風: ['風がつよいです。', 'The wind is strong.'], 空: ['空があおいです。', 'The sky is blue.'],
+  花: ['花をかざります。', 'I decorate with flowers.'], 草: ['草をとります。', 'I remove the grass.'], 林: ['林をあるきます。', 'I walk through the woods.'],
+  森: ['森でやすみます。', 'I rest in the forest.'], 海: ['海でおよぎます。', 'I swim in the sea.'], 魚: ['魚をたべます。', 'I eat fish.'],
+  学: ['学をまなびます。', 'I learn about study.'], 校: ['校へいきます。', 'I go to school.'], 文: ['文をよみます。', 'I read a sentence.'],
+  字: ['字をれんしゅうします。', 'I practice a character.'], 本: ['本をひらきます。', 'I open a book.'], 語: ['語をおぼえます。', 'I memorize a word.'],
+  話: ['話をします。', 'I have a conversation.'], 読: ['読んでください。', 'Please read.'], 書: ['書いてください。', 'Please write.'],
+  見: ['見てください。', 'Please look.'], 聞: ['聞いてください。', 'Please listen.'], 言: ['言ってください。', 'Please say it.'],
+  行: ['行ってきます。', 'I am going and will return.'], 来: ['来てください。', 'Please come.'], 帰: ['帰ってください。', 'Please go home.'],
+  食: ['食べてください。', 'Please eat.'], 飲: ['飲んでください。', 'Please drink.'], 買: ['買ってください。', 'Please buy it.'],
+  休: ['休んでください。', 'Please rest.'], 住: ['住んでいます。', 'I live there.'], 車: ['車をとめます。', 'I park the car.'],
+  電: ['電きをつけます。', 'I turn on the electricity.'], 門: ['門をしめます。', 'I close the gate.'], 道: ['道をわたります。', 'I cross the road.'], 力: ['力をだします。', 'I use my strength.'],
+};
+
+function getExample(kanji) {
+  return KANJI_EXAMPLES[kanji];
+}
+
+export const KANJI_CARDS = KANJI_GROUPS.flatMap((group) => group.cards.map(([kanji, reading, meaning]) => ({
+  kanji,
+  reading,
+  meaning,
+  groupId: group.id,
+  groupName: group.name,
+  example: getExample(kanji),
+})));
