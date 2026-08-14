@@ -2,6 +2,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import app from './app.js';
 import { isAllowedOrigin, PORT } from './config/env.js';
+import { getSupabaseClient, isSupabaseConfigured } from './config/supabase.js';
+import { configureRedisAdapter } from './config/redis.js';
 import {
   answerSchema,
   cardCountSchema,
@@ -24,6 +26,28 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+});
+
+io.use(async (socket, next) => {
+  if (!isSupabaseConfigured()) {
+    next();
+    return;
+  }
+
+  const accessToken = socket.handshake.auth?.accessToken;
+  if (!accessToken) {
+    next(new Error('Authentication required'));
+    return;
+  }
+
+  const { data, error } = await getSupabaseClient().auth.getUser(accessToken);
+  if (error || !data.user) {
+    next(new Error('Invalid authentication token'));
+    return;
+  }
+
+  socket.data.user = data.user;
+  next();
 });
 
 // Store rooms in memory
@@ -428,6 +452,7 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
+await configureRedisAdapter(io);
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

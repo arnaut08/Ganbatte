@@ -73,7 +73,12 @@ function App() {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(SERVER_URL);
+    const newSocket = io(SERVER_URL, {
+      auth: async (callback) => {
+        const { data } = await supabase?.auth.getSession() || { data: { session: null } };
+        callback({ accessToken: data.session?.access_token || null });
+      },
+    });
 
     newSocket.on('connect', () => {
       console.log('Connected to server');
@@ -194,7 +199,7 @@ function App() {
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  }, []);
+  }, [user]);
 
   // Fetch kana cards
   useEffect(() => {

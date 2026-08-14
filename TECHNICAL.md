@@ -41,6 +41,7 @@ Ganbatte/
 │   ├── package.json
 │   ├── config/env.js
 │   ├── config/supabase.js
+│   ├── config/redis.js
 │   ├── database/migrations/001_create_kana_sentences.sql
 │   ├── database/migrations/002_create_profiles.sql
 │   ├── data/kana-sentences.js
@@ -131,6 +132,7 @@ Configure a Render web service with:
 - Start command: `npm start`
 - Health check path: `/health`
 - `CLIENT_ORIGINS`: comma-separated allowed client origins
+- `REDIS_URL`: Redis connection URL for shared Socket.io rooms
 
 The server build command runs `node --check index.js` because the backend is plain JavaScript and does not require compilation.
 
