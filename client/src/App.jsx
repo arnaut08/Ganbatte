@@ -4,10 +4,12 @@ import RoomSelector from './components/RoomSelector';
 import RoomLobby from './components/RoomLobby';
 import Assessment from './components/Assessment';
 import Results from './components/Results';
+import AuthPage from './components/AuthPage';
 import AppHeader from './components/layout/AppHeader';
 import './App.css';
 import { generateCards, getKanaCards, getRoom } from './services/api';
 import { SERVER_URL } from './config';
+import { supabase } from './config/supabase';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
 const ROOM_SESSION_STORAGE = 'ganbatte-room-session';
@@ -39,6 +41,27 @@ function App() {
   const [kanaCards, setKanaCards] = useState([]);
   const [results, setResults] = useState(null);
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return undefined;
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user || null);
+      setAuthLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      setAuthLoading(false);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -294,6 +317,10 @@ function App() {
       <AppHeader />
 
       <main className="app-main">
+        {authLoading && <div className="auth-loading">Loading account...</div>}
+        {!authLoading && !user && <AuthPage />}
+        {!authLoading && user && (
+          <>
         {status === 'selector' && (
           <RoomSelector
             onCreateRoom={handleCreateRoom}
@@ -325,6 +352,8 @@ function App() {
 
         {status === 'results' && results && (
           <Results results={results} roomCode={roomCode} kanaCards={kanaCards} />
+        )}
+          </>
         )}
       </main>
     </div>
