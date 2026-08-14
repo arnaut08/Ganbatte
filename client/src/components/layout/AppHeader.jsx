@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import logo from '../../assets/logo.svg';
 
-function AppHeader({ onLogout, onOpenHistory }) {
+function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -27,7 +27,7 @@ function AppHeader({ onLogout, onOpenHistory }) {
 
   return (
     <header className="app-header">
-      <div className="brand-lockup">
+      <button type="button" className="brand-lockup" onClick={onHome} aria-label="Go to home">
         <img className="app-logo" src={logo} alt="Ganbatte logo" />
         <div>
           <h1>
@@ -36,8 +36,8 @@ function AppHeader({ onLogout, onOpenHistory }) {
           </h1>
           <p>Stop saying 'Nani?' to everything.</p>
         </div>
-      </div>
-      <div className="user-menu" ref={menuRef}>
+      </button>
+      {isAuthenticated && <div className="user-menu" ref={menuRef}>
         <button
           type="button"
           className="user-menu-trigger"
@@ -57,7 +57,7 @@ function AppHeader({ onLogout, onOpenHistory }) {
             <button type="button" onClick={onLogout}>Log out</button>
           </div>
         )}
-      </div>
+      </div>}
     </header>
   );
 }

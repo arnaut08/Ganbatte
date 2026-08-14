@@ -3,7 +3,12 @@ import { Server } from 'socket.io';
 import app from './app.js';
 import { isAllowedOrigin, PORT } from './config/env.js';
 import { getSupabaseClient, isSupabaseConfigured } from './config/supabase.js';
-import { configureRedisAdapter } from './config/redis.js';
+import {
+  claimUserConnection,
+  configureRedisAdapter,
+  refreshUserConnection,
+  releaseUserConnection,
+} from './config/redis.js';
 import {
   answerSchema,
   cardCountSchema,
@@ -48,6 +53,17 @@ io.use(async (socket, next) => {
   }
 
   socket.data.user = data.user;
+
+  const previousSocketId = await claimUserConnection(data.user.id, socket.id);
+  if (previousSocketId && previousSocketId !== socket.id) {
+    io.in(previousSocketId).disconnectSockets(true);
+  }
+
+  socket.data.connectionRefresh = setInterval(() => {
+    refreshUserConnection(data.user.id, socket.id).catch((refreshError) => {
+      console.error('Redis user connection refresh error:', refreshError);
+    });
+  }, 30 * 1000);
   next();
 });
 
@@ -398,6 +414,10 @@ io.on('connection', (socket) => {
   // Disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    clearInterval(socket.data.connectionRefresh);
+    releaseUserConnection(socket.data.user?.id, socket.id).catch((releaseError) => {
+      console.error('Redis user connection release error:', releaseError);
+    });
     for (const [roomCode, room] of rooms) {
       const player = room.players.find((candidate) => candidate.id === socket.id);
       if (!player) continue;
