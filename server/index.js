@@ -315,6 +315,38 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('leave-room', (roomCode, callback) => {
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    if (!parsedRoomCode.success) {
+      if (callback) callback({ success: false, message: 'Invalid room code' });
+      return;
+    }
+
+    const normalizedRoomCode = parsedRoomCode.data;
+    const room = rooms.get(normalizedRoomCode);
+    if (!room) {
+      if (callback) callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    room.players = room.players.filter((player) => player.id !== socket.id);
+    socket.leave(normalizedRoomCode);
+
+    const cleanupTimer = roomCleanupTimers.get(normalizedRoomCode);
+    if (cleanupTimer) {
+      clearTimeout(cleanupTimer);
+      roomCleanupTimers.delete(normalizedRoomCode);
+    }
+
+    if (room.players.length === 0) {
+      rooms.delete(normalizedRoomCode);
+    } else {
+      io.to(normalizedRoomCode).emit('player-left', { players: room.players });
+    }
+
+    if (callback) callback({ success: true });
+  });
+
   // Helper to advance the card when all players have submitted
   function tryAdvanceIfAllSubmitted(roomCode) {
     const room = rooms.get(roomCode);

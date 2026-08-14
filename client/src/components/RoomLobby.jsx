@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './RoomLobby.css';
 
-function RoomLobby({ roomCode, room, onStartAssessment, currentSocketId }) {
+function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSocketId }) {
   const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
   const [copied, setCopied] = useState(false);
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
@@ -72,6 +72,9 @@ function RoomLobby({ roomCode, room, onStartAssessment, currentSocketId }) {
             disabled={!isReady}
           >
             {isReady ? 'Start Assessment' : 'Waiting for Player 2...'}
+          </button>
+          <button type="button" className="btn btn-secondary leave-room-button" onClick={onLeaveRoom}>
+            Leave Room
           </button>
         </div>
 

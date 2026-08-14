@@ -24,6 +24,11 @@ function saveRoomSession(roomCode, username) {
   sessionStorage.setItem(ROOM_SESSION_STORAGE, JSON.stringify({ roomCode, username }));
 }
 
+function clearRoomSession() {
+  sessionStorage.removeItem(ROOM_SESSION_STORAGE);
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 function App() {
   const [socket, setSocket] = useState(null);
   const [isSocketReady, setIsSocketReady] = useState(false);
@@ -270,6 +275,20 @@ function App() {
     }
   };
 
+  const handleLeaveRoom = () => {
+    if (!socket || !roomCode) return;
+    socket.emit('leave-room', roomCode, (response) => {
+      if (!response?.success) return;
+      clearRoomSession();
+      setRoomCode(null);
+      setRoom(null);
+      setUsername('');
+      setResults(null);
+      setPrefillRoomCode('');
+      setStatus('selector');
+    });
+  };
+
   return (
     <div className="app">
       <AppHeader />
@@ -289,6 +308,7 @@ function App() {
             roomCode={roomCode}
             room={room}
             onStartAssessment={handleStartAssessment}
+            onLeaveRoom={handleLeaveRoom}
             currentSocketId={socket?.id || ''}
           />
         )}
