@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import './RoomSelector.css';
 import { getRoom } from '../services/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 
 function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomCode = '', isSocketReady = false }) {
   const [createName, setCreateName] = useState('');
@@ -62,130 +65,185 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
   };
 
   return (
-    <div className="room-selector">
-      <div className={`selector-container ${hasInviteCode ? 'invite-mode' : ''}`}>
+    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
         {hasInviteCode ? (
-          <div className="selector-card join-card active-card invite-only-card">
-            <h2>Join a Room</h2>
-            <p>
-              {ownerName
-                ? `Invited to ${ownerName}'s room. Enter your name to join directly.`
-                : `Invited to a room. Enter your name to join directly.`}
-            </p>
-            {!isSocketReady && <p className="connection-status">Connecting to the game server...</p>}
-            <form onSubmit={handleJoin}>
-              <input
-                ref={joinNameInputRef}
-                type="text"
-                placeholder="Enter your name"
-                value={joinName}
-                onChange={(e) => setJoinName(e.target.value)}
-                className="input"
-              />
-              <button
-                type="submit"
-                className="btn btn-secondary"
-                disabled={!isSocketReady || !joinName.trim()}
-              >
-                Join Room
-              </button>
-            </form>
-          </div>
-        ) : screen === 'home' ? (
-          <div className="selector-home">
-            <section className="selector-section learning-section">
-              <p className="selector-section-kicker">Build your foundation</p>
-              <h2>Learning</h2>
-              <p>Study essential Japanese characters at your own pace.</p>
-              <button type="button" className="btn btn-primary" onClick={() => setScreen('learning')}>
-                Explore learning
-              </button>
-            </section>
-            <section className="selector-section assessment-section">
-              <p className="selector-section-kicker">Put it into practice</p>
-              <h2>Assessment</h2>
-              <p>Read kana sentences and challenge yourself with a friend.</p>
-              <button type="button" className="btn btn-secondary" onClick={() => setScreen('assessment')}>
-                Start an assessment
-              </button>
-            </section>
-          </div>
-        ) : screen === 'learning' ? (
-          <div className="selector-section learning-screen">
-            <p className="selector-section-kicker">Learning</p>
-            <h2>Study Japanese characters</h2>
-            <p>Review 100 essential N5 Kanji grouped by everyday themes.</p>
-            <button type="button" className="btn btn-primary" onClick={onOpenKanjiStudy}>
-              Study 100 N5 Kanji
-            </button>
-            <button type="button" className="btn btn-secondary selector-back-button" onClick={() => setScreen('home')}>
-              Back to home
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="assessment-heading">
-              <button type="button" className="btn btn-secondary selector-back-button" onClick={() => setScreen('home')}>
-                Back to home
-              </button>
-              <div>
-                <p className="selector-section-kicker">Assessment</p>
-                <h2>Practice with a friend</h2>
-              </div>
-            </div>
-            <div className="selector-card create-card active-card">
-              <h2>Create a Room</h2>
-              <p>Start a new assessment session</p>
-              <form onSubmit={handleCreate}>
-                <input
-                  type="text"
-                  placeholder="Enter your name"
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                  className="input"
-                />
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={!isSocketReady || !createName.trim()}
-                >
-                  Create Room
-                </button>
-              </form>
-            </div>
-
-            <div className="divider">OR</div>
-
-            <div className="selector-card join-card">
-              <h2>Join a Room</h2>
-              <p>Enter the room code your friend shared</p>
-              {!isSocketReady && <p className="connection-status">Connecting to the game server...</p>}
-              <form onSubmit={handleJoin}>
-                <input
+          <Card className="border-border max-w-md">
+            <CardHeader>
+              <CardTitle>Join a Room</CardTitle>
+              <CardDescription>
+                {ownerName
+                  ? `Invited to ${ownerName}'s room. Enter your name to join directly.`
+                  : 'Invited to a room. Enter your name to join directly.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!isSocketReady && (
+                <p className="text-sm text-muted-foreground">
+                  Connecting to the game server...
+                </p>
+              )}
+              <form onSubmit={handleJoin} className="space-y-4">
+                <Input
                   ref={joinNameInputRef}
                   type="text"
                   placeholder="Enter your name"
                   value={joinName}
                   onChange={(e) => setJoinName(e.target.value)}
-                  className="input"
                 />
-                <input
-                  type="text"
-                  placeholder="Room Code"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  className="input"
-                />
-                <button
+                <Button
                   type="submit"
-                  className="btn btn-secondary"
-                  disabled={!isSocketReady || !joinCode.trim() || !joinName.trim()}
+                  variant="secondary"
+                  className="w-full"
+                  disabled={!isSocketReady || !joinName.trim()}
                 >
                   Join Room
-                </button>
+                </Button>
               </form>
+            </CardContent>
+          </Card>
+        ) : screen === 'home' ? (
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-primary/30 bg-gradient-to-r from-blue-950/50 to-blue-900/30">
+              <CardHeader>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Build your foundation
+                </p>
+                <CardTitle>Learning</CardTitle>
+                <CardDescription>
+                  Study essential Japanese characters at your own pace.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" onClick={() => setScreen('learning')}>
+                  Explore learning
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-secondary/30">
+              <CardHeader>
+                <p className="text-xs font-bold uppercase tracking-wider text-secondary-foreground/70">
+                  Put it into practice
+                </p>
+                <CardTitle>Assessment</CardTitle>
+                <CardDescription>
+                  Read kana sentences and challenge yourself with a friend.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="secondary" className="w-full" onClick={() => setScreen('assessment')}>
+                  Start an assessment
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : screen === 'learning' ? (
+          <Card className="border-border max-w-2xl">
+            <CardHeader>
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                Learning
+              </p>
+              <CardTitle>Study Japanese characters</CardTitle>
+              <CardDescription>
+                Review 100 essential N5 Kanji grouped by everyday themes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <Button onClick={onOpenKanjiStudy}>Study 100 N5 Kanji</Button>
+              <Button variant="secondary" onClick={() => setScreen('home')}>
+                Back to home
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Button variant="secondary" size="sm" onClick={() => setScreen('home')}>
+                Back to home
+              </Button>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Assessment
+                </p>
+                <h2 className="text-xl font-bold">Practice with a friend</h2>
+              </div>
             </div>
-          </>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="border-primary/30">
+                <CardHeader>
+                  <CardTitle>Create a Room</CardTitle>
+                  <CardDescription>Start a new assessment session</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreate} className="space-y-4">
+                    <Input
+                      type="text"
+                      placeholder="Enter your name"
+                      value={createName}
+                      onChange={(e) => setCreateName(e.target.value)}
+                    />
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={!isSocketReady || !createName.trim()}
+                    >
+                      Create Room
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator orientation="vertical" className="h-full" />
+                </div>
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
+                  <span className="px-2 text-xs uppercase text-muted-foreground">OR</span>
+                </div>
+
+                <Card className="border-border h-full">
+                  <CardHeader>
+                    <CardTitle>Join a Room</CardTitle>
+                    <CardDescription>
+                      Enter the room code your friend shared
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {!isSocketReady && (
+                      <p className="text-sm text-muted-foreground">
+                        Connecting to the game server...
+                      </p>
+                    )}
+                    <form onSubmit={handleJoin} className="space-y-4">
+                      <Input
+                        ref={joinNameInputRef}
+                        type="text"
+                        placeholder="Enter your name"
+                        value={joinName}
+                        onChange={(e) => setJoinName(e.target.value)}
+                      />
+                      <Input
+                        type="text"
+                        placeholder="Room Code"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                      />
+                      <Button
+                        type="submit"
+                        variant="secondary"
+                        className="w-full"
+                        disabled={!isSocketReady || !joinCode.trim() || !joinName.trim()}
+                      >
+                        Join Room
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

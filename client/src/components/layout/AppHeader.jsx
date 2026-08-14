@@ -1,63 +1,96 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import logo from '../../assets/logo.svg';
+
+function UserAvatarIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M3 14.5c0-2.5 4-4 7-4s7 1.5 7 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!isMenuOpen) return undefined;
-
-    const handleOutsideClick = (event) => {
-      if (!menuRef.current?.contains(event.target)) {
-        setIsMenuOpen(false);
-      }
-    };
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') setIsMenuOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('pointerdown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isMenuOpen]);
 
   return (
-    <header className="app-header">
-      <button type="button" className="brand-lockup" onClick={onHome} aria-label="Go to home">
-        <img className="app-logo" src={logo} alt="Ganbatte logo" />
-        <div>
-          <h1>
-            <span className="brand-name">GANBATTE</span>
-            <span className="brand-kana" lang="ja">頑張って</span>
-          </h1>
-          <p>Stop saying 'Nani?' to everything.</p>
-        </div>
-      </button>
-      {isAuthenticated && <div className="user-menu" ref={menuRef}>
-        <button
-          type="button"
-          className="user-menu-trigger"
-          aria-label="Open user menu"
-          aria-expanded={isMenuOpen}
-          title="User menu"
-          onClick={() => setIsMenuOpen((current) => !current)}
+    <header className="gradient-heading border-b">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <Button
+          variant="link"
+          className="flex items-center gap-3 p-0 text-foreground hover:text-primary"
+          onClick={onHome}
+          aria-label="Go to home"
         >
-          <span className="user-avatar" aria-hidden="true">
-            <span className="user-avatar-head" />
-            <span className="user-avatar-body" />
-          </span>
-        </button>
-        {isMenuOpen && (
-          <div className="user-menu-dropdown">
-            <button type="button" onClick={onOpenHistory}>Assessment history</button>
-            <button type="button" onClick={onLogout}>Log out</button>
+          <img src={logo} alt="Ganbatte logo" className="h-10 w-10 object-contain" />
+          <div className="flex flex-col items-start">
+            <h1 className="font-sora text-xl font-bold text-foreground">
+              <span className="text-foreground">GANBATTE</span>
+              <span className="text-primary kana-font" lang="ja">
+                頑張って
+              </span>
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Stop saying 'Nani?' to everything.
+            </p>
+          </div>
+        </Button>
+
+        {isAuthenticated && (
+          <div>
+            <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full border border-border"
+                  aria-label="Open user menu"
+                  aria-expanded={isMenuOpen}
+                  title="User menu"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+                      <UserAvatarIcon />
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-48 bg-popover border-border"
+              >
+                <DropdownMenuItem onSelect={onOpenHistory}>
+                  Assessment history
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem onSelect={onLogout}>Log out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
-      </div>}
+      </div>
     </header>
   );
 }

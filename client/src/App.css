@@ -1,289 +1,108 @@
-* {
-  box-sizing: border-box;
+/* ===== App-specific styles ===== */
+/* These styles provide the shadcn/ui base layer and custom utility overrides */
+
+@layer base {
+  :root {
+    --background: 220 7% 8%;
+    --foreground: 220 12% 92%;
+    --card: 220 13% 13%;
+    --card-foreground: 220 12% 92%;
+    --popover: 220 13% 13%;
+    --popover-foreground: 220 12% 92%;
+    --primary: 217 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 59%;
+    --secondary-foreground: 220 12% 92%;
+    --muted: 220 18% 30%;
+    --muted-foreground: 220 19% 55%;
+    --accent: 155 50% 45%;
+    --accent-foreground: 220 12% 92%;
+    --destructive: 0 90% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 17%;
+    --input: 220 20% 17%;
+    --ring: 217 70% 55%;
+  }
+
+  .dark {
+    --background: 220 7% 8%;
+    --foreground: 220 12% 93%;
+    --card: 220 13% 13%;
+    --card-foreground: 220 12% 93%;
+    --popover: 220 13% 13%;
+    --popover-foreground: 220 12% 93%;
+    --primary: 217 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 59%;
+    --secondary-foreground: 220 12% 93%;
+    --muted: 220 18% 30%;
+    --muted-foreground: 220 19% 55%;
+    --accent: 155 50% 45%;
+    --accent-foreground: 220 12% 93%;
+    --destructive: 0 90% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 17%;
+    --input: 220 20% 17%;
+    --ring: 217 70% 55%;
+  }
+
+  /* Sora font for UI text */
+  .font-sans {
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      'sans-serif';
+  }
+
+  /* Japanese serif font for kanji display */
+  .kana-font {
+    font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  }
+
+  /* Japanese sans-serif font */
+  .jp-font {
+    font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  }
+
+  /* Gradient heading background (AppHeader) */
+  .gradient-heading {
+    background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+  }
+
+  .app-container {
+    min-height: 100vh;
+    background-color: var(--background);
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      'sans-serif';
+  }
 }
 
-body {
-  margin: 0;
-  font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: #0f1419;
-  min-height: 100vh;
-  color: #e8ecf1;
+/* ===== Utility overrides ===== */
+.text-primary-color {
+  color: var(--primary);
 }
 
-.app {
-  min-height: 100vh;
+.text-accent-color {
+  color: var(--accent);
 }
 
-.app-header {
-  position: relative;
-  background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
-  color: #e8ecf1;
-  padding: 1.1rem 2rem;
-  text-align: center;
-  border-bottom: 1px solid #2d3748;
+.text-secondary {
+  color: var(--secondary-foreground);
 }
 
-.user-menu {
-  position: absolute;
-  top: 50%;
-  right: 2rem;
-  transform: translateY(-50%);
-}
-
-.user-menu-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  border: 1px solid #4b5563;
-  border-radius: 50%;
-  background: #16213e;
-  color: #cbd5e1;
-  cursor: pointer;
-}
-
-.user-menu-trigger:hover,
-.user-menu-trigger[aria-expanded='true'] {
-  border-color: #60a5fa;
-  background: #243b5a;
-  color: #ffffff;
-}
-
-.user-avatar {
-  position: relative;
-  display: block;
-  width: 1.2rem;
-  height: 1.2rem;
-}
-
-.user-avatar-head {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 0.42rem;
-  height: 0.42rem;
-  border-radius: 50%;
-  background: currentColor;
-  transform: translateX(-50%);
-}
-
-.user-avatar-body {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0.95rem;
-  height: 0.52rem;
-  border-radius: 0.6rem 0.6rem 0.25rem 0.25rem;
-  background: currentColor;
-  transform: translateX(-50%);
-}
-
-.user-menu-dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  z-index: 10;
-  min-width: 8rem;
-  padding: 0.35rem;
-  border: 1px solid #374151;
-  border-radius: 8px;
-  background: #1a1f2e;
-  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.35);
-}
-
-.user-menu-dropdown button {
-  width: 100%;
-  padding: 0.65rem 0.75rem;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: #e8ecf1;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.user-menu-dropdown button:hover {
-  background: #243b5a;
-}
-
-.brand-lockup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-
-.brand-lockup:focus-visible {
-  outline: 2px solid #93c5fd;
-  outline-offset: 0.35rem;
-}
-
-.app-logo {
-  width: 3.25rem;
-  height: 3.25rem;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.app-header h1 {
-  display: flex;
-  align-items: baseline;
-  gap: 0.7rem;
-  margin: 0 0 0.3rem 0;
-  color: #f8fafc;
-  font-family: 'Sora', sans-serif;
-  font-size: 1.55rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.brand-name {
-  color: #f8fafc;
-}
-
-.brand-kana {
-  color: #93c5fd;
-  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-  font-size: 1.05rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-}
-
-.app-header p {
-  margin: 0;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.8rem;
-  color: #a0aec0;
-}
-
-.connection-status {
-  color: #fcd34d !important;
-  font-size: 0.85rem !important;
-}
-
-.app-main {
-  min-height: calc(100vh - 80px);
-}
-
-.auth-loading {
-  padding: 3rem 1rem;
-  color: #a0aec0;
-  text-align: center;
-}
-
-/* Buttons */
-.btn {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-
-.btn-primary {
-  background: #60a5fa;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #3b82f6;
-}
-
-.btn-primary:active:not(:disabled) {
-  background: #2563eb;
-}
-
-.btn-secondary {
-  background: #374151;
-  color: #e8ecf1;
-  border: 1px solid #4b5563;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-secondary:active:not(:disabled) {
-  background: #555e6f;
-}
-
-.btn-lg {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Responsive */
+/* ===== Responsive adjustments ===== */
 @media (max-width: 768px) {
-  .app-header {
-    padding: 1.25rem 1rem;
-  }
-
-  .user-menu {
-    right: 1rem;
-  }
-
-  .app-logo {
-    width: 2.75rem;
-    height: 2.75rem;
-  }
-
-  .app-header h1 {
-    gap: 0.5rem;
-    font-size: 1.3rem;
-  }
-
-  .brand-kana {
-    font-size: 0.9rem;
-  }
-
-  .app-header p {
-    font-size: 0.78rem;
-  }
-  
-  .btn {
-    padding: 0.65rem 1.25rem;
-    font-size: 0.95rem;
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 
 @media (max-width: 480px) {
-  .app-header h1 {
-    gap: 0.4rem;
-    font-size: 1.05rem;
+  .text-5xl {
+    font-size: 2.5rem;
   }
-
-  .brand-kana {
-    font-size: 0.78rem;
-  }
-
-  .brand-lockup {
-    gap: 0.65rem;
-  }
-
-  .app-logo {
-    width: 2.35rem;
-    height: 2.35rem;
-  }
-
-  .btn {
-    width: 100%;
+  .sm\:text-8xl {
+    font-size: 4rem;
   }
 }

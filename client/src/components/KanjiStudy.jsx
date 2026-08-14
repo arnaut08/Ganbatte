@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { getKanjiCards } from '../services/api';
-import './KanjiStudy.css';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 function KanjiStudy({ onBack }) {
   const [selectedGroups, setSelectedGroups] = useState([]);
@@ -36,86 +47,170 @@ function KanjiStudy({ onBack }) {
     setIsRevealed(false);
   };
 
-  return (
-    <main className="kanji-study">
-      <div className="kanji-study-header">
-        <div>
-          <p className="study-kicker">Kanji practice</p>
-          <h2>Build your reading foundation</h2>
-          <p className="study-description">Study 100 beginner kanji, grouped by everyday themes.</p>
-        </div>
-        <button type="button" className="btn btn-secondary" onClick={onBack}>Back to home</button>
-      </div>
+  const filterSummary = selectedGroups.length === 0
+    ? 'All kanji'
+    : `${selectedGroups.length} groups selected`;
 
-      <div className="kanji-filter">
-        <button
-          type="button"
-          className="kanji-filter-trigger"
-          aria-expanded={isFilterOpen}
-          aria-label="Filter Kanji groups"
-          title="Filter Kanji groups"
-          onClick={() => setIsFilterOpen((current) => !current)}
-        >
-          <span>{selectedGroups.length === 0 ? 'All kanji' : `${selectedGroups.length} groups selected`}</span>
-          <span className="filter-icon" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-        </button>
-        {isFilterOpen && (
-          <div className="kanji-filter-menu" role="group" aria-label="Kanji groups">
-            <button
-              type="button"
-              className={`kanji-filter-option ${selectedGroups.length === 0 ? 'active' : ''}`}
-              onClick={() => {
+  return (
+    <main className="kana-font container mx-auto max-w-3xl space-y-6 p-6">
+      {/* Header */}
+      <Card className="border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                Kanji practice
+              </p>
+              <CardTitle className="kana-font text-2xl">
+                Build your reading foundation
+              </CardTitle>
+              <CardDescription>
+                Study 100 beginner kanji, grouped by everyday themes.
+              </CardDescription>
+            </div>
+            <Button variant="secondary" size="sm" onClick={onBack}>
+              <ChevronLeftIcon className="h-4 w-4" />
+              Back to home
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Filter */}
+      <div className="relative w-full max-w-md">
+        <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-between"
+              aria-label="Filter Kanji groups"
+            >
+              <span>{filterSummary}</span>
+              <ChevronDownIcon className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-full border-border bg-popover" align="start">
+            <DropdownMenuItem
+              className={selectedGroups.length === 0 ? 'bg-accent/50' : ''}
+              onSelect={() => {
                 setSelectedGroups([]);
                 setCardIndex(0);
                 setIsRevealed(false);
                 setIsFilterOpen(false);
               }}
             >
-              <span className="filter-check" aria-hidden="true">{selectedGroups.length === 0 ? '✓' : ''}</span>
+              <span className="mr-2">
+                {selectedGroups.length === 0 ? '✓' : ''}
+              </span>
               All kanji
-            </button>
+            </DropdownMenuItem>
             {kanjiData.groups.map((group) => (
-              <button
-                type="button"
+              <DropdownMenuItem
                 key={group.id}
-                className={`kanji-filter-option ${selectedGroups.includes(group.id) ? 'active' : ''}`}
-                onClick={() => selectGroup(group.id)}
+                className={selectedGroups.includes(group.id) ? 'bg-accent/50' : ''}
+                onSelect={() => selectGroup(group.id)}
               >
-                <span className="filter-check" aria-hidden="true">{selectedGroups.includes(group.id) ? '✓' : ''}</span>
+                <span className="mr-2">
+                  {selectedGroups.includes(group.id) ? '✓' : ''}
+                </span>
                 {group.name}
-              </button>
+              </DropdownMenuItem>
             ))}
-          </div>
-        )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {isLoading && <section className="kanji-card"><p>Loading Kanji cards...</p></section>}
-      {error && <section className="kanji-card"><p className="auth-message">{error}</p></section>}
-      {!isLoading && !error && card && <section className="kanji-card" aria-live="polite">
-        <p className="kanji-card-group">{card.groupName}</p>
-        <div className="kanji-character">{card.kanji}</div>
-        {isRevealed ? (
-          <div className="kanji-answer">
-            <p><span>Reading</span>{card.reading}</p>
-            <p><span>Meaning</span>{card.meaning}</p>
-            <p className="kanji-example"><span>Example</span>{card.example[0]}<small>{card.example[1]}</small></p>
-          </div>
-        ) : (
-          <button type="button" className="btn btn-primary reveal-button" onClick={() => setIsRevealed(true)}>
-            Show reading
-          </button>
-        )}
-        <p className="kanji-progress">Card {cardIndex + 1} of {cards.length}</p>
-      </section>}
+      {/* Kanji Card */}
+      {isLoading && (
+        <Card className="border-border">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Skeleton className="mb-4 h-6 w-3/4" />
+            <Skeleton className="h-24 w-24 rounded-full" />
+          </CardContent>
+        </Card>
+      )}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {!isLoading && !error && card && (
+        <Card className="border-accent/20 kana-font">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-primary">
+              {card.groupName}
+            </p>
+            <div className="text-7xl font-bold text-foreground sm:text-8xl">
+              {card.kanji}
+            </div>
+            {isRevealed ? (
+              <div className="mt-8 w-full max-w-md space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="border-border">
+                    <CardContent className="p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Reading
+                      </p>
+                      <p className="mt-1 text-xl font-medium text-foreground">
+                        {card.reading}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border">
+                    <CardContent className="p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Meaning
+                      </p>
+                      <p className="mt-1 text-xl font-medium text-foreground">
+                        {card.meaning}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+                {card.example && (
+                  <Card className="border-border">
+                    <CardContent className="p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Example
+                      </p>
+                      <p className="mt-1 text-lg text-foreground">
+                        {card.example[0]}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {card.example[1]}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ) : (
+              <Button
+                className="mt-8"
+                onClick={() => setIsRevealed(true)}
+              >
+                Show reading
+              </Button>
+            )}
+            <p className="mt-6 text-sm text-muted-foreground">
+              Card {cardIndex + 1} of {cards.length}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-      {!isLoading && !error && card && <div className="kanji-controls">
-        <button type="button" className="btn btn-secondary" onClick={() => moveCard(-1)}>Previous</button>
-        <button type="button" className="btn btn-primary" onClick={() => moveCard(1)}>Next</button>
-      </div>}
+      {/* Controls */}
+      {!isLoading && !error && card && (
+        <div className="flex justify-center gap-3">
+          <Button variant="secondary" onClick={() => moveCard(-1)}>
+            <ChevronLeftIcon className="h-4 w-4" />
+            Previous
+          </Button>
+          <Button onClick={() => moveCard(1)}>
+            <ChevronRightIcon className="h-4 w-4" />
+            Next
+          </Button>
+        </div>
+      )}
     </main>
   );
 }
