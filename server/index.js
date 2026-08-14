@@ -12,6 +12,7 @@ import {
 } from './utils/validation.js';
 import { generateRandomCards } from './services/card-service.js';
 import { KANA_SENTENCES } from './data/kana-sentences.js';
+import { isCorrectRomajiAnswer } from './utils/romaji.js';
 
 const server = createServer(app);
 
@@ -192,7 +193,8 @@ io.on('connection', (socket) => {
         // captured index and emit that index back to clients.
         const idx = room.currentCardIndex;
         player.answers[idx] = parsedAnswer.data;
-        player.ready = false;
+        const currentCard = room.cards?.[idx];
+        player.ready = Boolean(currentCard && isCorrectRomajiAnswer(parsedAnswer.data, currentCard.romaji));
 
         // Emit the updated answer and keep both players in review mode
         io.to(roomCode).emit('answer-submitted', {
@@ -208,6 +210,7 @@ io.on('connection', (socket) => {
         if (allSubmitted) {
           console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
           io.to(roomCode).emit('both-submitted', { room, cardIndex: idx });
+          advanceRoomIfReady(roomCode);
         }
       }
     }
@@ -251,6 +254,12 @@ io.on('connection', (socket) => {
 
     io.to(roomCode).emit('player-ready-updated', { room });
     console.log(`player-ready-updated: room=${roomCode} player=${player.id}`);
+    advanceRoomIfReady(roomCode);
+  });
+
+  function advanceRoomIfReady(roomCode) {
+    const room = rooms.get(roomCode);
+    if (!room) return;
 
     // If all players are ready, advance the card
     const idx = room.currentCardIndex;
@@ -263,7 +272,7 @@ io.on('connection', (socket) => {
 
       if (room.currentCardIndex >= kanaCards.length) {
         room.status = 'completed';
-        console.log(`assessment-completed (player-ready): room=${roomCode}`);
+        console.log(`assessment-completed (ready): room=${roomCode}`);
         io.to(roomCode).emit('assessment-completed', {
           room,
           results: room.players.map((p) => ({
@@ -273,14 +282,14 @@ io.on('connection', (socket) => {
         });
       } else {
         room.status = 'active';
-        console.log(`card-updated (player-ready): room=${roomCode} index=${room.currentCardIndex}`);
+        console.log(`card-updated (ready): room=${roomCode} index=${room.currentCardIndex}`);
         io.to(roomCode).emit('card-updated', {
           currentCardIndex: room.currentCardIndex,
           room,
         });
       }
     }
-  });
+  }
 
   socket.on('leave-room', (roomCode, callback) => {
     const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
