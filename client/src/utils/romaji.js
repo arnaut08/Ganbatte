@@ -99,15 +99,23 @@ function getRawTokenRange(mapped, token) {
 }
 
 function findMatchingTokenIndexes(tokens, otherTokens) {
-  const lengths = Array.from({ length: tokens.length + 1 }, () => (
+  const scores = Array.from({ length: tokens.length + 1 }, () => (
     Array(otherTokens.length + 1).fill(0)
   ));
 
   for (let row = 1; row <= tokens.length; row++) {
     for (let column = 1; column <= otherTokens.length; column++) {
-      lengths[row][column] = tokens[row - 1].value === otherTokens[column - 1].value
-        ? lengths[row - 1][column - 1] + 1
-        : Math.max(lengths[row - 1][column], lengths[row][column - 1]);
+      const skipScore = Math.max(scores[row - 1][column], scores[row][column - 1]);
+      if (tokens[row - 1].value !== otherTokens[column - 1].value) {
+        scores[row][column] = skipScore;
+        continue;
+      }
+
+      // Prefer matching repeated tokens at the closest relative position.
+      const matchScore = scores[row - 1][column - 1]
+        + 1000
+        - Math.abs((row - 1) - (column - 1));
+      scores[row][column] = Math.max(matchScore, skipScore);
     }
   }
 
@@ -115,11 +123,15 @@ function findMatchingTokenIndexes(tokens, otherTokens) {
   let row = tokens.length;
   let column = otherTokens.length;
   while (row > 0 && column > 0) {
-    if (tokens[row - 1].value === otherTokens[column - 1].value) {
+    const isMatch = tokens[row - 1].value === otherTokens[column - 1].value;
+    const matchScore = isMatch
+      ? scores[row - 1][column - 1] + 1000 - Math.abs((row - 1) - (column - 1))
+      : -1;
+    if (isMatch && scores[row][column] === matchScore) {
       matches.add(row - 1);
       row--;
       column--;
-    } else if (lengths[row - 1][column] >= lengths[row][column - 1]) {
+    } else if (scores[row - 1][column] >= scores[row][column - 1]) {
       row--;
     } else {
       column--;
@@ -129,29 +141,47 @@ function findMatchingTokenIndexes(tokens, otherTokens) {
   return matches;
 }
 
-function buildDiffSegments(mapped, tokens, matchedIndexes) {
+function buildDiffSegments(mapped, tokens, matchedIndexes, otherTokens) {
   const segments = [];
   let rawCursor = 0;
+
+  const addSegment = (type, text) => {
+    if (!text) return;
+    const previous = segments[segments.length - 1];
+    if (type === 'plain' && previous?.type === 'diff' && /^\s+$/.test(text)) {
+      previous.text += text;
+      return;
+    }
+    if (previous?.type === type) {
+      previous.text += text;
+    } else {
+      segments.push({ type, text });
+    }
+  };
+
+  if (tokens.length === 0) {
+    return [{ type: 'diff', text: '∅' }];
+  }
 
   tokens.forEach((token, index) => {
 
     const { rawStart, rawEnd } = getRawTokenRange(mapped, token);
     const leadingText = mapped.raw.slice(rawCursor, rawStart);
-    if (leadingText) {
-      segments.push({ type: 'plain', text: leadingText });
-    }
+    addSegment('plain', leadingText);
 
-    segments.push({
-      type: matchedIndexes.has(index) ? 'plain' : 'diff',
-      text: mapped.raw.slice(rawStart, rawEnd),
-    });
+    addSegment(
+      matchedIndexes.has(index) ? 'plain' : 'diff',
+      mapped.raw.slice(rawStart, rawEnd),
+    );
     rawCursor = rawEnd;
   });
 
-  const trailingText = mapped.raw.slice(rawCursor);
-  if (trailingText) {
-    segments.push({ type: 'plain', text: trailingText });
+  if (otherTokens.length > tokens.length) {
+    addSegment('diff', '∅');
   }
+
+  const trailingText = mapped.raw.slice(rawCursor);
+  addSegment('plain', trailingText);
 
   return segments;
 }
@@ -165,7 +195,7 @@ export function buildRomajiDiff(givenRaw, expectedRaw) {
   const expectedMatches = findMatchingTokenIndexes(expected, given);
 
   return {
-    given: buildDiffSegments(givenMapped, given, givenMatches),
-    expected: buildDiffSegments(expectedMapped, expected, expectedMatches),
+    given: buildDiffSegments(givenMapped, given, givenMatches, expected),
+    expected: buildDiffSegments(expectedMapped, expected, expectedMatches, given),
   };
 }
