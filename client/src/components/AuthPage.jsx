@@ -4,7 +4,7 @@ import './AuthPage.css';
 
 function AuthPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [mode, setMode] = useState('signup');
+  const [mode, setMode] = useState('signin');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
