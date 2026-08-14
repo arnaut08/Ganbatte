@@ -359,7 +359,12 @@ function App() {
 
   return (
     <div className="app">
-      <AppHeader onLogout={handleLogout} onOpenHistory={handleOpenHistory} />
+      <AppHeader
+        onHome={handleBackToPractice}
+        onLogout={handleLogout}
+        onOpenHistory={handleOpenHistory}
+        isAuthenticated={Boolean(user)}
+      />
 
       <main className="app-main">
         {authLoading && <div className="auth-loading">Loading account...</div>}

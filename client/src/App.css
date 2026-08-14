@@ -115,7 +115,17 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.9rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
   text-align: left;
+}
+
+.brand-lockup:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 0.35rem;
 }
 
 .app-logo {
