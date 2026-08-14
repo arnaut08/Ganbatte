@@ -52,13 +52,13 @@
   background: #16213e;
   border: 1px solid #2d3748;
   border-radius: 8px;
-  padding: 2rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .player-card h3 {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 0.85rem 0;
   color: #e8ecf1;
   font-size: 0.95rem;
   font-weight: 600;
@@ -74,15 +74,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.9rem;
 }
 
 .kana-display {
-  font-size: 4rem;
+  font-size: 2.5rem;
   font-weight: 700;
   line-height: 1;
   color: #e8ecf1;
-  min-height: 160px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,12 +288,12 @@
   }
 
   .player-card {
-    padding: 1.5rem 1rem;
+    padding: 1rem;
   }
 
   .kana-display {
-    font-size: 3.5rem;
-    min-height: 110px;
+    font-size: 2.25rem;
+    min-height: 64px;
   }
 
   .input-section form {
@@ -319,6 +319,6 @@
   }
 
   .kana-display {
-    font-size: 3rem;
+    font-size: 2rem;
   }
 }
