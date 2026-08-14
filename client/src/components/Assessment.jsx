@@ -141,39 +141,34 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
               {currentCard?.english && (
                 <p className="translation-text">English: <strong>{currentCard.english}</strong></p>
               )}
-              {room.currentCardIndex === kanaCards.length - 1 ? (
-                <p className="completion-text">Assessment Complete!</p>
-              ) : (
-                // After submission, allow the user to mark themselves ready to
-                // continue; server will advance only when all players are ready.
-                <div className="continue-section">
-                  {!submitted ? (
-                    <p className="waiting-text">Submit your answer to continue.</p>
-                  ) : (
-                    <div>
+              <div className="continue-section">
+                {!submitted ? (
+                  <p className="waiting-text">Submit your answer to continue.</p>
+                ) : (
+                  <div>
+                    <div className="continue-actions">
                       {!currentReady ? (
                         <button
                           type="button"
-                          className="btn btn-primary"
+                          className="btn btn-primary ready-button"
                           onClick={() => onNextCard()}
-                          // onNextCard is wired to emit player-ready in App
                         >
-                          I'm ready — Continue
+                          Ready
                         </button>
                       ) : (
-                        <p className="waiting-text">Waiting for the other player to continue...</p>
+                        <span className="waiting-text">Waiting...</span>
                       )}
-                      <p className="small-note">
-                        {otherReady
-                          ? 'Other player is ready.'
-                          : otherSubmitted
-                          ? 'Other player submitted. Waiting for them to mark ready.'
-                          : 'Other player has not submitted yet.'}
-                      </p>
+                      <span className="small-note">
+                      {otherReady
+                        ? 'Other player ready'
+                        : otherSubmitted
+                        ? 'Other player submitted'
+                        : 'Other player not submitted'}
+                      </span>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

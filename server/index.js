@@ -244,8 +244,19 @@ io.on('connection', (socket) => {
         const allSubmitted = room.players.length > 0 && room.players.every((p) => p.answers[idx] !== undefined);
         if (allSubmitted) {
           console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
-          io.to(roomCode).emit('both-submitted', { room, cardIndex: idx });
-          advanceRoomIfReady(roomCode);
+          const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+          const isFinalCard = idx >= kanaCards.length - 1;
+          const allAnswersCorrect = room.players.every((player) => player.ready === true);
+          if (isFinalCard && allAnswersCorrect) {
+            room.status = 'completed';
+            io.to(roomCode).emit('assessment-completed', {
+              room,
+              results: buildAssessmentResults(room),
+            });
+          } else {
+            io.to(roomCode).emit('both-submitted', { room, cardIndex: idx });
+            advanceRoomIfReady(roomCode);
+          }
         }
       }
     }
