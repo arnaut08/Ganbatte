@@ -109,17 +109,16 @@ function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSock
             </div>
           </div>
 
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2 flex justify-around">
             <Button
-              className="w-full"
               size="lg"
               onClick={onStartAssessment}
               disabled={!isReady}
             >
-              {isReady ? 'Start Assessment' : 'Waiting for Player 2...'}
+              {isReady ? 'Start' : 'Waiting'}
             </Button>
-            <Button variant="secondary" className="w-full" onClick={onLeaveRoom}>
-              Leave Room
+            <Button size="lg" variant="secondary" onClick={onLeaveRoom}>
+              Leave
             </Button>
           </div>
 

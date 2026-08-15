@@ -113,6 +113,7 @@ io.on('connection', (socket) => {
         answers: [],
         connected: true,
       }],
+      leftPlayers: [],
       cards,
       currentCardIndex: 0,
       status: 'waiting',
@@ -179,13 +180,39 @@ io.on('connection', (socket) => {
     }
 
     const room = rooms.get(parsedRoomCode.data);
-    const player = room?.players.find(
+    let player = room?.players.find(
       (candidate) => candidate.sessionKey === parsedSessionKey.data
         && candidate.name === parsedUsername.data,
     );
-    if (!room || !player) {
+
+    if (!room) {
       if (callback) callback({ success: false, message: 'Room session expired' });
       return;
+    }
+
+    if (!player) {
+      const leftPlayer = room.leftPlayers?.find(
+        (candidate) => candidate.sessionKey === parsedSessionKey.data
+          && candidate.name === parsedUsername.data,
+      );
+
+      if (!leftPlayer) {
+        if (callback) callback({ success: false, message: 'Room session expired' });
+        return;
+      }
+
+      player = {
+        id: socket.id,
+        userId: resolvedUserId ?? leftPlayer.userId ?? socket.data.user?.id ?? null,
+        sessionKey: leftPlayer.sessionKey,
+        name: leftPlayer.name,
+        answers: Array.isArray(leftPlayer.answers) ? leftPlayer.answers : [],
+        connected: true,
+      };
+      room.players.push(player);
+      room.leftPlayers = room.leftPlayers.filter(
+        (candidate) => !(candidate.sessionKey === parsedSessionKey.data && candidate.name === parsedUsername.data),
+      );
     }
 
     player.id = socket.id;
@@ -377,6 +404,22 @@ io.on('connection', (socket) => {
       return;
     }
 
+    socket.data.intentionalLeaveRoomCode = normalizedRoomCode;
+    socket.data.intentionalLeave = true;
+
+    const leavingPlayer = room.players.find((player) => player.id === socket.id);
+    if (leavingPlayer) {
+      room.leftPlayers = room.leftPlayers.filter(
+        (player) => !(player.sessionKey === leavingPlayer.sessionKey && player.name === leavingPlayer.name),
+      );
+      room.leftPlayers.push({
+        sessionKey: leavingPlayer.sessionKey,
+        name: leavingPlayer.name,
+        userId: leavingPlayer.userId,
+        answers: leavingPlayer.answers,
+      });
+    }
+
     room.players = room.players.filter((player) => player.id !== socket.id);
     socket.leave(normalizedRoomCode);
 
@@ -386,10 +429,10 @@ io.on('connection', (socket) => {
       roomCleanupTimers.delete(normalizedRoomCode);
     }
 
-    if (room.players.length === 0) {
+    if (room.players.length === 0 && room.leftPlayers.length === 0) {
       rooms.delete(normalizedRoomCode);
     } else {
-      io.to(normalizedRoomCode).emit('player-left', { players: room.players });
+      io.to(normalizedRoomCode).emit('player-left', { room, players: room.players });
     }
 
     if (callback) callback({ success: true });
@@ -438,13 +481,20 @@ io.on('connection', (socket) => {
         console.error('Redis user connection release error:', releaseError);
       });
     }
+
+    if (socket.data.intentionalLeave === true) {
+      delete socket.data.intentionalLeave;
+      delete socket.data.intentionalLeaveRoomCode;
+      return;
+    }
+
     for (const [roomCode, room] of rooms) {
       const player = room.players.find((candidate) => candidate.id === socket.id);
       if (!player) continue;
 
       player.connected = false;
       player.disconnectedAt = Date.now();
-      io.to(roomCode).emit('player-left', { players: room.players });
+      io.to(roomCode).emit('player-left', { room, players: room.players });
 
       if (!room.players.some((candidate) => candidate.connected)) {
         const cleanupTimer = setTimeout(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import RoomSelector from './components/RoomSelector';
 import RoomLobby from './components/RoomLobby';
@@ -28,9 +28,26 @@ function saveRoomSession(roomCode, username) {
   sessionStorage.setItem(ROOM_SESSION_STORAGE, JSON.stringify({ roomCode, username }));
 }
 
+function readRoomSession() {
+  const raw = sessionStorage.getItem(ROOM_SESSION_STORAGE);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearRoomQueryParam() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('room');
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
+
 function clearRoomSession() {
   sessionStorage.removeItem(ROOM_SESSION_STORAGE);
-  window.history.replaceState({}, document.title, window.location.pathname);
+  clearRoomQueryParam();
 }
 
 function App() {
@@ -45,7 +62,31 @@ function App() {
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
+  const [toast, setToast] = useState(null);
+  const statusRef = useRef(status);
+  const inviteJoinAttemptedRef = useRef(false);
   const authRequired = Boolean(supabase);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    const savedSession = readRoomSession();
+    const hasSavedRoom = Boolean(roomCode || savedSession?.roomCode);
+    setRoomResumeAvailable(Boolean(hasSavedRoom && !ROOM_VIEW_STATUSES.includes(status)));
+  }, [roomCode, room, status]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   const screenPriority = {
     selector: 0,
@@ -56,12 +97,24 @@ function App() {
     results: 3,
   };
 
+  const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results'];
+
   const transitionToStatus = (nextStatus) => {
     setStatus((current) => {
       if (!nextStatus) return current;
+
       const currentPriority = screenPriority[current] ?? 0;
       const nextPriority = screenPriority[nextStatus] ?? 0;
+
       if (nextPriority < currentPriority) return current;
+
+      const isRoomScreen = ['lobby', 'assessment', 'results'].includes(current);
+      const isRoomTransition = ['lobby', 'assessment', 'results'].includes(nextStatus);
+
+      if (!isRoomScreen && current !== 'selector' && isRoomTransition) {
+        return current;
+      }
+
       return nextStatus;
     });
   };
@@ -97,12 +150,25 @@ function App() {
   }, [room, results]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roomFromUrl = (params.get('room') || '').trim().toUpperCase();
-    if (roomFromUrl) {
-      setPrefillRoomCode(roomFromUrl);
+    const savedSession = readRoomSession();
+    const savedRoomCode = (savedSession?.roomCode || '').trim().toUpperCase();
+
+    if (savedRoomCode) {
+      setPrefillRoomCode(savedRoomCode);
     }
   }, []);
+
+  useEffect(() => {
+    if (!socket || !isSocketReady || inviteJoinAttemptedRef.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const roomFromUrl = (params.get('room') || '').trim().toUpperCase();
+
+    if (!roomFromUrl) return;
+
+    inviteJoinAttemptedRef.current = true;
+    handleJoinRoom(roomFromUrl, getDisplayName());
+  }, [socket, isSocketReady, user]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -117,26 +183,31 @@ function App() {
       console.log('Connected to server');
       setSocket(newSocket);
       setIsSocketReady(true);
-      const savedSession = sessionStorage.getItem(ROOM_SESSION_STORAGE);
-      if (savedSession) {
-        try {
-          const { roomCode: savedRoomCode, username: savedUsername } = JSON.parse(savedSession);
-          if (savedRoomCode && savedUsername) {
-            newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response) => {
-              if (response?.success) {
-                setRoomCode(savedRoomCode);
-                setUsername(savedUsername);
-                setRoom(response.room);
-                setKanaCards(response.room.cards || []);
-                transitionToStatus(response.room.status === 'active' ? 'assessment' : 'lobby');
-              } else {
-                sessionStorage.removeItem(ROOM_SESSION_STORAGE);
-              }
-            });
-          }
-        } catch {
-          sessionStorage.removeItem(ROOM_SESSION_STORAGE);
+
+      const savedSession = readRoomSession();
+      const shouldRestoreRoomSession = ROOM_VIEW_STATUSES.includes(statusRef.current) && Boolean(savedSession?.roomCode && savedSession?.username);
+
+      if (!shouldRestoreRoomSession) {
+        return;
+      }
+
+      try {
+        const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
+        if (savedRoomCode && savedUsername) {
+          newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response) => {
+            if (response?.success) {
+              setRoomCode(savedRoomCode);
+              setUsername(savedUsername);
+              setRoom(response.room);
+              setKanaCards(response.room.cards || []);
+              transitionToStatus(response.room.status === 'active' ? 'assessment' : 'lobby');
+            } else {
+              clearRoomSession();
+            }
+          });
         }
+      } catch {
+        clearRoomSession();
       }
     });
 
@@ -230,10 +301,18 @@ function App() {
     });
 
     newSocket.on('player-left', (data) => {
-      setRoom((prev) => ({
-        ...prev,
-        players: data.players,
-      }));
+      const roomData = data?.room ?? { players: data?.players ?? [] };
+      setRoom((prev) => {
+        const nextRoom = roomData && Array.isArray(roomData.players)
+          ? { ...(prev ?? {}), ...roomData, players: roomData.players }
+          : prev;
+
+        if (nextRoom && Array.isArray(roomData.players) && roomData.players.length <= 1) {
+          setToast({ message: 'Your opponent left the room.', type: 'warning' });
+        }
+
+        return nextRoom;
+      });
     });
 
     return () => {
@@ -295,6 +374,8 @@ function App() {
       const hostName = (name || getDisplayName()).trim();
       if (!hostName) return;
       setUsername(hostName);
+      setPrefillRoomCode('');
+      clearRoomQueryParam();
       socket.emit('create-room', hostName, getSessionKey(), user?.id, (code) => {
         setRoomCode(code);
         saveRoomSession(code, hostName);
@@ -317,6 +398,8 @@ function App() {
       if (!playerName) return;
 
       setUsername(playerName);
+      setPrefillRoomCode('');
+      clearRoomQueryParam();
       socket.emit('join-room', code, playerName, getSessionKey(), user?.id, (response) => {
         if (response.success) {
           setRoomCode(code);
@@ -351,8 +434,9 @@ function App() {
   const handleLeaveRoom = () => {
     if (!socket || !roomCode) return;
     socket.emit('leave-room', roomCode, (response) => {
-      if (!response?.success) return;
-      clearRoomSession();
+      if (response?.success && roomCode && username) {
+        saveRoomSession(roomCode, username);
+      }
       setRoomCode(null);
       setRoom(null);
       setUsername('');
@@ -389,14 +473,113 @@ function App() {
     }
   };
 
-  const handleOpenKanjiStudy = () => setStatus('kanji-study');
-  const handleOpenHistory = () => setStatus('history');
-  const handleBackToPractice = () => setStatus('selector');
+  const preserveRoomSessionForNavigation = (nextStatus) => {
+    const storedSession = readRoomSession();
+    const activeRoomCode = roomCode || storedSession?.roomCode;
+    const activeUsername = username || storedSession?.username || '';
+
+    if (socket && activeRoomCode) {
+      socket.emit('leave-room', activeRoomCode, (response) => {
+        if (response?.success && activeRoomCode && activeUsername) {
+          saveRoomSession(activeRoomCode, activeUsername);
+        }
+        setRoomCode(null);
+        setRoom(null);
+        setUsername('');
+        setResults(null);
+        setPrefillRoomCode('');
+        setStatus(nextStatus);
+      });
+      return;
+    }
+
+    if (activeRoomCode && activeUsername) {
+      saveRoomSession(activeRoomCode, activeUsername);
+    }
+
+    setRoomCode(activeRoomCode || null);
+    setRoom(null);
+    setUsername(activeUsername);
+    setResults(null);
+    setPrefillRoomCode('');
+    setStatus(nextStatus);
+  };
+
+  const handleDeclineRoomResume = () => {
+    clearRoomSession();
+    setRoomCode(null);
+    setRoom(null);
+    setUsername('');
+    setResults(null);
+    setPrefillRoomCode('');
+    setStatus('selector');
+  };
+
+  const handleOpenKanjiStudy = () => {
+    preserveRoomSessionForNavigation('kanji-study');
+  };
+
+  const handleOpenHistory = () => {
+    preserveRoomSessionForNavigation('history');
+  };
+
+  const handleBackToPractice = () => {
+    preserveRoomSessionForNavigation('selector');
+  };
+
+  const handleReturnToRoom = () => {
+    const savedSession = readRoomSession();
+    if (room && roomCode) {
+      setStatus(room.status === 'active' ? 'assessment' : 'lobby');
+      return;
+    }
+
+    if (!savedSession) {
+      setStatus('selector');
+      return;
+    }
+
+    try {
+      const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
+      if (!savedRoomCode || !savedUsername || !socket) {
+        setStatus('selector');
+        return;
+      }
+
+      setRoomCode(savedRoomCode);
+      setUsername(savedUsername);
+      socket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response) => {
+        if (!response?.success) {
+          clearRoomSession();
+          setRoomCode(null);
+          setRoom(null);
+          setUsername('');
+          setStatus('selector');
+          return;
+        }
+
+        setRoom(response.room);
+        setKanaCards(response.room.cards || []);
+        setStatus(response.room.status === 'active' ? 'assessment' : 'lobby');
+      });
+    } catch {
+      setStatus('selector');
+    }
+  };
 
   const mainClassName = 'container mx-auto px-4 py-6';
 
   return (
     <div className="app-container min-h-screen">
+      {toast && (
+        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm rounded-md border border-amber-500/30 bg-slate-900/95 px-4 py-3 text-sm text-white shadow-lg backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
       <AppHeader
         onHome={handleBackToPractice}
         onLogout={handleLogout}
@@ -414,8 +597,13 @@ function App() {
                 onCreateRoom={() => handleCreateRoom(getDisplayName())}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}
+                onReturnToRoom={handleReturnToRoom}
+                onDeclineRoomResume={handleDeclineRoomResume}
                 prefillRoomCode={prefillRoomCode}
                 isSocketReady={isSocketReady}
+                canReturnToRoom={roomResumeAvailable}
+                roomCode={roomCode || readRoomSession()?.roomCode || ''}
+                resumeUsername={readRoomSession()?.username || username}
               />
             )}
 

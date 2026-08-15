@@ -92,57 +92,6 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
             </CardContent>
           </Card>
 
-          {/* Opponent Status */}
-          {showOpponentStatus && (
-            <Card className="border-border bg-card/50">
-              <CardContent className="py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {otherPlayer ? otherPlayer.name : 'Opponent'}
-                    </span>
-                    {otherPlayer && otherSubmitted && otherCorrect && (
-                      <Badge variant="success" className="text-xs">
-                        ✓ Correct
-                      </Badge>
-                    )}
-                    {otherPlayer && otherSubmitted && !otherCorrect && (
-                      <Badge variant="destructive" className="text-xs">
-                        ✗ Incorrect
-                      </Badge>
-                    )}
-                    {otherPlayer && !otherSubmitted && (
-                      <Badge variant="outline" className="text-xs">
-                        ⏳ Not submitted
-                      </Badge>
-                    )}
-                  </div>
-                  {otherReady && (
-                    <Badge variant="success" className="text-xs">
-                      ✅ Ready
-                    </Badge>
-                  )}
-                  {!otherPlayer && (
-                    <span className="text-sm text-muted-foreground">
-                      Waiting for opponent...
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="show-opponent"
-              checked={showOpponentStatus}
-              onCheckedChange={setShowOpponentStatus}
-            />
-            <Label htmlFor="show-opponent" className="text-sm text-muted-foreground cursor-pointer">
-              Show opponent status
-            </Label>
-          </div>
-
           {/* Input / Answer Review Section */}
           <div>
             {!submitted ? (
@@ -209,6 +158,57 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
                 </div>
               </div>
             )}
+          </div>
+          
+          {/* Opponent Status */}
+          {showOpponentStatus && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {otherPlayer ? otherPlayer.name : 'Opponent'}
+                    </span>
+                    {otherPlayer && otherSubmitted && otherCorrect && (
+                      <Badge variant="success" className="text-xs">
+                        ✓ Correct
+                      </Badge>
+                    )}
+                    {otherPlayer && otherSubmitted && !otherCorrect && (
+                      <Badge variant="destructive" className="text-xs">
+                        ✗ Incorrect
+                      </Badge>
+                    )}
+                    {otherPlayer && !otherSubmitted && (
+                      <Badge variant="outline" className="text-xs">
+                        ⏳ Not submitted
+                      </Badge>
+                    )}
+                  </div>
+                  {otherReady && (
+                    <Badge variant="success" className="text-xs">
+                      ✅ Ready
+                    </Badge>
+                  )}
+                  {!otherPlayer && (
+                    <span className="text-sm text-muted-foreground">
+                      Waiting for opponent...
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="show-opponent"
+              checked={showOpponentStatus}
+              onCheckedChange={setShowOpponentStatus}
+            />
+            <Label htmlFor="show-opponent" className="text-sm text-muted-foreground cursor-pointer">
+              Show opponent status
+            </Label>
           </div>
 
           {/* Hint */}
