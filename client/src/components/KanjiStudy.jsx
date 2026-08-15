@@ -146,7 +146,7 @@ function KanjiStudy({ onBack }) {
             <p className="mb-4 text-xs font-bold uppercase tracking-wider text-primary font-sora">
               {card.groupName}
             </p>
-            <div className="kana-font text-7xl font-bold text-foreground sm:text-8xl">
+            <div className="text-7xl font-bold text-foreground sm:text-8xl">
               {card.kanji}
             </div>
             {isRevealed ? (
