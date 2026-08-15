@@ -79,9 +79,15 @@ function AssessmentHistory({ onBack }) {
               <CardTitle className="text-2xl">Assessment history</CardTitle>
               <CardDescription>Review your previous practice sessions.</CardDescription>
             </div>
-            <Button variant="secondary" size="sm" onClick={onBack}>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={onBack}
+              className="h-9 w-9 rounded-full"
+              aria-label="Back to home"
+              title="Back to home"
+            >
               <ChevronLeftIcon className="h-4 w-4" />
-              Back to home
             </Button>
           </div>
         </CardHeader>

@@ -45,6 +45,7 @@ function App() {
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const authRequired = Boolean(supabase);
 
   const screenPriority = {
     selector: 0,
@@ -144,6 +145,12 @@ function App() {
         setRoom(data.room);
         setKanaCards(data.room.cards || []);
       }
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      setSocket(null);
+      setIsSocketReady(false);
     });
 
     newSocket.on('disconnect', () => {
@@ -265,9 +272,19 @@ function App() {
     };
   }, [socket, roomCode]);
 
+  const getDisplayName = () => {
+    const fullName = user?.user_metadata?.full_name?.trim();
+    if (fullName) return fullName;
+
+    const emailName = user?.email?.split('@')[0]?.trim();
+    if (emailName) return emailName;
+
+    return 'Player';
+  };
+
   const handleCreateRoom = async (name) => {
     if (socket) {
-      const hostName = (name || '').trim();
+      const hostName = (name || getDisplayName()).trim();
       if (!hostName) return;
       setUsername(hostName);
       socket.emit('create-room', hostName, getSessionKey(), (code) => {
@@ -288,11 +305,14 @@ function App() {
 
   const handleJoinRoom = (code, name) => {
     if (socket) {
-      setUsername(name);
-      socket.emit('join-room', code, name, getSessionKey(), (response) => {
+      const playerName = (name || getDisplayName()).trim();
+      if (!playerName) return;
+
+      setUsername(playerName);
+      socket.emit('join-room', code, playerName, getSessionKey(), (response) => {
         if (response.success) {
           setRoomCode(code);
-          saveRoomSession(code, name);
+          saveRoomSession(code, playerName);
           setRoom(response.room);
           transitionToStatus('lobby');
         } else {
@@ -335,16 +355,30 @@ function App() {
   };
 
   const handleLogout = async () => {
-    if (socket) socket.disconnect();
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+      setIsSocketReady(false);
+    }
+
     clearRoomSession();
     sessionStorage.removeItem(SESSION_KEY_STORAGE);
+    setUser(null);
     setRoomCode(null);
     setRoom(null);
     setUsername('');
     setResults(null);
     setPrefillRoomCode('');
     setStatus('selector');
-    await supabase?.auth.signOut();
+
+    if (!supabase) return;
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error('Logout failed:', error);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const handleOpenKanjiStudy = () => setStatus('kanji-study');
@@ -364,13 +398,13 @@ function App() {
 
       <main className={mainClassName}>
         {authLoading && <div className="py-12 text-center text-muted-foreground">Loading account...</div>}
-        {!authLoading && !user && <AuthPage />}
-        {!authLoading && user && (
+        {!authLoading && authRequired && !user && <AuthPage />}
+        {!authLoading && (!authRequired || user) && (
           <>
             {status === 'selector' && (
               <RoomSelector
-                onCreateRoom={handleCreateRoom}
-                onJoinRoom={handleJoinRoom}
+                onCreateRoom={() => handleCreateRoom(getDisplayName())}
+                onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}
                 prefillRoomCode={prefillRoomCode}
                 isSocketReady={isSocketReady}

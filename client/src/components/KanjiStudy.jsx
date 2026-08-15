@@ -52,32 +52,38 @@ function KanjiStudy({ onBack }) {
     : `${selectedGroups.length} groups selected`;
 
   return (
-    <main className="kana-font container mx-auto max-w-3xl space-y-6 p-6">
+    <main className="container mx-auto max-w-3xl space-y-6 p-6">
       {/* Header */}
       <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-primary">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary sm:text-sm">
                 Kanji practice
               </p>
-              <CardTitle className="kana-font text-2xl">
+              <CardTitle className="kana-font text-xl sm:text-2xl">
                 Build your reading foundation
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm leading-relaxed sm:text-base">
                 Study 100 beginner kanji, grouped by everyday themes.
               </CardDescription>
             </div>
-            <Button variant="secondary" size="sm" onClick={onBack}>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={onBack}
+              className="h-9 w-9 rounded-full self-start sm:self-auto"
+              aria-label="Back to home"
+              title="Back to home"
+            >
               <ChevronLeftIcon className="h-4 w-4" />
-              Back to home
             </Button>
           </div>
         </CardHeader>
       </Card>
 
       {/* Filter */}
-      <div className="relative w-full max-w-md">
+      <div className="relative max-w-[15rem]">
         <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -135,12 +141,12 @@ function KanjiStudy({ onBack }) {
         </Alert>
       )}
       {!isLoading && !error && card && (
-        <Card className="border-accent/20 kana-font">
+        <Card className="border-accent/20">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="mb-4 text-xs font-bold uppercase tracking-wider text-primary">
               {card.groupName}
             </p>
-            <div className="text-7xl font-bold text-foreground sm:text-8xl">
+            <div className="kana-font text-7xl font-bold text-foreground sm:text-8xl">
               {card.kanji}
             </div>
             {isRevealed ? (

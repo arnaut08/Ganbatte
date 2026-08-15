@@ -1,23 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { getRoom } from '../services/api';
 import { Button } from '@/components/ui/button';
+import { ChevronLeftIcon } from '@radix-ui/react-icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 
 function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomCode = '', isSocketReady = false }) {
-  const [createName, setCreateName] = useState('');
   const [joinCode, setJoinCode] = useState('');
-  const [joinName, setJoinName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [screen, setScreen] = useState(prefillRoomCode ? 'assessment' : 'home');
-  const joinNameInputRef = useRef(null);
+  const joinCodeInputRef = useRef(null);
   const hasInviteCode = Boolean(prefillRoomCode);
 
   useEffect(() => {
     if (prefillRoomCode) {
       setJoinCode(prefillRoomCode);
-      joinNameInputRef.current?.focus();
+      joinCodeInputRef.current?.focus();
     }
   }, [prefillRoomCode]);
 
@@ -49,18 +48,17 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
 
   const handleCreate = (e) => {
     e.preventDefault();
-    if (isSocketReady && createName.trim()) {
-      onCreateRoom(createName.trim());
+    if (isSocketReady) {
+      onCreateRoom();
     }
   };
 
   const handleJoin = (e) => {
     e.preventDefault();
     const targetCode = (hasInviteCode ? prefillRoomCode : joinCode).trim();
-    if (isSocketReady && targetCode && joinName.trim()) {
-      onJoinRoom(targetCode.toUpperCase(), joinName.trim());
+    if (isSocketReady && targetCode) {
+      onJoinRoom(targetCode.toUpperCase());
       if (!hasInviteCode) setJoinCode('');
-      setJoinName('');
     }
   };
 
@@ -84,18 +82,11 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
                 </p>
               )}
               <form onSubmit={handleJoin} className="space-y-4">
-                <Input
-                  ref={joinNameInputRef}
-                  type="text"
-                  placeholder="Enter your name"
-                  value={joinName}
-                  onChange={(e) => setJoinName(e.target.value)}
-                />
                 <Button
                   type="submit"
                   variant="secondary"
                   className="w-full"
-                  disabled={!isSocketReady || !joinName.trim()}
+                  disabled={!isSocketReady}
                 >
                   Join Room
                 </Button>
@@ -114,8 +105,8 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
                   Study essential Japanese characters at your own pace.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => setScreen('learning')}>
+              <CardContent className="flex justify-center">
+                <Button onClick={() => setScreen('learning')}>
                   Explore learning
                 </Button>
               </CardContent>
@@ -128,39 +119,77 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
                 </p>
                 <CardTitle>Assessment</CardTitle>
                 <CardDescription>
-                  Read kana sentences and challenge yourself with a friend.
+                  Assess yourself with a friend.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button variant="secondary" className="w-full" onClick={() => setScreen('assessment')}>
+              <CardContent className="flex justify-center">
+                <Button variant="secondary" onClick={() => setScreen('assessment')}>
                   Start an assessment
                 </Button>
               </CardContent>
             </Card>
           </div>
         ) : screen === 'learning' ? (
-          <Card className="border-border max-w-2xl">
-            <CardHeader>
-              <p className="text-xs font-bold uppercase tracking-wider text-primary">
-                Learning
-              </p>
-              <CardTitle>Study Japanese characters</CardTitle>
-              <CardDescription>
-                Review 100 essential N5 Kanji grouped by everyday themes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Button onClick={onOpenKanjiStudy}>Study 100 N5 Kanji</Button>
-              <Button variant="secondary" onClick={() => setScreen('home')}>
-                Back to home
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => setScreen('home')}
+                className="h-9 w-9 rounded-full"
+                aria-label="Back to home"
+                title="Back to home"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
               </Button>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Learning
+                </p>
+                <h2 className="text-xl font-bold">Study Japanese characters</h2>
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-border max-w-2xl">
+              <CardHeader>
+                <CardTitle>Kana</CardTitle>
+                <CardDescription>
+                  Learn the two Japanese syllabaries: Hiragana and Katakana.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button disabled>
+                  Coming soon...
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border max-w-2xl">
+              <CardHeader>
+                <CardTitle>N5 Kanji</CardTitle>
+                <CardDescription>
+                  Review essential N5 Kanji grouped by everyday themes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button onClick={onOpenKanjiStudy}>Study</Button>
+              </CardContent>
+            </Card>
+            </div>
+          </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Button variant="secondary" size="sm" onClick={() => setScreen('home')}>
-                Back to home
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => setScreen('home')}
+                className="h-9 w-9 rounded-full"
+                aria-label="Back to home"
+                title="Back to home"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
               </Button>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">
@@ -178,16 +207,10 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleCreate} className="space-y-4">
-                    <Input
-                      type="text"
-                      placeholder="Enter your name"
-                      value={createName}
-                      onChange={(e) => setCreateName(e.target.value)}
-                    />
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={!isSocketReady || !createName.trim()}
+                      disabled={!isSocketReady}
                     >
                       Create Room
                     </Button>
@@ -196,12 +219,6 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
               </Card>
 
               <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator orientation="vertical" className="h-full" />
-                </div>
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
-                  <span className="px-2 text-xs uppercase text-muted-foreground">OR</span>
-                </div>
 
                 <Card className="border-border h-full">
                   <CardHeader>
@@ -218,13 +235,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
                     )}
                     <form onSubmit={handleJoin} className="space-y-4">
                       <Input
-                        ref={joinNameInputRef}
-                        type="text"
-                        placeholder="Enter your name"
-                        value={joinName}
-                        onChange={(e) => setJoinName(e.target.value)}
-                      />
-                      <Input
+                        ref={joinCodeInputRef}
                         type="text"
                         placeholder="Room Code"
                         value={joinCode}
@@ -234,7 +245,7 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
                         type="submit"
                         variant="secondary"
                         className="w-full"
-                        disabled={!isSocketReady || !joinCode.trim() || !joinName.trim()}
+                        disabled={!isSocketReady || !joinCode.trim()}
                       >
                         Join Room
                       </Button>

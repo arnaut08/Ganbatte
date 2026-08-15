@@ -44,15 +44,15 @@ function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
           onClick={onHome}
           aria-label="Go to home"
         >
-          <img src={logo} alt="Ganbatte logo" className="h-10 w-10 object-contain" />
+          <img src={logo} alt="Ganbatte logo" className="h-12 w-12 object-contain" />
           <div className="flex flex-col items-start">
-            <h1 className="font-sora text-xl font-bold text-foreground">
-              <span className="text-foreground">GANBATTE</span>
-              <span className="text-primary kana-font" lang="ja">
+            <h1 className="font-sora font-bold text-foreground">
+              <span className="text-foreground text-xl">GANBATTE</span>
+              <span className="text-primary text-l kana-font" lang="ja">
                 頑張って
               </span>
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Stop saying 'Nani?' to everything.
             </p>
           </div>
@@ -65,12 +65,12 @@ function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full border border-border"
+                  className="h-13 w-13 rounded-full border border-border"
                   aria-label="Open user menu"
                   aria-expanded={isMenuOpen}
                   title="User menu"
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-12 w-12">
                     <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-secondary text-secondary-foreground">
                       <UserAvatarIcon />
                     </AvatarFallback>
