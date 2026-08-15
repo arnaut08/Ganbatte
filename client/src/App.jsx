@@ -122,7 +122,7 @@ function App() {
         try {
           const { roomCode: savedRoomCode, username: savedUsername } = JSON.parse(savedSession);
           if (savedRoomCode && savedUsername) {
-            newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), (response) => {
+            newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response) => {
               if (response?.success) {
                 setRoomCode(savedRoomCode);
                 setUsername(savedUsername);
@@ -212,11 +212,19 @@ function App() {
     newSocket.on('assessment-completed', (data) => {
       console.log('assessment-completed event:', data);
       if (data && data.room) setRoom(data.room);
-      const resultsArr = (data && data.results)
+
+      const rawResults = (data && data.results)
         ? data.results
-        : data && data.room
-        ? data.room.players.map((p) => ({ name: p.name, userId: p.userId, answers: p.answers }))
-        : null;
+        : (data && data.room && Array.isArray(data.room.players))
+          ? data.room.players
+          : [];
+
+      const resultsArr = rawResults.map((player) => ({
+        name: player.name,
+        userId: player.userId ?? player.user_id ?? null,
+        answers: Array.isArray(player.answers) ? player.answers : [],
+      }));
+      console.log("resultsArr", resultsArr, rawResults);
       setResults(resultsArr);
       transitionToStatus('results');
     });
@@ -287,7 +295,7 @@ function App() {
       const hostName = (name || getDisplayName()).trim();
       if (!hostName) return;
       setUsername(hostName);
-      socket.emit('create-room', hostName, getSessionKey(), (code) => {
+      socket.emit('create-room', hostName, getSessionKey(), user?.id, (code) => {
         setRoomCode(code);
         saveRoomSession(code, hostName);
         getRoom(code)
@@ -309,7 +317,7 @@ function App() {
       if (!playerName) return;
 
       setUsername(playerName);
-      socket.emit('join-room', code, playerName, getSessionKey(), (response) => {
+      socket.emit('join-room', code, playerName, getSessionKey(), user?.id, (response) => {
         if (response.success) {
           setRoomCode(code);
           saveRoomSession(code, playerName);

@@ -32,10 +32,10 @@ function AssessmentHistory({ onBack }) {
 
       const { data, count, error: queryError } = await supabase
         .from('assessment_results')
-        .select('id, assessment_type, score_percentage, correct_questions, total_questions, created_at, companion_user_id', { count: 'exact' })
+        .select('id, assessment_type, score_percentage, correct_questions, total_questions, created_at, companion_user_id, profile:profiles!companion_user_id(display_name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
-
+      console.log(data, "assessment results");
       if (cancelled) return;
       if (queryError) {
         setError('No records found');
@@ -146,7 +146,7 @@ function AssessmentHistory({ onBack }) {
                       </p>
                       {result.companion_user_id ? (
                         <p className="text-sm text-secondary">
-                          With another player
+                          With {result.profile?.display_name || 'another player'}
                         </p>
                       ) : (
                         <p className="text-sm text-secondary">

@@ -76,8 +76,8 @@ const DISCONNECT_GRACE_PERIOD_MS = 5 * 60 * 1000;
 function buildAssessmentResults(room) {
   return room.players.map((player) => ({
     name: player.name,
-    userId: player.userId,
-    answers: player.answers,
+    userId: player.userId ?? player.user_id ?? null,
+    answers: Array.isArray(player.answers) ? player.answers : [],
   }));
 }
 
@@ -90,23 +90,32 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   // Create a new room
-  socket.on('create-room', (hostName, sessionKey, callback) => {
+  socket.on('create-room', (hostName, sessionKey, maybeUserId, maybeCallback) => {
     const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
     const parsedHostName = usernameSchema.safeParse(hostName);
+    const callback = typeof maybeUserId === 'function' ? maybeUserId : maybeCallback;
+    const resolvedUserId = typeof maybeUserId === 'function' ? socket.data.user?.id : (maybeUserId ?? socket.data.user?.id);
+
     if (!parsedSessionKey.success) {
       if (callback) callback({ success: false, message: 'Invalid session' });
       return;
     }
     const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
     const roomCode = generateRoomCode();
-    // generate a fresh kana-sentence card set for this room
     const cards = generateRandomCards(KANA_SENTENCES, 10);
     rooms.set(roomCode, {
       code: roomCode,
-      players: [{ id: socket.id, userId: socket.data.user?.id, sessionKey: parsedSessionKey.data, name: playerName, answers: [], connected: true }],
+      players: [{
+        id: socket.id,
+        userId: resolvedUserId,
+        sessionKey: parsedSessionKey.data,
+        name: playerName,
+        answers: [],
+        connected: true,
+      }],
       cards,
       currentCardIndex: 0,
-      status: 'waiting', // waiting, active, completed, review
+      status: 'waiting',
     });
     socket.join(roomCode);
     socket.emit('room-created', roomCode);
@@ -115,10 +124,13 @@ io.on('connection', (socket) => {
   });
 
   // Join an existing room
-  socket.on('join-room', (roomCode, username, sessionKey, callback) => {
+  socket.on('join-room', (roomCode, username, sessionKey, maybeUserId, maybeCallback) => {
     const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
     const parsedUsername = usernameSchema.safeParse(username);
     const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
+    const callback = typeof maybeUserId === 'function' ? maybeUserId : maybeCallback;
+    const resolvedUserId = typeof maybeUserId === 'function' ? socket.data.user?.id : (maybeUserId ?? socket.data.user?.id);
+
     if (!parsedRoomCode.success || !parsedUsername.success || !parsedSessionKey.success) {
       if (callback) callback({ success: false, message: 'Invalid room code or username' });
       return;
@@ -138,7 +150,7 @@ io.on('connection', (socket) => {
 
     room.players.push({
       id: socket.id,
-      userId: socket.data.user?.id,
+      userId: resolvedUserId,
       sessionKey: parsedSessionKey.data,
       name: parsedUsername.data,
       answers: [],
@@ -154,10 +166,13 @@ io.on('connection', (socket) => {
     if (callback) callback({ success: true, room });
   });
 
-  socket.on('rejoin-room', (roomCode, username, sessionKey, callback) => {
+  socket.on('rejoin-room', (roomCode, username, sessionKey, maybeUserId, maybeCallback) => {
     const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
     const parsedUsername = usernameSchema.safeParse(username);
     const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
+    const callback = typeof maybeUserId === 'function' ? maybeUserId : maybeCallback;
+    const resolvedUserId = typeof maybeUserId === 'function' ? socket.data.user?.id : (maybeUserId ?? socket.data.user?.id);
+
     if (!parsedRoomCode.success || !parsedUsername.success || !parsedSessionKey.success) {
       if (callback) callback({ success: false, message: 'Invalid reconnection details' });
       return;
@@ -174,7 +189,7 @@ io.on('connection', (socket) => {
     }
 
     player.id = socket.id;
-    player.userId = socket.data.user?.id || player.userId;
+    player.userId = resolvedUserId ?? player.userId ?? socket.data.user?.id ?? null;
     player.connected = true;
     delete player.disconnectedAt;
     const cleanupTimer = roomCleanupTimers.get(parsedRoomCode.data);

@@ -60,38 +60,64 @@ function Results({ results, roomCode, kanaCards, username, user }) {
     || results.find((player) => player.name === username)
     || results[0];
   const currentStats = computeStats(currentPlayer?.answers || []);
-  const companionPlayer = results.find((player) => player.userId && player.userId !== user?.id)
-    || results.find((player) => player.name !== currentPlayer?.name && player.userId !== currentPlayer?.userId)
-    || null;
+  const currentPlayerUserId = currentPlayer?.userId ?? user?.id ?? null;
+  const companionPlayer = currentPlayerUserId
+    ? (results.find((player) => player?.userId && player.userId !== currentPlayerUserId) ?? null)
+    : null;
   const companionUserId = companionPlayer?.userId ?? null;
+  const companionName = companionPlayer?.name ?? null;
 
   useEffect(() => {
-    if (savedResult.current || !supabase || !user || !currentPlayer || !resultStorageKey) return;
+    const saveCurrentAssessmentResult = async () => {
+      if (savedResult.current || !supabase || !roomCode || !currentPlayer || !resultStorageKey) return;
 
-    const alreadySaved = sessionStorage.getItem(resultStorageKey);
-    if (alreadySaved) {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.user?.id) {
+        console.error('Supabase session unavailable while saving assessment result:', sessionError || 'No active session');
+        return;
+      }
+
+      const authenticatedUserId = session.user.id;
+      const storageKey = `ganbatte-saved-result:${authenticatedUserId}:${roomCode}`;
+      if (sessionStorage.getItem(storageKey) === 'true') {
+        savedResult.current = true;
+        return;
+      }
+
+      const playerUserId = currentPlayer.userId ?? user?.id ?? authenticatedUserId;
+      if (playerUserId !== authenticatedUserId) {
+        console.error('Assessment result save blocked: player user does not match the active auth session.', {
+          playerUserId,
+          authenticatedUserId,
+          currentPlayerName: currentPlayer.name,
+        });
+        return;
+      }
+
       savedResult.current = true;
-      return;
-    }
 
-    savedResult.current = true;
-    sessionStorage.setItem(resultStorageKey, 'true');
+      const { error } = await supabase.from('assessment_results').insert({
+        user_id: authenticatedUserId,
+        assessment_type: 'kana-reading',
+        score_percentage: currentStats.percentage,
+        correct_questions: currentStats.correct,
+        total_questions: currentStats.total,
+        companion_user_id: companionUserId,
+        companion_name: companionName,
+        details: { answers: currentPlayer.answers || [] },
+      });
 
-    supabase.from('assessment_results').insert({
-      user_id: user.id,
-      assessment_type: 'kana-reading',
-      score_percentage: currentStats.percentage,
-      correct_questions: currentStats.correct,
-      total_questions: currentStats.total,
-      companion_user_id: companionUserId,
-      details: { answers: currentPlayer.answers || [] },
-    }).then(({ error }) => {
       if (error) {
         console.error('Unable to save assessment result:', error);
-        sessionStorage.removeItem(resultStorageKey);
+        sessionStorage.removeItem(storageKey);
         savedResult.current = false;
+        return;
       }
-    });
+
+      sessionStorage.setItem(storageKey, 'true');
+    };
+
+    saveCurrentAssessmentResult();
   }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey]);
 
   return (
