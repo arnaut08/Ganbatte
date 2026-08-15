@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import './RoomLobby.css';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { CopyIcon, CheckIcon, PersonIcon } from '@radix-ui/react-icons';
+import { Separator } from '@/components/ui/separator';
 
 function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSocketId }) {
   const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
@@ -18,77 +23,122 @@ function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSock
   };
 
   return (
-    <div className="room-lobby">
-      <div className="lobby-container">
-        <div className="room-code-display">
-          <h2>Room Code</h2>
-          <div className="code-box">{roomCode}</div>
-          {isHost && (
-            <>
-              <p className="code-instruction">Share this code with your friend</p>
-              <div className="share-link-wrap">
-                <p className="share-link-label">Direct join link</p>
-                <div className="share-link-row">
-                  <input className="share-link-input" value={joinLink} readOnly />
-                  <button type="button" className="btn btn-secondary" onClick={handleCopyLink}>
-                    {copied ? 'Copied' : 'Copy Link'}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="players-section">
-          <h2>Players ({room.players.length}/2)</h2>
-          <div className="players-list">
-            {room.players.map((player, idx) => (
-              <div key={player.id} className="player-card">
-                <div className="player-avatar">{idx + 1}</div>
-                <div className="player-info">
-                  <p className="player-name">{player.name}</p>
-                  <p className="player-status">
-                    {idx === 0 ? 'Host' : 'Guest'}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {room.players.length === 1 && (
-              <div className="player-card waiting">
-                <div className="player-avatar">?</div>
-                <div className="player-info">
-                  <p className="player-name">Waiting...</p>
-                  <p className="player-status">Waiting for opponent</p>
-                </div>
-              </div>
-            )}
+    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-4">
+      <Card className="w-full max-w-3xl border-border">
+        <CardHeader>
+          <div className="text-center">
+            <CardTitle className="text-lg uppercase tracking-wider text-muted-foreground">
+              Room Code
+            </CardTitle>
+            <div className="py-4">
+              <code className="font-mono text-4xl font-bold tracking-[0.25em] text-primary">
+                {roomCode}
+              </code>
+            </div>
           </div>
-        </div>
+          {isHost && (
+            <CardDescription className="text-center">
+              Share this code with your friend
+            </CardDescription>
+          )}
+        </CardHeader>
 
-        <div className="lobby-actions">
-          <button
-            className="btn btn-primary btn-lg"
-            onClick={onStartAssessment}
-            disabled={!isReady}
-          >
-            {isReady ? 'Start Assessment' : 'Waiting for Player 2...'}
-          </button>
-          <button type="button" className="btn btn-secondary leave-room-button" onClick={onLeaveRoom}>
-            Leave Room
-          </button>
-        </div>
+        <CardContent className="space-y-6">
+          {isHost && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Direct join link
+              </p>
+              <div className="flex items-center gap-2">
+                <Input value={joinLink} readOnly className="font-mono text-sm" />
+                <Button size="sm" variant="outline" onClick={handleCopyLink}>
+                  {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+          )}
 
-        <div className="instructions">
-          <h3>How it works:</h3>
-          <ul>
-            <li>The host shares the room code or invite link, then both players join</li>
-            <li>Each round shows the same kana sentence to both players</li>
-            <li>Type your romaji answer and submit (spacing is flexible for checking)</li>
-            <li>After both submissions, answers/translation are revealed and the next card starts automatically</li>
-            <li>At the end, you get per-player accuracy stats and answer review</li>
-          </ul>
-        </div>
-      </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
+                Players ({room.players.length}/2)
+              </h3>
+              <Badge variant="secondary">
+                <PersonIcon className="mr-1 h-3 w-3" />
+                {room.players.length} joined
+              </Badge>
+            </div>
+            <Separator />
+
+            <div className="space-y-3">
+              {room.players.map((player, idx) => (
+                <div
+                  key={player.id}
+                  className="flex items-center gap-4 rounded-lg border border-border p-3"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{player.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {idx === 0 ? 'Host' : 'Guest'}
+                      {player.connected === false && ' (disconnected)'}
+                    </p>
+                  </div>
+                  <Badge variant={player.connected === false ? 'destructive' : 'success'}>
+                    {player.connected === false ? 'Offline' : 'Online'}
+                  </Badge>
+                </div>
+              ))}
+
+              {room.players.length === 1 && (
+                <div className="flex items-center gap-4 rounded-lg border border-dashed border-border p-3 opacity-60">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                    ?
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Waiting...</p>
+                    <p className="text-sm text-muted-foreground">
+                      Waiting for opponent
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={onStartAssessment}
+              disabled={!isReady}
+            >
+              {isReady ? 'Start Assessment' : 'Waiting for Player 2...'}
+            </Button>
+            <Button variant="secondary" className="w-full" onClick={onLeaveRoom}>
+              Leave Room
+            </Button>
+          </div>
+
+          <Card className="border-accent/20 bg-accent/5">
+            <CardHeader>
+              <CardTitle className="text-sm">How it works:</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
+                <li>The host shares the room code or invite link, then both players join</li>
+                <li>Each round shows the same kana sentence to both players</li>
+                <li>Type your romaji answer and submit (spacing is flexible for checking)</li>
+                <li>After both submissions, answers/translation are revealed and the next card starts automatically</li>
+                <li>At the end, you get per-player accuracy stats and answer review</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
     </div>
   );
 }

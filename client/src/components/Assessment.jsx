@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import './Assessment.css';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
 
 function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
@@ -40,143 +46,181 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
     : null;
 
   const renderDifference = (segments, tokenClass) => segments.map((segment, index) => (
-    <span key={`${segment.type}-${index}`} className={segment.type === 'diff' ? tokenClass : undefined}>
+    <span
+      key={`${segment.type}-${index}`}
+      className={segment.type === 'diff' ? tokenClass : undefined}
+    >
       {segment.text}
     </span>
   ));
 
   return (
-    <div className="assessment">
-      <div className="assessment-container">
-        <div className="progress-section">
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-4">
+      <Card className="w-full max-w-3xl border-border">
+        <CardHeader>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>
+                Card {room.currentCardIndex + 1} of {kanaCards.length}
+              </span>
+              <Badge variant={isCorrect ? 'success' : 'secondary'}>
+                {isCorrect ? 'Correct' : submitted ? 'Needs review' : 'In progress'}
+              </Badge>
+            </div>
+            <Progress value={progress} className="h-2" />
           </div>
-          <p className="progress-text">
-            Card {room.currentCardIndex + 1} of {kanaCards.length}
-          </p>
-        </div>
+        </CardHeader>
 
-        <div className="cards-section">
-          <div className="player-card">
-            <h3>{username}</h3>
-            <div className="card-content">
-              <div className="kana-display">{currentCard?.kana}</div>
+        <CardContent className="space-y-6">
+          {/* Current Card Display */}
+          <Card className="border-accent/20 bg-accent/5">
+            <CardContent className="flex flex-col items-center gap-4 py-8">
+              <CardTitle className="text-center text-sm uppercase tracking-wider text-muted-foreground">
+                {username}
+              </CardTitle>
+              <div className="kana-font text-5xl font-bold text-foreground">
+                {currentCard?.kana}
+              </div>
               {submitted && (
-                <div className={`answer-feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
+                <Badge
+                  variant={isCorrect ? 'success' : 'destructive'}
+                  className="mt-2 text-sm font-medium"
+                >
                   {isCorrect ? '✓ Correct!' : '✗ Try again next time'}
-                </div>
+                </Badge>
               )}
-            </div>
-          </div>
-        </div>
+            </CardContent>
+          </Card>
 
-        <div className="opponent-status-section">
+          {/* Opponent Status */}
           {showOpponentStatus && (
-            <div className="opponent-bar">
-              {otherPlayer ? (
-                <div>
-                  <strong>{otherPlayer.name}</strong>
-                  <span className="op-status"> — {otherSubmitted ? (otherCorrect ? '✓ Submitted' : '✗ Submitted') : '⏳ Not submitted'}</span>
-                  {otherReady && <span className="op-ready"> • ✅ Ready</span>}
+            <Card className="border-border bg-card/50">
+              <CardContent className="py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {otherPlayer ? otherPlayer.name : 'Opponent'}
+                    </span>
+                    {otherPlayer && otherSubmitted && otherCorrect && (
+                      <Badge variant="success" className="text-xs">
+                        ✓ Correct
+                      </Badge>
+                    )}
+                    {otherPlayer && otherSubmitted && !otherCorrect && (
+                      <Badge variant="destructive" className="text-xs">
+                        ✗ Incorrect
+                      </Badge>
+                    )}
+                    {otherPlayer && !otherSubmitted && (
+                      <Badge variant="outline" className="text-xs">
+                        ⏳ Not submitted
+                      </Badge>
+                    )}
+                  </div>
+                  {otherReady && (
+                    <Badge variant="success" className="text-xs">
+                      ✅ Ready
+                    </Badge>
+                  )}
+                  {!otherPlayer && (
+                    <span className="text-sm text-muted-foreground">
+                      Waiting for opponent...
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <div className="op-status">Waiting for opponent...</div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           )}
-          <label className="opponent-status-toggle">
-            <input
-              type="checkbox"
-              checked={showOpponentStatus}
-              onChange={(event) => setShowOpponentStatus(event.target.checked)}
-            />
-            Show opponent status
-          </label>
-        </div>
 
-        <div className="input-section">
-          {!submitted ? (
-            <form onSubmit={handleSubmit}>
-              <input
-                type="text"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Type the romaji..."
-                className="answer-input"
-                autoFocus
-              />
-              <button type="submit" className="btn btn-primary">
-                Submit
-              </button>
-            </form>
-          ) : (
-            <div className="submitted-section">
-              <div className="answer-review-grid">
-                <div className="answer-review-row">
-                  <span className="answer-review-label">Your answer</span>
-                  <div className="answer-review-value diff-line">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="show-opponent"
+              checked={showOpponentStatus}
+              onCheckedChange={setShowOpponentStatus}
+            />
+            <Label htmlFor="show-opponent" className="text-sm text-muted-foreground cursor-pointer">
+              Show opponent status
+            </Label>
+          </div>
+
+          {/* Input / Answer Review Section */}
+          <div>
+            {!submitted ? (
+              <form onSubmit={handleSubmit} className="flex gap-3">
+                <Input
+                  type="text"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  placeholder="Type the romaji..."
+                  className="flex-1"
+                  autoFocus
+                />
+                <Button type="submit" disabled={!answer.trim()}>
+                  Submit
+                </Button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Your answer
+                  </p>
+                  <div className="rounded-md border border-border bg-muted/30 p-3 font-mono text-sm">
                     {isCorrect || !answerDiff ? (
                       <span>{submittedAnswer}</span>
                     ) : (
-                      <>
-                        {renderDifference(answerDiff.given, 'answer-token-wrong')}
-                      </>
+                      renderDifference(answerDiff.given, 'text-destructive')
                     )}
                   </div>
                 </div>
-                <div className="answer-review-row">
-                  <span className="answer-review-label">Correct answer</span>
-                  <div className="answer-review-value diff-line">
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Correct answer
+                  </p>
+                  <div className="rounded-md border border-border bg-muted/30 p-3 font-mono text-sm">
                     {isCorrect || !answerDiff ? (
                       <span>{currentCard?.romaji}</span>
                     ) : (
-                      <>
-                        {renderDifference(answerDiff.expected, 'answer-token-correct')}
-                      </>
+                      renderDifference(answerDiff.expected, 'text-green-400')
                     )}
                   </div>
                 </div>
-              </div>
-              {currentCard?.english && (
-                <p className="translation-text">English: <strong>{currentCard.english}</strong></p>
-              )}
-              <div className="continue-section">
-                {!submitted ? (
-                  <p className="waiting-text">Submit your answer to continue.</p>
-                ) : (
-                  <div>
-                    <div className="continue-actions">
-                      {!currentReady ? (
-                        <button
-                          type="button"
-                          className="btn btn-primary ready-button"
-                          onClick={() => onNextCard()}
-                        >
-                          Ready
-                        </button>
-                      ) : (
-                        <span className="waiting-text">Waiting...</span>
-                      )}
-                      <span className="small-note">
-                      {otherReady
-                        ? 'Other player ready'
-                        : otherSubmitted
-                        ? 'Other player submitted'
-                        : 'Other player not submitted'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
 
-        <div className="hint-section">
-          <p className="hint">💡 Tip: Type the romaji (Latin letters) for the kana character shown above</p>
-        </div>
-      </div>
+                {currentCard?.english && (
+                  <p className="text-sm text-muted-foreground">
+                    English: <strong className="text-foreground">{currentCard.english}</strong>
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between pt-2">
+                  {!currentReady ? (
+                    <Button onClick={() => onNextCard()}>Ready</Button>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Waiting...</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {otherReady
+                      ? 'Other player ready'
+                      : otherSubmitted
+                      ? 'Other player submitted'
+                      : 'Other player not submitted'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hint */}
+          <Card className="border-yellow-900/30 bg-yellow-950/30">
+            <CardContent className="py-3">
+              <p className="text-sm text-yellow-400">
+                💡 Tip: Type the romaji (Latin letters) for the kana character shown above
+              </p>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
     </div>
   );
 }

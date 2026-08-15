@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import './RoomSelector.css';
 import { getRoom } from '../services/api';
+import { Button } from '@/components/ui/button';
+import { ChevronLeftIcon } from '@radix-ui/react-icons';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 
 function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomCode = '', isSocketReady = false }) {
-  const [createName, setCreateName] = useState('');
   const [joinCode, setJoinCode] = useState('');
-  const [joinName, setJoinName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [screen, setScreen] = useState(prefillRoomCode ? 'assessment' : 'home');
-  const joinNameInputRef = useRef(null);
+  const joinCodeInputRef = useRef(null);
   const hasInviteCode = Boolean(prefillRoomCode);
 
   useEffect(() => {
     if (prefillRoomCode) {
       setJoinCode(prefillRoomCode);
-      joinNameInputRef.current?.focus();
+      joinCodeInputRef.current?.focus();
     }
   }, [prefillRoomCode]);
 
@@ -46,146 +48,213 @@ function RoomSelector({ onCreateRoom, onJoinRoom, onOpenKanjiStudy, prefillRoomC
 
   const handleCreate = (e) => {
     e.preventDefault();
-    if (isSocketReady && createName.trim()) {
-      onCreateRoom(createName.trim());
+    if (isSocketReady) {
+      onCreateRoom();
     }
   };
 
   const handleJoin = (e) => {
     e.preventDefault();
     const targetCode = (hasInviteCode ? prefillRoomCode : joinCode).trim();
-    if (isSocketReady && targetCode && joinName.trim()) {
-      onJoinRoom(targetCode.toUpperCase(), joinName.trim());
+    if (isSocketReady && targetCode) {
+      onJoinRoom(targetCode.toUpperCase());
       if (!hasInviteCode) setJoinCode('');
-      setJoinName('');
     }
   };
 
   return (
-    <div className="room-selector">
-      <div className={`selector-container ${hasInviteCode ? 'invite-mode' : ''}`}>
+    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
         {hasInviteCode ? (
-          <div className="selector-card join-card active-card invite-only-card">
-            <h2>Join a Room</h2>
-            <p>
-              {ownerName
-                ? `Invited to ${ownerName}'s room. Enter your name to join directly.`
-                : `Invited to a room. Enter your name to join directly.`}
-            </p>
-            {!isSocketReady && <p className="connection-status">Connecting to the game server...</p>}
-            <form onSubmit={handleJoin}>
-              <input
-                ref={joinNameInputRef}
-                type="text"
-                placeholder="Enter your name"
-                value={joinName}
-                onChange={(e) => setJoinName(e.target.value)}
-                className="input"
-              />
-              <button
-                type="submit"
-                className="btn btn-secondary"
-                disabled={!isSocketReady || !joinName.trim()}
-              >
-                Join Room
-              </button>
-            </form>
-          </div>
-        ) : screen === 'home' ? (
-          <div className="selector-home">
-            <section className="selector-section learning-section">
-              <p className="selector-section-kicker">Build your foundation</p>
-              <h2>Learning</h2>
-              <p>Study essential Japanese characters at your own pace.</p>
-              <button type="button" className="btn btn-primary" onClick={() => setScreen('learning')}>
-                Explore learning
-              </button>
-            </section>
-            <section className="selector-section assessment-section">
-              <p className="selector-section-kicker">Put it into practice</p>
-              <h2>Assessment</h2>
-              <p>Read kana sentences and challenge yourself with a friend.</p>
-              <button type="button" className="btn btn-secondary" onClick={() => setScreen('assessment')}>
-                Start an assessment
-              </button>
-            </section>
-          </div>
-        ) : screen === 'learning' ? (
-          <div className="selector-section learning-screen">
-            <p className="selector-section-kicker">Learning</p>
-            <h2>Study Japanese characters</h2>
-            <p>Review 100 essential N5 Kanji grouped by everyday themes.</p>
-            <button type="button" className="btn btn-primary" onClick={onOpenKanjiStudy}>
-              Study 100 N5 Kanji
-            </button>
-            <button type="button" className="btn btn-secondary selector-back-button" onClick={() => setScreen('home')}>
-              Back to home
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="assessment-heading">
-              <button type="button" className="btn btn-secondary selector-back-button" onClick={() => setScreen('home')}>
-                Back to home
-              </button>
-              <div>
-                <p className="selector-section-kicker">Assessment</p>
-                <h2>Practice with a friend</h2>
-              </div>
-            </div>
-            <div className="selector-card create-card active-card">
-              <h2>Create a Room</h2>
-              <p>Start a new assessment session</p>
-              <form onSubmit={handleCreate}>
-                <input
-                  type="text"
-                  placeholder="Enter your name"
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                  className="input"
-                />
-                <button
+          <Card className="border-border max-w-md">
+            <CardHeader>
+              <CardTitle>Join a Room</CardTitle>
+              <CardDescription>
+                {ownerName
+                  ? `Invited to ${ownerName}'s room. Enter your name to join directly.`
+                  : 'Invited to a room. Enter your name to join directly.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!isSocketReady && (
+                <p className="text-sm text-muted-foreground">
+                  Connecting to the game server...
+                </p>
+              )}
+              <form onSubmit={handleJoin} className="space-y-4">
+                <Button
                   type="submit"
-                  className="btn btn-primary"
-                  disabled={!isSocketReady || !createName.trim()}
-                >
-                  Create Room
-                </button>
-              </form>
-            </div>
-
-            <div className="divider">OR</div>
-
-            <div className="selector-card join-card">
-              <h2>Join a Room</h2>
-              <p>Enter the room code your friend shared</p>
-              {!isSocketReady && <p className="connection-status">Connecting to the game server...</p>}
-              <form onSubmit={handleJoin}>
-                <input
-                  ref={joinNameInputRef}
-                  type="text"
-                  placeholder="Enter your name"
-                  value={joinName}
-                  onChange={(e) => setJoinName(e.target.value)}
-                  className="input"
-                />
-                <input
-                  type="text"
-                  placeholder="Room Code"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  className="input"
-                />
-                <button
-                  type="submit"
-                  className="btn btn-secondary"
-                  disabled={!isSocketReady || !joinCode.trim() || !joinName.trim()}
+                  variant="secondary"
+                  className="w-full"
+                  disabled={!isSocketReady}
                 >
                   Join Room
-                </button>
+                </Button>
               </form>
+            </CardContent>
+          </Card>
+        ) : screen === 'home' ? (
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-primary/30 bg-gradient-to-r from-blue-950/50 to-blue-900/30">
+              <CardHeader>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Build your foundation
+                </p>
+                <CardTitle>Learning</CardTitle>
+                <CardDescription>
+                  Study essential Japanese characters at your own pace.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button onClick={() => setScreen('learning')}>
+                  Explore learning
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-secondary/30">
+              <CardHeader>
+                <p className="text-xs font-bold uppercase tracking-wider text-secondary-foreground/70">
+                  Put it into practice
+                </p>
+                <CardTitle>Assessment</CardTitle>
+                <CardDescription>
+                  Assess yourself with a friend.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button variant="secondary" onClick={() => setScreen('assessment')}>
+                  Start an assessment
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : screen === 'learning' ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => setScreen('home')}
+                className="h-9 w-9 rounded-full"
+                aria-label="Back to home"
+                title="Back to home"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+              </Button>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Learning
+                </p>
+                <h2 className="text-xl font-bold">Study Japanese characters</h2>
+              </div>
             </div>
-          </>
+
+            <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-border max-w-2xl">
+              <CardHeader>
+                <CardTitle>Kana</CardTitle>
+                <CardDescription>
+                  Learn the two Japanese syllabaries: Hiragana and Katakana.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button disabled>
+                  Coming soon...
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border max-w-2xl">
+              <CardHeader>
+                <CardTitle>N5 Kanji</CardTitle>
+                <CardDescription>
+                  Review essential N5 Kanji grouped by everyday themes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button onClick={onOpenKanjiStudy}>Study</Button>
+              </CardContent>
+            </Card>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => setScreen('home')}
+                className="h-9 w-9 rounded-full"
+                aria-label="Back to home"
+                title="Back to home"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+              </Button>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Assessment
+                </p>
+                <h2 className="text-xl font-bold">Practice with a friend</h2>
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="border-primary/30">
+                <CardHeader>
+                  <CardTitle>Create a Room</CardTitle>
+                  <CardDescription>Start a new assessment session</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreate} className="space-y-4">
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={!isSocketReady}
+                    >
+                      Create Room
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <div className="relative">
+
+                <Card className="border-border h-full">
+                  <CardHeader>
+                    <CardTitle>Join a Room</CardTitle>
+                    <CardDescription>
+                      Enter the room code your friend shared
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {!isSocketReady && (
+                      <p className="text-sm text-muted-foreground">
+                        Connecting to the game server...
+                      </p>
+                    )}
+                    <form onSubmit={handleJoin} className="space-y-4">
+                      <Input
+                        ref={joinCodeInputRef}
+                        type="text"
+                        placeholder="Room Code"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                      />
+                      <Button
+                        type="submit"
+                        variant="secondary"
+                        className="w-full"
+                        disabled={!isSocketReady || !joinCode.trim()}
+                      >
+                        Join Room
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
