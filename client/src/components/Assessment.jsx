@@ -78,7 +78,7 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
               <CardTitle className="text-center text-sm uppercase tracking-wider text-muted-foreground">
                 {username}
               </CardTitle>
-              <div className="kana-font text-5xl font-bold text-foreground">
+              <div className="text-5xl font-bold text-foreground">
                 {currentCard?.kana}
               </div>
               {submitted && (

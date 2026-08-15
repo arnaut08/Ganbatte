@@ -48,7 +48,7 @@ function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
           <div className="flex flex-col items-start">
             <h1 className="font-sora font-bold text-foreground">
               <span className="text-foreground text-xl">GANBATTE</span>
-              <span className="text-primary text-l kana-font" lang="ja">
+              <span className="text-primary text-l" lang="ja">
                 頑張って
               </span>
             </h1>

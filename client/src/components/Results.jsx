@@ -218,7 +218,7 @@ function Results({ results, roomCode, kanaCards, username, user }) {
                     <React.Fragment key={i}>
                       <TableRow>
                         <TableCell className="font-medium">{i + 1}</TableCell>
-                        <TableCell className="kana-font text-xl">{card.kana}</TableCell>
+                        <TableCell className="text-xl">{card.kana}</TableCell>
                         <TableCell className="font-mono">
                           {renderCorrectAnswer(card.romaji)}
                         </TableCell>
@@ -255,7 +255,7 @@ function Results({ results, roomCode, kanaCards, username, user }) {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <Badge variant="outline" className="kana-font text-lg">
+                            <Badge variant="outline" className="text-lg">
                               {card.kana}
                             </Badge>
                             <span className="font-medium">Card {i + 1}</span>
