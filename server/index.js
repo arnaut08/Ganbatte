@@ -42,7 +42,8 @@ io.use(async (socket, next) => {
 
   const accessToken = socket.handshake.auth?.accessToken;
   if (!accessToken) {
-    next(new Error('Authentication required'));
+    socket.data.user = null;
+    next();
     return;
   }
 
@@ -414,10 +415,14 @@ io.on('connection', (socket) => {
   // Disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    clearInterval(socket.data.connectionRefresh);
-    releaseUserConnection(socket.data.user?.id, socket.id).catch((releaseError) => {
-      console.error('Redis user connection release error:', releaseError);
-    });
+    if (socket.data.connectionRefresh) {
+      clearInterval(socket.data.connectionRefresh);
+    }
+    if (socket.data.user?.id) {
+      releaseUserConnection(socket.data.user.id, socket.id).catch((releaseError) => {
+        console.error('Redis user connection release error:', releaseError);
+      });
+    }
     for (const [roomCode, room] of rooms) {
       const player = room.players.find((candidate) => candidate.id === socket.id);
       if (!player) continue;
