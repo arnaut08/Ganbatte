@@ -52,16 +52,16 @@ function KanjiStudy({ onBack }) {
     : `${selectedGroups.length} groups selected`;
 
   return (
-    <main className="container mx-auto max-w-3xl space-y-6 p-6">
+    <main className="container mx-auto max-w-3xl space-y-6 p-6 font-sora">
       {/* Header */}
-      <Card className="border-border">
+      <Card className="border-border font-sora">
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1 min-w-0">
               <p className="text-xs font-bold uppercase tracking-wider text-primary sm:text-sm">
                 Kanji practice
               </p>
-              <CardTitle className="kana-font text-xl sm:text-2xl">
+              <CardTitle className="font-sora text-xl sm:text-2xl">
                 Build your reading foundation
               </CardTitle>
               <CardDescription className="text-sm leading-relaxed sm:text-base">
@@ -83,7 +83,7 @@ function KanjiStudy({ onBack }) {
       </Card>
 
       {/* Filter */}
-      <div className="relative max-w-[15rem]">
+      <div className="relative max-w-[15rem] font-sora">
         <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -128,8 +128,8 @@ function KanjiStudy({ onBack }) {
 
       {/* Kanji Card */}
       {isLoading && (
-        <Card className="border-border">
-          <CardContent className="flex flex-col items-center justify-center py-16">
+        <Card className="border-border font-sora">
+          <CardContent className="flex flex-col items-center justify-center py-16 font-sora">
             <Skeleton className="mb-4 h-6 w-3/4" />
             <Skeleton className="h-24 w-24 rounded-full" />
           </CardContent>
@@ -141,9 +141,9 @@ function KanjiStudy({ onBack }) {
         </Alert>
       )}
       {!isLoading && !error && card && (
-        <Card className="border-accent/20">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-primary">
+        <Card className="border-accent/20 font-sora">
+          <CardContent className="flex flex-col items-center justify-center py-12 font-sora">
+            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-primary font-sora">
               {card.groupName}
             </p>
             <div className="kana-font text-7xl font-bold text-foreground sm:text-8xl">
@@ -152,37 +152,37 @@ function KanjiStudy({ onBack }) {
             {isRevealed ? (
               <div className="mt-8 w-full max-w-md space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <Card className="border-border">
-                    <CardContent className="p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Card className="border-border font-sora">
+                    <CardContent className="p-4 font-sora">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sora">
                         Reading
                       </p>
-                      <p className="mt-1 text-xl font-medium text-foreground">
+                      <p className="mt-1 text-xl font-medium text-foreground font-sora">
                         {card.reading}
                       </p>
                     </CardContent>
                   </Card>
-                  <Card className="border-border">
-                    <CardContent className="p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Card className="border-border font-sora">
+                    <CardContent className="p-4 font-sora">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sora">
                         Meaning
                       </p>
-                      <p className="mt-1 text-xl font-medium text-foreground">
+                      <p className="mt-1 text-xl font-medium text-foreground font-sora">
                         {card.meaning}
                       </p>
                     </CardContent>
                   </Card>
                 </div>
                 {card.example && (
-                  <Card className="border-border">
-                    <CardContent className="p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Card className="border-border font-sora">
+                    <CardContent className="p-4 font-sora">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sora">
                         Example
                       </p>
-                      <p className="mt-1 text-lg text-foreground">
+                      <p className="mt-1 text-lg text-foreground font-sora">
                         {card.example[0]}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground font-sora">
                         {card.example[1]}
                       </p>
                     </CardContent>
@@ -197,7 +197,7 @@ function KanjiStudy({ onBack }) {
                 Show reading
               </Button>
             )}
-            <p className="mt-6 text-sm text-muted-foreground">
+            <p className="mt-6 text-sm text-muted-foreground font-sora">
               Card {cardIndex + 1} of {cards.length}
             </p>
           </CardContent>
