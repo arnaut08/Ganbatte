@@ -202,15 +202,16 @@ function RoomSelector({
                       </p>
                     </div>
 
-                    <div className="mt-4 space-y-4">
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Question deck
-                        </p>
-                        <div className="flex gap-2">
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Deck
+                        </span>
+                        <div className="flex flex-1 gap-2">
                           <Button
                             type="button"
                             variant={deckType === 'kana' ? 'default' : 'outline'}
+                            size="sm"
                             className="flex-1"
                             onClick={() => setDeckType('kana')}
                           >
@@ -219,6 +220,7 @@ function RoomSelector({
                           <Button
                             type="button"
                             variant={deckType === 'kanji' ? 'default' : 'outline'}
+                            size="sm"
                             className="flex-1"
                             onClick={() => setDeckType('kanji')}
                           >
@@ -228,14 +230,14 @@ function RoomSelector({
                       </div>
 
                       {deckType === 'kanji' && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Include groups
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
+                            Groups
+                          </span>
                           <DropdownMenu open={isGroupMenuOpen} onOpenChange={setIsGroupMenuOpen}>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="outline" className="w-full justify-between">
-                                <span>
+                              <Button variant="outline" size="sm" className="flex-1 justify-between">
+                                <span className="truncate">
                                   {selectedGroups.length === 0
                                     ? 'All groups'
                                     : `${selectedGroups.length} selected`}
@@ -243,7 +245,7 @@ function RoomSelector({
                                 <ChevronDownIcon className="h-4 w-4 opacity-50" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-full min-w-[230px] border-border bg-popover" align="start">
+                            <DropdownMenuContent className="w-[280px] border-border bg-popover" align="start">
                               <DropdownMenuItem
                                 onSelect={(event) => {
                                   event.preventDefault();
@@ -270,15 +272,16 @@ function RoomSelector({
                               ))}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                          {selectedGroups.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {selectedGroups.map((groupId) => (
-                                <Badge key={groupId} variant="secondary">
-                                  {KANJI_GROUPS.find((group) => group.id === groupId)?.name || groupId}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                        </div>
+                      )}
+
+                      {selectedGroups.length > 0 && deckType === 'kanji' && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {selectedGroups.map((groupId) => (
+                            <Badge key={groupId} variant="secondary" className="text-[10px]">
+                              {KANJI_GROUPS.find((group) => group.id === groupId)?.name || groupId}
+                            </Badge>
+                          ))}
                         </div>
                       )}
                     </div>
