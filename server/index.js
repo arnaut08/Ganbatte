@@ -6,6 +6,7 @@ import { getSupabaseClient, isSupabaseConfigured } from './config/supabase.js';
 import {
   claimUserConnection,
   configureRedisAdapter,
+  getUsersPresenceStatus,
   refreshUserConnection,
   releaseUserConnection,
 } from './config/redis.js';
@@ -21,6 +22,7 @@ import { generateRandomCards, generateRandomKanjiCards } from './services/card-s
 import { KANA_SENTENCES } from './data/kana-sentences.js';
 import { KANJI_CARDS, KANJI_GROUPS } from './data/kanji.js';
 import { isCorrectRomajiAnswer } from './utils/romaji.js';
+import { mergeFriendPresence } from './services/friend-service.js';
 
 const server = createServer(app);
 
@@ -72,6 +74,33 @@ io.use(async (socket, next) => {
 const rooms = new Map();
 const roomCleanupTimers = new Map();
 const DISCONNECT_GRACE_PERIOD_MS = 5 * 60 * 1000;
+
+app.use(async (req, res, next) => {
+  if (!isSupabaseConfigured()) {
+    req.user = null;
+    return next();
+  }
+
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice('Bearer '.length).trim()
+    : null;
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const { data, error } = await getSupabaseClient().auth.getUser(token);
+    req.user = error || !data?.user ? null : data.user;
+    return next();
+  } catch (error) {
+    console.error('Auth lookup failed for request:', error);
+    req.user = null;
+    return next();
+  }
+});
 
 function buildAssessmentResults(room) {
   return room.players.map((player) => ({
@@ -557,6 +586,154 @@ io.on('connection', (socket) => {
       }
     }
   });
+});
+
+async function requireAuth(req, res) {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required.' });
+    return null;
+  }
+
+  return req.user;
+}
+
+app.get('/api/friends', async (req, res) => {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+
+  const supabase = getSupabaseClient();
+  const { data: friendshipRows, error: friendshipsError } = await supabase
+    .from('friendships')
+    .select('friend_id, profiles!friendships_friend_id_fkey(id, display_name)')
+    .eq('user_id', user.id);
+
+  if (friendshipsError) {
+    console.error('Failed to load friendships:', friendshipsError);
+    res.status(500).json({ error: 'Unable to load friends.' });
+    return;
+  }
+
+  const friendRows = (friendshipRows || [])
+    .map((row) => ({
+      id: row.friend_id,
+      user_id: row.friend_id,
+      ...row.profiles,
+      profile: row.profiles,
+    }))
+    .filter((friend) => friend?.id || friend?.user_id);
+
+  const friendIds = friendRows.map((friend) => friend.id).filter(Boolean);
+  if (friendIds.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const onlineIds = await getUsersPresenceStatus(friendIds);
+  const friends = mergeFriendPresence(friendRows, onlineIds);
+  res.json(friends);
+});
+
+app.get('/api/users/search', async (req, res) => {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+
+  const searchTerm = String(req.query.q || '').trim();
+  if (!searchTerm) {
+    res.json([]);
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+  const { data: visibleProfiles, error } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .ilike('display_name', `%${searchTerm}%`)
+    .neq('id', user.id)
+    .limit(12);
+
+  if (error) {
+    console.error('Failed to search users:', error);
+    res.status(500).json({ error: 'Unable to search users.' });
+    return;
+  }
+
+  const onlineIds = await getUsersPresenceStatus((visibleProfiles || []).map((person) => person.id));
+  const results = mergeFriendPresence((visibleProfiles || []).map((person) => ({
+    ...person,
+    id: person.id,
+    user_id: person.id,
+    profile: person,
+  })), onlineIds);
+  res.json(results);
+});
+
+app.post('/api/friends/:userId', async (req, res) => {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+
+  const targetUserId = String(req.params.userId || '').trim();
+  if (!targetUserId || targetUserId === user.id) {
+    res.status(400).json({ error: 'Friend must be a different user.' });
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .eq('id', targetUserId)
+    .maybeSingle();
+
+  if (profileError || !profileData) {
+    res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+
+  const rows = [
+    { user_id: user.id, friend_id: targetUserId },
+    { user_id: targetUserId, friend_id: user.id },
+  ];
+
+  const { error } = await supabase
+    .from('friendships')
+    .upsert(rows, { onConflict: 'user_id,friend_id', ignoreDuplicates: true });
+
+  if (error) {
+    console.error('Failed to create friendship:', error);
+    res.status(500).json({ error: 'Unable to add friend.' });
+    return;
+  }
+
+  const onlineIds = await getUsersPresenceStatus([targetUserId]);
+  res.json({
+    success: true,
+    friend: {
+      ...profileData,
+      user_id: profileData.id,
+      id: profileData.id,
+      online: onlineIds.includes(targetUserId),
+    },
+  });
+});
+
+app.delete('/api/friends/:userId', async (req, res) => {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+
+  const targetUserId = String(req.params.userId || '').trim();
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from('friendships')
+    .delete()
+    .or(`(user_id.eq.${user.id} and friend_id.eq.${targetUserId}) or (user_id.eq.${targetUserId} and friend_id.eq.${user.id})`);
+
+  if (error) {
+    console.error('Failed to remove friendship:', error);
+    res.status(500).json({ error: 'Unable to remove friend.' });
+    return;
+  }
+
+  res.json({ success: true });
 });
 
 // API endpoint to get kana cards

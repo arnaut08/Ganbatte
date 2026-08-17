@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PersonIcon } from '@radix-ui/react-icons';
 import logo from '../../assets/logo.svg';
 
 function UserAvatarIcon() {
@@ -32,8 +33,9 @@ function UserAvatarIcon() {
   );
 }
 
-function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
+function AppHeader({ onHome, onOpenFriends, onLogout, onOpenHistory, isAuthenticated, user = null }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const userInitial = (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'U').charAt(0).toUpperCase();
 
   return (
     <header className="gradient-heading border-b">
@@ -59,7 +61,18 @@ function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
         </Button>
 
         {isAuthenticated && (
-          <div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full border border-border bg-background/60"
+              aria-label="Open friends"
+              title="Friends"
+              onClick={onOpenFriends}
+            >
+              <PersonIcon className="h-4 w-4" />
+            </Button>
+
             <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -71,16 +84,26 @@ function AppHeader({ onHome, onLogout, onOpenHistory, isAuthenticated }) {
                   title="User menu"
                 >
                   <Avatar className="h-12 w-12">
-                    <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                      <UserAvatarIcon />
+                    <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+                      {userInitial}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-48 bg-popover border-border"
+                className="w-64 bg-popover border-border"
               >
+                <div className="flex items-center gap-3 border-b border-border px-3 py-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    {userInitial}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
+                      {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner'}
+                    </p>
+                  </div>
+                </div>
                 <DropdownMenuItem onSelect={onOpenHistory}>
                   Assessment history
                 </DropdownMenuItem>

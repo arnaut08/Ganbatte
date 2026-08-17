@@ -72,6 +72,28 @@ export async function releaseUserConnection(userId, socketId) {
   );
 }
 
+export async function getUsersPresenceStatus(userIds = []) {
+  if (!redisClient?.isReady || !Array.isArray(userIds) || userIds.length === 0) {
+    return [];
+  }
+
+  const uniqueUserIds = [...new Set(userIds.filter(Boolean).map((userId) => String(userId)))];
+  if (uniqueUserIds.length === 0) {
+    return [];
+  }
+
+  const keys = uniqueUserIds.map((userId) => `ganbatte:user-connection:${userId}`);
+  const values = await redisClient.mGet(keys);
+
+  return uniqueUserIds.filter((userId, index) => Boolean(values[index]));
+}
+
+export async function getUserPresenceStatus(userId) {
+  if (!userId) return false;
+  const [online] = await getUsersPresenceStatus([userId]);
+  return Boolean(online);
+}
+
 export async function closeRedis() {
   if (redisClient?.isOpen) await redisClient.quit();
   if (redisSubscriber?.isOpen) await redisSubscriber.quit();

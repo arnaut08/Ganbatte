@@ -31,6 +31,13 @@ function RoomSelector({
   canReturnToRoom = false,
   roomCode = '',
   resumeUsername = '',
+  user = null,
+  friends = [],
+  friendSearchResults = [],
+  isFriendSearchLoading = false,
+  onSearchUsers,
+  onAddFriend,
+  onRemoveFriend,
 }) {
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [screen, setScreen] = useState('home');
@@ -114,6 +121,7 @@ function RoomSelector({
                 </CardContent>
               </Card>
             </div>
+
           </div>
         ) : screen === 'learning' ? (
           <div className="space-y-4">
@@ -193,6 +201,15 @@ function RoomSelector({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* <FriendsPanel
+                  friends={friends}
+                  searchResults={friendSearchResults}
+                  onSearchUsers={onSearchUsers}
+                  onAddFriend={onAddFriend}
+                  onRemoveFriend={onRemoveFriend}
+                  isSearching={isFriendSearchLoading}
+                /> */}
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="flex h-full flex-col justify-between rounded-lg border border-primary/30 bg-primary/5 p-4">
                     <div className="space-y-2">

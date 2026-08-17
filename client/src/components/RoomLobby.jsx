@@ -6,11 +6,21 @@ import { Input } from '@/components/ui/input';
 import { CopyIcon, CheckIcon, PersonIcon } from '@radix-ui/react-icons';
 import { Separator } from '@/components/ui/separator';
 
-function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSocketId }) {
+function RoomLobby({
+  roomCode,
+  room,
+  onStartAssessment,
+  onLeaveRoom,
+  currentSocketId,
+  currentUserId,
+  friends = [],
+  onAddFriend,
+}) {
   const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
   const [copied, setCopied] = useState(false);
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
   const isHost = room.players[0]?.id === currentSocketId;
+  const friendIds = new Set((friends || []).map((friend) => friend.user_id || friend.id));
 
   const handleCopyLink = async () => {
     try {
@@ -72,26 +82,39 @@ function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSock
             <Separator />
 
             <div className="space-y-3">
-              {room.players.map((player, idx) => (
-                <div
-                  key={player.id}
-                  className="flex items-center gap-4 rounded-lg border border-border p-3"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-                    {idx + 1}
+              {room.players.map((player, idx) => {
+                const isCurrentUser = player.userId && currentUserId && player.userId === currentUserId;
+                const isAlreadyFriend = player.userId && friendIds.has(player.userId);
+                const canAddFriend = Boolean(player.userId) && !isCurrentUser && !isAlreadyFriend;
+
+                return (
+                  <div
+                    key={player.id}
+                    className="flex items-center gap-4 rounded-lg border border-border p-3"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{player.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {idx === 0 ? 'Host' : 'Guest'}
+                        {player.connected === false && ' (disconnected)'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={player.connected === false ? 'destructive' : 'success'}>
+                        {player.connected === false ? 'Offline' : 'Online'}
+                      </Badge>
+                      {canAddFriend && (
+                        <Button size="sm" variant="outline" onClick={() => onAddFriend?.(player.userId)}>
+                          Add friend
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{player.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {idx === 0 ? 'Host' : 'Guest'}
-                      {player.connected === false && ' (disconnected)'}
-                    </p>
-                  </div>
-                  <Badge variant={player.connected === false ? 'destructive' : 'success'}>
-                    {player.connected === false ? 'Offline' : 'Online'}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
 
               {room.players.length === 1 && (
                 <div className="flex items-center gap-4 rounded-lg border border-dashed border-border p-3 opacity-60">

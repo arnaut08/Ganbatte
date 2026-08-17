@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { Button } from '@/components/ui/button';
 import RoomSelector from './components/RoomSelector';
 import RoomLobby from './components/RoomLobby';
 import Assessment from './components/Assessment';
@@ -8,8 +9,17 @@ import AuthPage from './components/AuthPage';
 import KanjiStudy from './components/KanjiStudy';
 import AssessmentHistory from './components/AssessmentHistory';
 import AppHeader from './components/layout/AppHeader';
+import FriendsPanel from './components/FriendsPanel';
 import './App.css';
-import { generateCards, getKanaCards, getRoom } from './services/api';
+import {
+  addFriend,
+  generateCards,
+  getFriends,
+  getKanaCards,
+  getRoom,
+  removeFriend,
+  searchUsers,
+} from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
 
@@ -63,6 +73,9 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [isFriendSearchLoading, setIsFriendSearchLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const statusRef = useRef(status);
   const inviteJoinAttemptedRef = useRef(false);
@@ -90,6 +103,7 @@ function App() {
 
   const screenPriority = {
     selector: 0,
+    friends: 0,
     'kanji-study': 0,
     history: 0,
     lobby: 1,
@@ -137,6 +151,78 @@ function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  const refreshFriends = () => {
+    if (!user) {
+      setFriends([]);
+      setFriendSearchResults([]);
+      return;
+    }
+
+    getFriends()
+      .then((data) => setFriends(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        console.error('Failed to fetch friends:', error);
+        setFriends([]);
+      });
+  };
+
+  useEffect(() => {
+    refreshFriends();
+  }, [user, isSocketReady]);
+
+  const handleSearchUsers = async (query) => {
+    if (!user) {
+      setFriendSearchResults([]);
+      return;
+    }
+
+    const trimmed = String(query || '').trim();
+    setIsFriendSearchLoading(Boolean(trimmed));
+
+    try {
+      const results = trimmed ? await searchUsers(trimmed) : [];
+      setFriendSearchResults(Array.isArray(results) ? results : []);
+    } catch (error) {
+      console.error('Failed to search users:', error);
+      setFriendSearchResults([]);
+    } finally {
+      setIsFriendSearchLoading(false);
+    }
+  };
+
+  const handleAddFriend = async (userId) => {
+    if (!userId) return;
+
+    try {
+      const response = await addFriend(userId);
+      const nextFriend = response?.friend;
+      setFriends((current) => {
+        if (nextFriend && !current.some((friend) => (friend.user_id || friend.id) === userId)) {
+          return [...current, nextFriend];
+        }
+        return current;
+      });
+      setToast({ message: 'Friend added.', type: 'success' });
+      setFriendSearchResults((current) => current.filter((person) => (person.id || person.user_id) !== userId));
+    } catch (error) {
+      console.error('Failed to add friend:', error);
+      setToast({ message: error.message || 'Unable to add friend.', type: 'error' });
+    }
+  };
+
+  const handleRemoveFriend = async (userId) => {
+    if (!userId) return;
+
+    try {
+      await removeFriend(userId);
+      setFriends((current) => current.filter((friend) => (friend.user_id || friend.id) !== userId));
+      setToast({ message: 'Friend removed.', type: 'warning' });
+    } catch (error) {
+      console.error('Failed to remove friend:', error);
+      setToast({ message: error.message || 'Unable to remove friend.', type: 'error' });
+    }
+  };
 
   useEffect(() => {
     if (room?.status !== 'completed' || !room.players?.length || results) return;
@@ -538,6 +624,10 @@ function App() {
     preserveRoomSessionForNavigation('history');
   };
 
+  const handleOpenFriends = () => {
+    preserveRoomSessionForNavigation('friends');
+  };
+
   const handleBackToPractice = () => {
     preserveRoomSessionForNavigation('selector');
   };
@@ -597,9 +687,11 @@ function App() {
 
       <AppHeader
         onHome={handleBackToPractice}
+        onOpenFriends={handleOpenFriends}
         onLogout={handleLogout}
         onOpenHistory={handleOpenHistory}
         isAuthenticated={Boolean(user)}
+        user={user}
       />
 
       <main className={mainClassName}>
@@ -619,7 +711,46 @@ function App() {
                 canReturnToRoom={roomResumeAvailable}
                 roomCode={roomCode || readRoomSession()?.roomCode || ''}
                 resumeUsername={readRoomSession()?.username || username}
+                user={user}
+                friends={friends}
+                friendSearchResults={friendSearchResults}
+                isFriendSearchLoading={isFriendSearchLoading}
+                onSearchUsers={handleSearchUsers}
+                onAddFriend={handleAddFriend}
+                onRemoveFriend={handleRemoveFriend}
               />
+            )}
+
+            {status === 'friends' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={handleBackToPractice}
+                    className="h-9 w-9 rounded-full"
+                    aria-label="Back to home"
+                    title="Back to home"
+                  >
+                    ←
+                  </Button>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Social
+                    </p>
+                    <h2 className="text-xl font-bold">Friends</h2>
+                  </div>
+                </div>
+
+                <FriendsPanel
+                  friends={friends}
+                  searchResults={friendSearchResults}
+                  onSearchUsers={handleSearchUsers}
+                  onAddFriend={handleAddFriend}
+                  onRemoveFriend={handleRemoveFriend}
+                  isSearching={isFriendSearchLoading}
+                />
+              </div>
             )}
 
             {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
@@ -633,6 +764,9 @@ function App() {
                 onStartAssessment={handleStartAssessment}
                 onLeaveRoom={handleLeaveRoom}
                 currentSocketId={socket?.id || ''}
+                currentUserId={user?.id || null}
+                friends={friends}
+                onAddFriend={handleAddFriend}
               />
             )}
 

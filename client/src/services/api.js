@@ -1,7 +1,25 @@
 import { SERVER_URL } from '../config';
+import { supabase } from '../config/supabase';
 
 async function request(path, options = {}) {
-  const response = await fetch(`${SERVER_URL}${path}`, options);
+  const headers = new Headers(options.headers || {});
+
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+
+  const response = await fetch(`${SERVER_URL}${path}`, {
+    ...options,
+    headers,
+  });
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -25,4 +43,22 @@ export function generateCards(count = 10) {
 
 export function getRoom(roomCode) {
   return request(`/api/rooms/${encodeURIComponent(roomCode)}`);
+}
+
+export function getFriends() {
+  return request('/api/friends');
+}
+
+export function searchUsers(query) {
+  const trimmed = String(query || '').trim();
+  if (!trimmed) return Promise.resolve([]);
+  return request(`/api/users/search?q=${encodeURIComponent(trimmed)}`);
+}
+
+export function addFriend(userId) {
+  return request(`/api/friends/${encodeURIComponent(userId)}`, { method: 'POST' });
+}
+
+export function removeFriend(userId) {
+  return request(`/api/friends/${encodeURIComponent(userId)}`, { method: 'DELETE' });
 }
