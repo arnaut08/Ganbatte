@@ -369,14 +369,18 @@ function App() {
     return 'Player';
   };
 
-  const handleCreateRoom = async (name) => {
+  const handleCreateRoom = async (name, deckOptions = {}) => {
     if (socket) {
       const hostName = (name || getDisplayName()).trim();
       if (!hostName) return;
+      const normalizedDeckOptions = {
+        type: deckOptions?.type === 'kanji' ? 'kanji' : 'kana',
+        groups: Array.isArray(deckOptions?.groups) ? deckOptions.groups : [],
+      };
       setUsername(hostName);
       setPrefillRoomCode('');
       clearRoomQueryParam();
-      socket.emit('create-room', hostName, getSessionKey(), user?.id, (code) => {
+      socket.emit('create-room', hostName, getSessionKey(), user?.id, normalizedDeckOptions, (code) => {
         setRoomCode(code);
         saveRoomSession(code, hostName);
         getRoom(code)
@@ -594,7 +598,7 @@ function App() {
           <>
             {status === 'selector' && (
               <RoomSelector
-                onCreateRoom={() => handleCreateRoom(getDisplayName())}
+                onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}
                 onReturnToRoom={handleReturnToRoom}

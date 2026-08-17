@@ -17,7 +17,7 @@ import {
   sessionKeySchema,
   usernameSchema,
 } from './utils/validation.js';
-import { generateRandomCards } from './services/card-service.js';
+import { generateRandomCards, generateRandomKanjiCards } from './services/card-service.js';
 import { KANA_SENTENCES } from './data/kana-sentences.js';
 import { KANJI_CARDS, KANJI_GROUPS } from './data/kanji.js';
 import { isCorrectRomajiAnswer } from './utils/romaji.js';
@@ -90,11 +90,14 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   // Create a new room
-  socket.on('create-room', (hostName, sessionKey, maybeUserId, maybeCallback) => {
+  socket.on('create-room', (hostName, sessionKey, maybeUserId, maybeDeckConfig, maybeCallback) => {
     const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
     const parsedHostName = usernameSchema.safeParse(hostName);
-    const callback = typeof maybeUserId === 'function' ? maybeUserId : maybeCallback;
-    const resolvedUserId = typeof maybeUserId === 'function' ? socket.data.user?.id : (maybeUserId ?? socket.data.user?.id);
+    const callback = typeof maybeDeckConfig === 'function' ? maybeDeckConfig : maybeCallback;
+    const deckConfig = typeof maybeDeckConfig === 'object' && maybeDeckConfig !== null ? maybeDeckConfig : {};
+    const resolvedUserId = typeof maybeUserId === 'function'
+      ? socket.data.user?.id
+      : (maybeUserId ?? socket.data.user?.id);
 
     if (!parsedSessionKey.success) {
       if (callback) callback({ success: false, message: 'Invalid session' });
@@ -102,7 +105,10 @@ io.on('connection', (socket) => {
     }
     const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
     const roomCode = generateRoomCode();
-    const cards = generateRandomCards(KANA_SENTENCES, 10);
+    const deckType = deckConfig?.type === 'kanji' ? 'kanji' : 'kana';
+    const cards = deckType === 'kanji'
+      ? generateRandomKanjiCards(Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10)
+      : generateRandomCards(KANA_SENTENCES, 10);
     rooms.set(roomCode, {
       code: roomCode,
       players: [{
@@ -115,12 +121,14 @@ io.on('connection', (socket) => {
       }],
       leftPlayers: [],
       cards,
+      deckType,
+      selectedGroups: Array.isArray(deckConfig?.groups) ? deckConfig.groups : [],
       currentCardIndex: 0,
       status: 'waiting',
     });
     socket.join(roomCode);
     socket.emit('room-created', roomCode);
-    console.log(`Room created: ${roomCode}`);
+    console.log(`Room created: ${roomCode} (${deckType} deck)`);
     if (callback) callback(roomCode);
   });
 
@@ -541,8 +549,19 @@ app.post('/api/generate-cards', (req, res) => {
     return;
   }
 
-  const cards = generateRandomCards(KANA_SENTENCES, parsedCount.data);
-  res.json({ cards });
+  const rawType = String(req.query.type || 'kana').toLowerCase();
+  const deckType = rawType === 'kanji' ? 'kanji' : 'kana';
+  const rawGroups = Array.isArray(req.query.groups)
+    ? req.query.groups
+    : typeof req.query.groups === 'string'
+      ? [req.query.groups]
+      : [];
+
+  const cards = deckType === 'kanji'
+    ? generateRandomKanjiCards(rawGroups, parsedCount.data)
+    : generateRandomCards(KANA_SENTENCES, parsedCount.data);
+
+  res.json({ type: deckType, groups: rawGroups, cards });
 });
 
 app.get('/health', (req, res) => {
