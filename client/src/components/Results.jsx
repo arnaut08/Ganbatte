@@ -25,10 +25,14 @@ function renderCorrectAnswer(answer) {
   return <span className="text-green-400">{answer}</span>;
 }
 
-function Results({ results, roomCode, kanaCards, username, user }) {
+function Results({ results, roomCode, kanaCards, username, user, room }) {
   const [showDetails, setShowDetails] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
   const savedResult = useRef(false);
+  const isKanjiDeck = kanaCards.some((card) => card?.groupId || card?.groupName);
+  const selectedDeckGroups = Array.isArray(room?.selectedGroups)
+    ? room.selectedGroups
+    : [...new Set((kanaCards || []).map((card) => card?.groupId).filter(Boolean))];
 
   const resultStorageKey = user && roomCode
     ? `ganbatte-saved-result:${user.id}:${roomCode}`
@@ -39,13 +43,31 @@ function Results({ results, roomCode, kanaCards, username, user }) {
     let matchedTokens = 0;
     let totalTokens = 0;
     const total = kanaCards.length;
+
     for (let i = 0; i < total; i++) {
       const submitted = answers[i];
       const score = scoreRomajiAnswer(submitted, kanaCards[i]?.romaji);
       matchedTokens += score.matched;
       totalTokens += score.total;
-      if (score.matched === score.total) correct++;
+
+      if (isKanjiDeck) {
+        if (score.percentage === 100) correct++;
+      } else if (score.matched === score.total) {
+        correct++;
+      }
     }
+
+    if (isKanjiDeck) {
+      return {
+        correct,
+        incorrect: total - correct,
+        total,
+        matchedTokens: correct,
+        totalTokens: total,
+        percentage: total === 0 ? 0 : Math.round((correct / total) * 100),
+      };
+    }
+
     return {
       correct,
       incorrect: total - correct,
@@ -98,13 +120,15 @@ function Results({ results, roomCode, kanaCards, username, user }) {
 
       const { error } = await supabase.from('assessment_results').insert({
         user_id: authenticatedUserId,
-        assessment_type: 'kana-reading',
+        assessment_type: isKanjiDeck ? 'kanji-reading' : 'kana-reading',
         score_percentage: currentStats.percentage,
         correct_questions: currentStats.correct,
         total_questions: currentStats.total,
         companion_user_id: companionUserId,
-        companion_name: companionName,
-        details: { answers: currentPlayer.answers || [] },
+        details: {
+          answers: currentPlayer.answers || [],
+          ...(isKanjiDeck ? { groups: selectedDeckGroups } : {}),
+        },
       });
 
       if (error) {
@@ -129,7 +153,7 @@ function Results({ results, roomCode, kanaCards, username, user }) {
               Assessment Complete! 🎉
             </CardTitle>
             <CardDescription className="mt-2">
-              Great job! You've completed the Kana assessment.
+              Great job! You've completed the assessment.
             </CardDescription>
           </div>
         </CardHeader>

@@ -1,8 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeftIcon } from '@radix-ui/react-icons';
+import { ChevronLeftIcon, ChevronDownIcon } from '@radix-ui/react-icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+const KANJI_GROUPS = [
+  { id: 'numbers', name: 'Numbers and Counters' },
+  { id: 'people-family', name: 'People and Family' },
+  { id: 'time-dates', name: 'Time and Dates' },
+  { id: 'places-directions', name: 'Places and Directions' },
+  { id: 'nature-weather', name: 'Nature and Weather' },
+  { id: 'school-actions', name: 'School and Everyday Actions' },
+];
 
 function RoomSelector({
   onCreateRoom,
@@ -18,6 +34,9 @@ function RoomSelector({
 }) {
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [screen, setScreen] = useState('home');
+  const [deckType, setDeckType] = useState('kana');
+  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const joinCodeInputRef = useRef(null);
 
   useEffect(() => {
@@ -32,11 +51,18 @@ function RoomSelector({
     }
   }, [prefillRoomCode, roomCode]);
 
+  const handleGroupToggle = (groupId) => {
+    setSelectedGroups((current) => current.includes(groupId)
+      ? current.filter((id) => id !== groupId)
+      : [...current, groupId]);
+  };
+
   const handleCreate = (e) => {
     e.preventDefault();
-    if (isSocketReady) {
-      onCreateRoom();
-    }
+    if (!isSocketReady) return;
+
+    const normalizedGroups = deckType === 'kanji' ? selectedGroups : [];
+    onCreateRoom({ type: deckType, groups: normalizedGroups });
   };
 
   const handleJoin = (e) => {
@@ -175,6 +201,91 @@ function RoomSelector({
                         Start a new assessment session and invite a friend.
                       </p>
                     </div>
+
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Deck
+                        </span>
+                        <div className="flex flex-1 gap-2">
+                          <Button
+                            type="button"
+                            variant={deckType === 'kana' ? 'default' : 'outline'}
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setDeckType('kana')}
+                          >
+                            Kana
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={deckType === 'kanji' ? 'default' : 'outline'}
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setDeckType('kanji')}
+                          >
+                            Kanji
+                          </Button>
+                        </div>
+                      </div>
+
+                      {deckType === 'kanji' && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
+                            Groups
+                          </span>
+                          <DropdownMenu open={isGroupMenuOpen} onOpenChange={setIsGroupMenuOpen}>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="flex-1 justify-between">
+                                <span className="truncate">
+                                  {selectedGroups.length === 0
+                                    ? 'All groups'
+                                    : `${selectedGroups.length} selected`}
+                                </span>
+                                <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[280px] border-border bg-popover" align="start">
+                              <DropdownMenuItem
+                                onSelect={(event) => {
+                                  event.preventDefault();
+                                  setSelectedGroups([]);
+                                  setIsGroupMenuOpen(false);
+                                }}
+                                className={selectedGroups.length === 0 ? 'bg-accent/50' : ''}
+                              >
+                                <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ''}</span>
+                                All groups
+                              </DropdownMenuItem>
+                              {KANJI_GROUPS.map((group) => (
+                                <DropdownMenuItem
+                                  key={group.id}
+                                  onSelect={(event) => {
+                                    event.preventDefault();
+                                    handleGroupToggle(group.id);
+                                  }}
+                                  className={selectedGroups.includes(group.id) ? 'bg-accent/50' : ''}
+                                >
+                                  <span className="mr-2">{selectedGroups.includes(group.id) ? '✓' : ''}</span>
+                                  {group.name}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+
+                      {selectedGroups.length > 0 && deckType === 'kanji' && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {selectedGroups.map((groupId) => (
+                            <Badge key={groupId} variant="secondary" className="text-[10px]">
+                              {KANJI_GROUPS.find((group) => group.id === groupId)?.name || groupId}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <form onSubmit={handleCreate} className="mt-4">
                       <Button type="submit" className="h-10" disabled={!isSocketReady}>
                         Create Room

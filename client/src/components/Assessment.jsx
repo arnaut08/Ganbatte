@@ -30,6 +30,8 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
     setAnswer('');
   }, [room.currentCardIndex]);
 
+  const isKanjiAssessment = room?.deckType === 'kanji';
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (answer.trim()) {
@@ -81,6 +83,11 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
               <div className="text-5xl font-bold text-foreground">
                 {currentCard?.kana}
               </div>
+              {isKanjiAssessment && (
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Enter the reading in romaji
+                </p>
+              )}
               {submitted && (
                 <Badge
                   variant={isCorrect ? 'success' : 'destructive'}
@@ -100,7 +107,7 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
                   type="text"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Type the romaji..."
+                  placeholder={isKanjiAssessment ? 'Type the reading...' : 'Type the romaji...'}
                   className="flex-1"
                   autoFocus
                 />
@@ -215,7 +222,9 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
           <Card className="border-yellow-900/30 bg-yellow-950/30">
             <CardContent className="py-3">
               <p className="text-sm text-yellow-400">
-                💡 Tip: Type the romaji (Latin letters) for the kana character shown above
+                {isKanjiAssessment
+                  ? '💡 Tip: Type the romaji reading for the kanji character shown above'
+                  : '💡 Tip: Type the romaji (Latin letters) for the kana character shown above'}
               </p>
             </CardContent>
           </Card>
