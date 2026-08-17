@@ -145,6 +145,7 @@ function App() {
       name: player.name,
       userId: player.userId,
       answers: player.answers,
+      hintsUsed: player.hintsUsed || [],
     })));
     transitionToStatus('results');
   }, [room, results]);
@@ -250,6 +251,10 @@ function App() {
     });
 
     newSocket.on('answer-submitted', (data) => {
+      if (data && data.room) setRoom(data.room);
+    });
+
+    newSocket.on('hint-used', (data) => {
       if (data && data.room) setRoom(data.room);
     });
 
@@ -426,6 +431,12 @@ function App() {
   const handleSubmitAnswer = (answer) => {
     if (socket && roomCode) {
       socket.emit('submit-answer', roomCode, answer);
+    }
+  };
+
+  const handleUseHint = (cardIndex) => {
+    if (socket && roomCode) {
+      socket.emit('use-hint', roomCode, cardIndex);
     }
   };
 
@@ -630,6 +641,7 @@ function App() {
                 room={room}
                 kanaCards={kanaCards}
                 onSubmitAnswer={handleSubmitAnswer}
+                onUseHint={handleUseHint}
                 onNextCard={handleNextCard}
                 username={username}
               />
