@@ -94,6 +94,13 @@ app.use(async (req, res, next) => {
 
   try {
     const { data, error } = await getSupabaseClient().auth.getUser(token);
+
+    if (error && /jwt issued at future/i.test(error.message || '')) {
+      console.warn('Rejected auth token with future-issued JWT:', error.message);
+      req.user = null;
+      return next();
+    }
+
     req.user = error || !data?.user ? null : data.user;
     return next();
   } catch (error) {

@@ -1,32 +1,117 @@
 import { SERVER_URL } from '../config';
 import { supabase } from '../config/supabase';
 
-async function request(path, options = {}) {
-  const headers = new Headers(options.headers || {});
+const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search'];
+const pendingRequests = new Map();
 
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
+function isFutureJwtError(error) {
+  const message = String(error?.message || error || '');
+  return /jwt issued at future|issued at future/i.test(message);
+}
+
+async function getAccessToken() {
+  if (!supabase) return null;
+
+  let { data, error } = await supabase.auth.getSession();
+  let session = data?.session;
+
+  if (!session && !error) {
+    const refreshResult = await supabase.auth.refreshSession();
+    error = refreshResult.error;
+    session = refreshResult.data?.session;
   }
 
-  if (supabase) {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+  if (error) {
+    console.warn('Supabase session lookup failed:', error);
+    return null;
+  }
+
+  return session?.access_token || null;
+}
+
+async function request(path, options = {}, retryCount = 0) {
+  const method = (options.method || 'GET').toUpperCase();
+  const requestKey = `${method}:${path}:${JSON.stringify(options.body ?? '')}`;
+
+  if (pendingRequests.has(requestKey)) {
+    return pendingRequests.get(requestKey);
+  }
+
+  const executeRequest = async () => {
+    const headers = new Headers(options.headers || {});
+
+    if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    const requiresAuth = PROTECTED_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+    const token = await getAccessToken();
+
+    if (requiresAuth && !token) {
+      throw new Error('Authentication required. Please sign in again.');
+    }
+
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
+
+    const response = await fetch(`${SERVER_URL}${path}`, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401 && retryCount === 0 && supabase) {
+      const refreshResult = await supabase.auth.refreshSession();
+      const refreshedToken = refreshResult.data?.session?.access_token;
+
+      if (!refreshResult.error && refreshedToken) {
+        headers.set('Authorization', `Bearer ${refreshedToken}`);
+        return request(path, { ...options, headers }, 1);
+      }
+
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // Ignore sign-out failures during the auth reset flow.
+      }
+
+      if (requiresAuth) {
+        throw new Error('Authentication required. Please sign in again.');
+      }
+    }
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      if (isFutureJwtError(payload)) {
+        if (supabase) {
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            // Ignore sign-out failures during the auth reset flow.
+          }
+        }
+        throw new Error('Your device clock is ahead of the server. Please sign in again.');
+      }
+
+      throw new Error(payload.error || 'Request failed');
+    }
+
+    return payload;
+  };
+
+  const requestPromise = executeRequest();
+  pendingRequests.set(requestKey, requestPromise);
+
+  try {
+    return await requestPromise;
+  } finally {
+    pendingRequests.delete(requestKey);
   }
+}
 
-  const response = await fetch(`${SERVER_URL}${path}`, {
-    ...options,
-    headers,
-  });
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(payload.error || 'Request failed');
-  }
-
-  return payload;
+export function generateCards(count = 10) {
+  return request(`/api/generate-cards?count=${count}`, { method: 'POST' });
 }
 
 export function getKanaCards() {
@@ -35,10 +120,6 @@ export function getKanaCards() {
 
 export function getKanjiCards() {
   return request('/api/kanji-cards');
-}
-
-export function generateCards(count = 10) {
-  return request(`/api/generate-cards?count=${count}`, { method: 'POST' });
 }
 
 export function getRoom(roomCode) {

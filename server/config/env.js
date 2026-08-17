@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+
+dotenv.config({ path: new URL('../.env', import.meta.url) });
+
 const parseOrigins = (value) => value
   .split(',')
   .map((origin) => origin.trim().replace(/\/$/, ''))

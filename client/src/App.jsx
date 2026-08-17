@@ -25,6 +25,7 @@ import {
 } from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
+import { createFriendRefreshGuard } from './utils/friendRefresh';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
 const ROOM_SESSION_STORAGE = 'ganbatte-room-session';
@@ -156,10 +157,16 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const refreshFriends = () => {
+  const friendRefreshGuardRef = useRef(createFriendRefreshGuard());
+
+  const refreshFriends = useCallback(() => {
     if (!user) {
       setFriends([]);
       setFriendSearchResults([]);
+      return;
+    }
+
+    if (!friendRefreshGuardRef.current(user.id, 'friends')) {
       return;
     }
 
@@ -167,13 +174,16 @@ function App() {
       .then((data) => setFriends(Array.isArray(data) ? data : []))
       .catch((error) => {
         console.error('Failed to fetch friends:', error);
-        // Keep the current list on transient failures (rate limits, network).
       });
-  };
+  }, [user]);
 
-  const refreshFriendRequests = () => {
+  const refreshFriendRequests = useCallback(() => {
     if (!user) {
       setFriendRequests([]);
+      return;
+    }
+
+    if (!friendRefreshGuardRef.current(user.id, 'requests')) {
       return;
     }
 
@@ -181,22 +191,54 @@ function App() {
       .then((data) => setFriendRequests(Array.isArray(data) ? data : []))
       .catch((error) => {
         console.error('Failed to fetch friend requests:', error);
-        // Keep the current list on transient failures (rate limits, network).
       });
-  };
+  }, [user]);
+
+  const refreshFriendData = useCallback(() => {
+    if (!user) {
+      setFriends([]);
+      setFriendSearchResults([]);
+      setFriendRequests([]);
+      friendRefreshGuardRef.current?.reset?.();
+      return;
+    }
+
+    if (!friendRefreshGuardRef.current(user.id, 'combined')) {
+      return;
+    }
+
+    Promise.all([
+      getFriends().then((data) => (Array.isArray(data) ? data : [])),
+      getFriendRequests().then((data) => (Array.isArray(data) ? data : [])),
+    ])
+      .then(([nextFriends, nextRequests]) => {
+        setFriends(nextFriends);
+        setFriendRequests(nextRequests);
+      })
+      .catch((error) => {
+        console.error('Failed to refresh friends and requests:', error);
+      });
+  }, [user]);
 
   useEffect(() => {
-    refreshFriends();
-    refreshFriendRequests();
+    if (!user) {
+      setFriends([]);
+      setFriendSearchResults([]);
+      setFriendRequests([]);
+      friendRefreshGuardRef.current?.reset?.();
+      return undefined;
+    }
 
-    // Periodically refresh friends to keep presence (online/offline) status current.
+    refreshFriendData();
+
     const presenceRefreshTimer = window.setInterval(() => {
-      refreshFriends();
-      refreshFriendRequests();
+      refreshFriendData();
     }, 30 * 1000);
 
-    return () => window.clearInterval(presenceRefreshTimer);
-  }, [user, isSocketReady]);
+    return () => {
+      window.clearInterval(presenceRefreshTimer);
+    };
+  }, [refreshFriendData, user]);
 
   const handleSearchUsers = useCallback(async (query) => {
     if (!user) {
@@ -314,11 +356,16 @@ function App() {
 
   // Initialize socket connection
   useEffect(() => {
+    if (authRequired && authLoading) return undefined;
+    if (authRequired && !user) return undefined;
+
     const newSocket = io(SERVER_URL, {
       auth: async (callback) => {
         const { data } = await supabase?.auth.getSession() || { data: { session: null } };
         callback({ accessToken: data.session?.access_token || null });
       },
+      reconnection: !authRequired || Boolean(user),
+      reconnectionAttempts: authRequired ? 2 : 5,
     });
 
     newSocket.on('connect', () => {
@@ -369,6 +416,7 @@ function App() {
     newSocket.on('disconnect', () => {
       setSocket(null);
       setIsSocketReady(false);
+      friendRefreshGuardRef.current = createFriendRefreshGuard();
     });
 
     newSocket.on('room-created', (code) => {
@@ -467,8 +515,7 @@ function App() {
     });
 
     newSocket.on('friend-request-accepted', (data) => {
-      refreshFriends();
-      refreshFriendRequests();
+      refreshFriendData();
       const friendName = data?.friend?.display_name || 'Your friend';
       setToast({ message: `${friendName} accepted your friend request.`, type: 'success' });
     });
@@ -483,7 +530,7 @@ function App() {
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  }, [user]);
+  }, [authLoading, authRequired, refreshFriendData, user]);
 
   // Fetch kana cards
   useEffect(() => {
