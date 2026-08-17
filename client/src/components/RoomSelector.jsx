@@ -36,8 +36,6 @@ function RoomSelector({
   friendSearchResults = [],
   isFriendSearchLoading = false,
   onSearchUsers,
-  onAddFriend,
-  onRemoveFriend,
 }) {
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [screen, setScreen] = useState('home');
@@ -205,8 +203,6 @@ function RoomSelector({
                   friends={friends}
                   searchResults={friendSearchResults}
                   onSearchUsers={onSearchUsers}
-                  onAddFriend={onAddFriend}
-                  onRemoveFriend={onRemoveFriend}
                   isSearching={isFriendSearchLoading}
                 /> */}
 

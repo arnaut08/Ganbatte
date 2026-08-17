@@ -55,6 +55,22 @@ export function searchUsers(query) {
   return request(`/api/users/search?q=${encodeURIComponent(trimmed)}`);
 }
 
+export function getFriendRequests() {
+  return request('/api/friend-requests');
+}
+
+export function sendFriendRequest(userId) {
+  return request(`/api/friend-requests/${encodeURIComponent(userId)}`, { method: 'POST' });
+}
+
+export function acceptFriendRequest(requestId) {
+  return request(`/api/friend-requests/${encodeURIComponent(requestId)}/accept`, { method: 'POST' });
+}
+
+export function rejectFriendRequest(requestId) {
+  return request(`/api/friend-requests/${encodeURIComponent(requestId)}/reject`, { method: 'POST' });
+}
+
 export function addFriend(userId) {
   return request(`/api/friends/${encodeURIComponent(userId)}`, { method: 'POST' });
 }

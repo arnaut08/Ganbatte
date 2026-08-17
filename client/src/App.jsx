@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
 import RoomSelector from './components/RoomSelector';
@@ -12,13 +12,16 @@ import AppHeader from './components/layout/AppHeader';
 import FriendsPanel from './components/FriendsPanel';
 import './App.css';
 import {
-  addFriend,
+  acceptFriendRequest,
   generateCards,
+  getFriendRequests,
   getFriends,
   getKanaCards,
   getRoom,
+  rejectFriendRequest,
   removeFriend,
   searchUsers,
+  sendFriendRequest,
 } from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
@@ -75,6 +78,7 @@ function App() {
   const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
   const [friends, setFriends] = useState([]);
   const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
   const [isFriendSearchLoading, setIsFriendSearchLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const statusRef = useRef(status);
@@ -163,15 +167,38 @@ function App() {
       .then((data) => setFriends(Array.isArray(data) ? data : []))
       .catch((error) => {
         console.error('Failed to fetch friends:', error);
-        setFriends([]);
+        // Keep the current list on transient failures (rate limits, network).
+      });
+  };
+
+  const refreshFriendRequests = () => {
+    if (!user) {
+      setFriendRequests([]);
+      return;
+    }
+
+    getFriendRequests()
+      .then((data) => setFriendRequests(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        console.error('Failed to fetch friend requests:', error);
+        // Keep the current list on transient failures (rate limits, network).
       });
   };
 
   useEffect(() => {
     refreshFriends();
+    refreshFriendRequests();
+
+    // Periodically refresh friends to keep presence (online/offline) status current.
+    const presenceRefreshTimer = window.setInterval(() => {
+      refreshFriends();
+      refreshFriendRequests();
+    }, 30 * 1000);
+
+    return () => window.clearInterval(presenceRefreshTimer);
   }, [user, isSocketReady]);
 
-  const handleSearchUsers = async (query) => {
+  const handleSearchUsers = useCallback(async (query) => {
     if (!user) {
       setFriendSearchResults([]);
       return;
@@ -189,25 +216,53 @@ function App() {
     } finally {
       setIsFriendSearchLoading(false);
     }
-  };
+  }, [user]);
 
-  const handleAddFriend = async (userId) => {
-    if (!userId) return;
+  const handleSendFriendRequest = async (userId) => {
+    if (!userId || !user) return;
 
     try {
-      const response = await addFriend(userId);
-      const nextFriend = response?.friend;
-      setFriends((current) => {
-        if (nextFriend && !current.some((friend) => (friend.user_id || friend.id) === userId)) {
-          return [...current, nextFriend];
-        }
-        return current;
-      });
-      setToast({ message: 'Friend added.', type: 'success' });
-      setFriendSearchResults((current) => current.filter((person) => (person.id || person.user_id) !== userId));
+      await sendFriendRequest(userId);
+      setToast({ message: 'Friend request sent.', type: 'success' });
+      refreshFriendRequests();
     } catch (error) {
-      console.error('Failed to add friend:', error);
-      setToast({ message: error.message || 'Unable to add friend.', type: 'error' });
+      console.error('Failed to send friend request:', error);
+      setToast({ message: error.message || 'Unable to send friend request.', type: 'error' });
+    }
+  };
+
+  const handleAcceptFriendRequest = async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      const response = await acceptFriendRequest(requestId);
+      const nextFriend = response?.friend;
+      if (nextFriend) {
+        setFriends((current) => {
+          if (!current.some((friend) => (friend.user_id || friend.id) === (nextFriend.user_id || nextFriend.id))) {
+            return [...current, nextFriend];
+          }
+          return current;
+        });
+      }
+      setToast({ message: 'Friend request accepted.', type: 'success' });
+      setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+    } catch (error) {
+      console.error('Failed to accept friend request:', error);
+      setToast({ message: error.message || 'Unable to accept friend request.', type: 'error' });
+    }
+  };
+
+  const handleRejectFriendRequest = async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      await rejectFriendRequest(requestId);
+      setToast({ message: 'Friend request rejected.', type: 'warning' });
+      setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+    } catch (error) {
+      console.error('Failed to reject friend request:', error);
+      setToast({ message: error.message || 'Unable to reject friend request.', type: 'error' });
     }
   };
 
@@ -404,6 +459,24 @@ function App() {
 
         return nextRoom;
       });
+    });
+
+    newSocket.on('friend-request-received', () => {
+      refreshFriendRequests();
+      setToast({ message: 'You received a new friend request.', type: 'success' });
+    });
+
+    newSocket.on('friend-request-accepted', (data) => {
+      refreshFriends();
+      refreshFriendRequests();
+      const friendName = data?.friend?.display_name || 'Your friend';
+      setToast({ message: `${friendName} accepted your friend request.`, type: 'success' });
+    });
+
+    newSocket.on('friend-request-rejected', (data) => {
+      refreshFriendRequests();
+      const receiverName = data?.receiver?.display_name || 'Your friend request';
+      setToast({ message: `${receiverName} declined your friend request.`, type: 'warning' });
     });
 
     return () => {
@@ -692,6 +765,7 @@ function App() {
         onOpenHistory={handleOpenHistory}
         isAuthenticated={Boolean(user)}
         user={user}
+        pendingFriendRequestCount={friendRequests.filter((request) => request?.direction !== 'outgoing').length}
       />
 
       <main className={mainClassName}>
@@ -716,7 +790,6 @@ function App() {
                 friendSearchResults={friendSearchResults}
                 isFriendSearchLoading={isFriendSearchLoading}
                 onSearchUsers={handleSearchUsers}
-                onAddFriend={handleAddFriend}
                 onRemoveFriend={handleRemoveFriend}
               />
             )}
@@ -745,8 +818,11 @@ function App() {
                 <FriendsPanel
                   friends={friends}
                   searchResults={friendSearchResults}
+                  friendRequests={friendRequests}
                   onSearchUsers={handleSearchUsers}
-                  onAddFriend={handleAddFriend}
+                  onSendFriendRequest={handleSendFriendRequest}
+                  onAcceptFriendRequest={handleAcceptFriendRequest}
+                  onRejectFriendRequest={handleRejectFriendRequest}
                   onRemoveFriend={handleRemoveFriend}
                   isSearching={isFriendSearchLoading}
                 />
@@ -766,7 +842,8 @@ function App() {
                 currentSocketId={socket?.id || ''}
                 currentUserId={user?.id || null}
                 friends={friends}
-                onAddFriend={handleAddFriend}
+                friendRequests={friendRequests}
+                onSendFriendRequest={handleSendFriendRequest}
               />
             )}
 

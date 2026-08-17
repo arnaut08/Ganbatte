@@ -33,7 +33,15 @@ function UserAvatarIcon() {
   );
 }
 
-function AppHeader({ onHome, onOpenFriends, onLogout, onOpenHistory, isAuthenticated, user = null }) {
+function AppHeader({
+  onHome,
+  onOpenFriends,
+  onLogout,
+  onOpenHistory,
+  isAuthenticated,
+  user = null,
+  pendingFriendRequestCount = 0,
+}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const userInitial = (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'U').charAt(0).toUpperCase();
 
@@ -62,16 +70,23 @@ function AppHeader({ onHome, onOpenFriends, onLogout, onOpenHistory, isAuthentic
 
         {isAuthenticated && (
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full border border-border bg-background/60"
-              aria-label="Open friends"
-              title="Friends"
-              onClick={onOpenFriends}
-            >
-              <PersonIcon className="h-4 w-4" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full border border-border bg-background/60"
+                aria-label="Open friends"
+                title="Friends"
+                onClick={onOpenFriends}
+              >
+                <PersonIcon className="h-4 w-4" />
+              </Button>
+              {pendingFriendRequestCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {pendingFriendRequestCount > 99 ? '99+' : pendingFriendRequestCount}
+                </span>
+              )}
+            </div>
 
             <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>

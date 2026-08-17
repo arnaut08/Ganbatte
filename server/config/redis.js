@@ -6,8 +6,21 @@ let redisClient;
 let redisSubscriber;
 const USER_CONNECTION_TTL_SECONDS = 120;
 
+// In-memory fallback for presence tracking when Redis is not configured.
+// Maps userId -> { socketId, expiresAt }.
+const memoryConnections = new Map();
+
 export function isRedisConfigured() {
   return Boolean(REDIS_URL);
+}
+
+function cleanupExpiredMemoryConnections() {
+  const now = Date.now();
+  for (const [userId, connection] of memoryConnections) {
+    if (connection.expiresAt <= now) {
+      memoryConnections.delete(userId);
+    }
+  }
 }
 
 export async function configureRedisAdapter(io) {
@@ -29,7 +42,17 @@ export async function configureRedisAdapter(io) {
 }
 
 export async function claimUserConnection(userId, socketId) {
-  if (!redisClient?.isReady || !userId) return null;
+  if (!userId) return null;
+
+  if (!redisClient?.isReady) {
+    // In-memory fallback
+    const previous = memoryConnections.get(userId)?.socketId || null;
+    memoryConnections.set(userId, {
+      socketId,
+      expiresAt: Date.now() + USER_CONNECTION_TTL_SECONDS * 1000,
+    });
+    return previous;
+  }
 
   return redisClient.eval(
     `local previous = redis.call('GET', KEYS[1])
@@ -43,7 +66,16 @@ export async function claimUserConnection(userId, socketId) {
 }
 
 export async function refreshUserConnection(userId, socketId) {
-  if (!redisClient?.isReady || !userId) return;
+  if (!userId) return;
+
+  if (!redisClient?.isReady) {
+    // In-memory fallback
+    const connection = memoryConnections.get(userId);
+    if (connection && connection.socketId === socketId) {
+      connection.expiresAt = Date.now() + USER_CONNECTION_TTL_SECONDS * 1000;
+    }
+    return;
+  }
 
   await redisClient.eval(
     `if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -58,7 +90,16 @@ export async function refreshUserConnection(userId, socketId) {
 }
 
 export async function releaseUserConnection(userId, socketId) {
-  if (!redisClient?.isReady || !userId) return;
+  if (!userId) return;
+
+  if (!redisClient?.isReady) {
+    // In-memory fallback
+    const connection = memoryConnections.get(userId);
+    if (connection && connection.socketId === socketId) {
+      memoryConnections.delete(userId);
+    }
+    return;
+  }
 
   await redisClient.eval(
     `if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -72,14 +113,32 @@ export async function releaseUserConnection(userId, socketId) {
   );
 }
 
+export async function getUserSocketId(userId) {
+  if (!userId) return null;
+
+  if (!redisClient?.isReady) {
+    // In-memory fallback
+    cleanupExpiredMemoryConnections();
+    return memoryConnections.get(String(userId))?.socketId || null;
+  }
+
+  return redisClient.get(`ganbatte:user-connection:${userId}`);
+}
+
 export async function getUsersPresenceStatus(userIds = []) {
-  if (!redisClient?.isReady || !Array.isArray(userIds) || userIds.length === 0) {
+  if (!Array.isArray(userIds) || userIds.length === 0) {
     return [];
   }
 
   const uniqueUserIds = [...new Set(userIds.filter(Boolean).map((userId) => String(userId)))];
   if (uniqueUserIds.length === 0) {
     return [];
+  }
+
+  if (!redisClient?.isReady) {
+    // In-memory fallback
+    cleanupExpiredMemoryConnections();
+    return uniqueUserIds.filter((userId) => memoryConnections.has(userId));
   }
 
   const keys = uniqueUserIds.map((userId) => `ganbatte:user-connection:${userId}`);
