@@ -25,11 +25,14 @@ function renderCorrectAnswer(answer) {
   return <span className="text-green-400">{answer}</span>;
 }
 
-function Results({ results, roomCode, kanaCards, username, user }) {
+function Results({ results, roomCode, kanaCards, username, user, room }) {
   const [showDetails, setShowDetails] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
   const savedResult = useRef(false);
   const isKanjiDeck = kanaCards.some((card) => card?.groupId || card?.groupName);
+  const selectedDeckGroups = Array.isArray(room?.selectedGroups)
+    ? room.selectedGroups
+    : [...new Set((kanaCards || []).map((card) => card?.groupId).filter(Boolean))];
 
   const resultStorageKey = user && roomCode
     ? `ganbatte-saved-result:${user.id}:${roomCode}`
@@ -122,7 +125,10 @@ function Results({ results, roomCode, kanaCards, username, user }) {
         correct_questions: currentStats.correct,
         total_questions: currentStats.total,
         companion_user_id: companionUserId,
-        details: { answers: currentPlayer.answers || [] },
+        details: {
+          answers: currentPlayer.answers || [],
+          ...(isKanjiDeck ? { groups: selectedDeckGroups } : {}),
+        },
       });
 
       if (error) {

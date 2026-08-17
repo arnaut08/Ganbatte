@@ -636,7 +636,14 @@ function App() {
             )}
 
             {status === 'results' && results && (
-              <Results results={results} roomCode={roomCode} kanaCards={kanaCards} username={username} user={user} />
+              <Results
+                results={results}
+                roomCode={roomCode}
+                kanaCards={kanaCards}
+                username={username}
+                user={user}
+                room={room}
+              />
             )}
           </>
         )}

@@ -32,7 +32,7 @@ function AssessmentHistory({ onBack }) {
 
       const { data, count, error: queryError } = await supabase
         .from('assessment_results')
-        .select('id, assessment_type, score_percentage, correct_questions, total_questions, created_at, companion_user_id, profile:profiles!companion_user_id(display_name)', { count: 'exact' })
+        .select('id, assessment_type, score_percentage, correct_questions, total_questions, created_at, companion_user_id, details, profile:profiles!companion_user_id(display_name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
       console.log(data, "assessment results");
@@ -152,6 +152,15 @@ function AssessmentHistory({ onBack }) {
                         <p className="text-sm text-secondary">
                           Solo session
                         </p>
+                      )}
+                      {result.assessment_type === 'kanji-reading' && Array.isArray(result.details?.groups) && result.details.groups.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {result.details.groups.map((group) => (
+                            <Badge key={group} variant="secondary" className="text-[10px]">
+                              {group}
+                            </Badge>
+                          ))}
+                        </div>
                       )}
                       <p className="text-xs text-muted-foreground">
                         {new Date(result.created_at).toLocaleString()}
