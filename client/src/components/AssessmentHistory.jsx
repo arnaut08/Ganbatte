@@ -162,6 +162,11 @@ function AssessmentHistory({ onBack }) {
                           ))}
                         </div>
                       )}
+                      {result.assessment_type === 'kanji-reading' && Array.isArray(result.details?.hints_used) && result.details.hints_used.length > 0 && (
+                        <p className="text-xs text-amber-400">
+                          Hints used: {result.details.hints_used.reduce((total, value) => total + Number(value || 0), 0)}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {new Date(result.created_at).toLocaleString()}
                       </p>

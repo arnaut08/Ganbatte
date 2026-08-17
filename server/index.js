@@ -78,6 +78,7 @@ function buildAssessmentResults(room) {
     name: player.name,
     userId: player.userId ?? player.user_id ?? null,
     answers: Array.isArray(player.answers) ? player.answers : [],
+    hintsUsed: Array.isArray(player.hintsUsed) ? player.hintsUsed : [],
   }));
 }
 
@@ -117,6 +118,7 @@ io.on('connection', (socket) => {
         sessionKey: parsedSessionKey.data,
         name: playerName,
         answers: [],
+        hintsUsed: [],
         connected: true,
       }],
       leftPlayers: [],
@@ -163,6 +165,7 @@ io.on('connection', (socket) => {
       sessionKey: parsedSessionKey.data,
       name: parsedUsername.data,
       answers: [],
+      hintsUsed: [],
       connected: true,
     });
     socket.join(parsedRoomCode.data);
@@ -215,6 +218,7 @@ io.on('connection', (socket) => {
         sessionKey: leftPlayer.sessionKey,
         name: leftPlayer.name,
         answers: Array.isArray(leftPlayer.answers) ? leftPlayer.answers : [],
+        hintsUsed: Array.isArray(leftPlayer.hintsUsed) ? leftPlayer.hintsUsed : [],
         connected: true,
       };
       room.players.push(player);
@@ -273,6 +277,7 @@ io.on('connection', (socket) => {
       // reset answers and ready flags
       room.players.forEach((p) => {
         p.answers = [];
+        p.hintsUsed = [];
         p.ready = false;
       });
       io.to(roomCode).emit('assessment-started', { room });
@@ -365,6 +370,45 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('player-ready-updated', { room });
     console.log(`player-ready-updated: room=${roomCode} player=${player.id}`);
     advanceRoomIfReady(roomCode);
+  });
+
+  socket.on('use-hint', (roomCode, cardIndex) => {
+    const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+    if (!parsedRoomCode.success) return;
+
+    const room = rooms.get(parsedRoomCode.data);
+    if (!room) return;
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) return;
+
+    const targetIndex = Number.isInteger(cardIndex) ? cardIndex : room.currentCardIndex;
+    const totalHintsUsed = Array.isArray(player.hintsUsed)
+      ? player.hintsUsed.reduce((sum, value) => sum + Number(value || 0), 0)
+      : 0;
+    const currentCardHints = Number(player.hintsUsed?.[targetIndex] ?? 0);
+
+    if (totalHintsUsed >= 2) {
+      io.to(roomCode).emit('hint-used', {
+        room,
+        playerId: socket.id,
+        cardIndex: targetIndex,
+        hintsUsed: totalHintsUsed,
+      });
+      return;
+    }
+
+    player.hintsUsed[targetIndex] = currentCardHints + 1;
+    const nextTotal = Array.isArray(player.hintsUsed)
+      ? player.hintsUsed.reduce((sum, value) => sum + Number(value || 0), 0)
+      : 0;
+
+    io.to(roomCode).emit('hint-used', {
+      room,
+      playerId: socket.id,
+      cardIndex: targetIndex,
+      hintsUsed: nextTotal,
+    });
   });
 
   function advanceRoomIfReady(roomCode) {

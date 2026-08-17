@@ -8,13 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
 
-function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
+function Assessment({ room, kanaCards, onSubmitAnswer, onUseHint, onNextCard, username }) {
   const [answer, setAnswer] = useState('');
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
 
   const currentCard = kanaCards[room.currentCardIndex];
   const currentPlayer = room.players.find((p) => p.name === username);
   const otherPlayer = room.players.find((p) => p.name !== username);
+  const totalHintsUsed = Array.isArray(currentPlayer?.hintsUsed)
+    ? currentPlayer.hintsUsed.reduce((sum, value) => sum + Number(value || 0), 0)
+    : 0;
+  const currentHintsUsed = currentPlayer?.hintsUsed?.[room.currentCardIndex] ?? 0;
 
   // Determine submission state from room data to avoid race between
   // local state and server-synced room updates.
@@ -31,6 +35,7 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
   }, [room.currentCardIndex]);
 
   const isKanjiAssessment = room?.deckType === 'kanji';
+  const canUseHint = isKanjiAssessment && !submitted && totalHintsUsed < 2;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -88,6 +93,11 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
                   Enter the reading in romaji
                 </p>
               )}
+              {isKanjiAssessment && currentHintsUsed > 0 && (
+                <p className="text-sm text-amber-400">
+                  Hint: {currentCard?.english}
+                </p>
+              )}
               {submitted && (
                 <Badge
                   variant={isCorrect ? 'success' : 'destructive'}
@@ -114,6 +124,11 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onNextCard, username }) {
                 <Button type="submit" disabled={!answer.trim()}>
                   Submit
                 </Button>
+                {canUseHint && (
+                  <Button type="button" variant="secondary" onClick={() => onUseHint(room.currentCardIndex)}>
+                    Hint ({2 - totalHintsUsed})
+                  </Button>
+                )}
               </form>
             ) : (
               <div className="space-y-4">

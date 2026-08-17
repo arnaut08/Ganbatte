@@ -81,6 +81,12 @@ function Results({ results, roomCode, kanaCards, username, user, room }) {
   const currentPlayer = results.find((player) => player.userId === user?.id)
     || results.find((player) => player.name === username)
     || results[0];
+  const getHintTotal = (player) => (
+    Array.isArray(player?.hintsUsed)
+      ? player.hintsUsed.reduce((total, count) => total + Number(count || 0), 0)
+      : 0
+  );
+  const currentPlayerHintTotal = getHintTotal(currentPlayer);
   const currentStats = computeStats(currentPlayer?.answers || []);
   const currentPlayerUserId = currentPlayer?.userId ?? user?.id ?? null;
   const companionPlayer = currentPlayerUserId
@@ -127,7 +133,7 @@ function Results({ results, roomCode, kanaCards, username, user, room }) {
         companion_user_id: companionUserId,
         details: {
           answers: currentPlayer.answers || [],
-          ...(isKanjiDeck ? { groups: selectedDeckGroups } : {}),
+          ...(isKanjiDeck ? { groups: selectedDeckGroups, hints_used: currentPlayer.hintsUsed || [] } : {}),
         },
       });
 
@@ -179,6 +185,9 @@ function Results({ results, roomCode, kanaCards, username, user, room }) {
                       <h4 className="font-medium text-foreground">{player.name}</h4>
                       <p className="text-sm text-muted-foreground">
                         Score: {stats.percentage}% • Correct: {stats.correct}/{stats.total}
+                        {isKanjiDeck && (
+                          <span> • Hints used: {getHintTotal(player)}</span>
+                        )}
                       </p>
                     </div>
                     <Badge
@@ -260,7 +269,13 @@ function Results({ results, roomCode, kanaCards, username, user, room }) {
                             {card.english}
                           </span>
                         </TableCell>
-                        <TableCell colSpan={results.length} />
+                        <TableCell colSpan={results.length}>
+                          {isKanjiDeck && (
+                            <span className="text-xs text-amber-400">
+                              {results.map((player) => `${player.name}: ${Number(player.hintsUsed?.[i] || 0)} hint(s)`).join(' • ')}
+                            </span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     </React.Fragment>
                   ))}
