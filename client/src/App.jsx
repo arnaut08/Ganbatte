@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import { Button } from '@/components/ui/button';
 import RoomSelector from './components/RoomSelector';
 import RoomLobby from './components/RoomLobby';
 import Assessment from './components/Assessment';
@@ -8,8 +9,20 @@ import AuthPage from './components/AuthPage';
 import KanjiStudy from './components/KanjiStudy';
 import AssessmentHistory from './components/AssessmentHistory';
 import AppHeader from './components/layout/AppHeader';
+import FriendsPanel from './components/FriendsPanel';
 import './App.css';
-import { generateCards, getKanaCards, getRoom } from './services/api';
+import {
+  acceptFriendRequest,
+  generateCards,
+  getFriendRequests,
+  getFriends,
+  getKanaCards,
+  getRoom,
+  rejectFriendRequest,
+  removeFriend,
+  searchUsers,
+  sendFriendRequest,
+} from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
 
@@ -63,6 +76,10 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [isFriendSearchLoading, setIsFriendSearchLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const statusRef = useRef(status);
   const inviteJoinAttemptedRef = useRef(false);
@@ -90,6 +107,7 @@ function App() {
 
   const screenPriority = {
     selector: 0,
+    friends: 0,
     'kanji-study': 0,
     history: 0,
     lobby: 1,
@@ -137,6 +155,129 @@ function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  const refreshFriends = () => {
+    if (!user) {
+      setFriends([]);
+      setFriendSearchResults([]);
+      return;
+    }
+
+    getFriends()
+      .then((data) => setFriends(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        console.error('Failed to fetch friends:', error);
+        // Keep the current list on transient failures (rate limits, network).
+      });
+  };
+
+  const refreshFriendRequests = () => {
+    if (!user) {
+      setFriendRequests([]);
+      return;
+    }
+
+    getFriendRequests()
+      .then((data) => setFriendRequests(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        console.error('Failed to fetch friend requests:', error);
+        // Keep the current list on transient failures (rate limits, network).
+      });
+  };
+
+  useEffect(() => {
+    refreshFriends();
+    refreshFriendRequests();
+
+    // Periodically refresh friends to keep presence (online/offline) status current.
+    const presenceRefreshTimer = window.setInterval(() => {
+      refreshFriends();
+      refreshFriendRequests();
+    }, 30 * 1000);
+
+    return () => window.clearInterval(presenceRefreshTimer);
+  }, [user, isSocketReady]);
+
+  const handleSearchUsers = useCallback(async (query) => {
+    if (!user) {
+      setFriendSearchResults([]);
+      return;
+    }
+
+    const trimmed = String(query || '').trim();
+    setIsFriendSearchLoading(Boolean(trimmed));
+
+    try {
+      const results = trimmed ? await searchUsers(trimmed) : [];
+      setFriendSearchResults(Array.isArray(results) ? results : []);
+    } catch (error) {
+      console.error('Failed to search users:', error);
+      setFriendSearchResults([]);
+    } finally {
+      setIsFriendSearchLoading(false);
+    }
+  }, [user]);
+
+  const handleSendFriendRequest = async (userId) => {
+    if (!userId || !user) return;
+
+    try {
+      await sendFriendRequest(userId);
+      setToast({ message: 'Friend request sent.', type: 'success' });
+      refreshFriendRequests();
+    } catch (error) {
+      console.error('Failed to send friend request:', error);
+      setToast({ message: error.message || 'Unable to send friend request.', type: 'error' });
+    }
+  };
+
+  const handleAcceptFriendRequest = async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      const response = await acceptFriendRequest(requestId);
+      const nextFriend = response?.friend;
+      if (nextFriend) {
+        setFriends((current) => {
+          if (!current.some((friend) => (friend.user_id || friend.id) === (nextFriend.user_id || nextFriend.id))) {
+            return [...current, nextFriend];
+          }
+          return current;
+        });
+      }
+      setToast({ message: 'Friend request accepted.', type: 'success' });
+      setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+    } catch (error) {
+      console.error('Failed to accept friend request:', error);
+      setToast({ message: error.message || 'Unable to accept friend request.', type: 'error' });
+    }
+  };
+
+  const handleRejectFriendRequest = async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      await rejectFriendRequest(requestId);
+      setToast({ message: 'Friend request rejected.', type: 'warning' });
+      setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+    } catch (error) {
+      console.error('Failed to reject friend request:', error);
+      setToast({ message: error.message || 'Unable to reject friend request.', type: 'error' });
+    }
+  };
+
+  const handleRemoveFriend = async (userId) => {
+    if (!userId) return;
+
+    try {
+      await removeFriend(userId);
+      setFriends((current) => current.filter((friend) => (friend.user_id || friend.id) !== userId));
+      setToast({ message: 'Friend removed.', type: 'warning' });
+    } catch (error) {
+      console.error('Failed to remove friend:', error);
+      setToast({ message: error.message || 'Unable to remove friend.', type: 'error' });
+    }
+  };
 
   useEffect(() => {
     if (room?.status !== 'completed' || !room.players?.length || results) return;
@@ -318,6 +459,24 @@ function App() {
 
         return nextRoom;
       });
+    });
+
+    newSocket.on('friend-request-received', () => {
+      refreshFriendRequests();
+      setToast({ message: 'You received a new friend request.', type: 'success' });
+    });
+
+    newSocket.on('friend-request-accepted', (data) => {
+      refreshFriends();
+      refreshFriendRequests();
+      const friendName = data?.friend?.display_name || 'Your friend';
+      setToast({ message: `${friendName} accepted your friend request.`, type: 'success' });
+    });
+
+    newSocket.on('friend-request-rejected', (data) => {
+      refreshFriendRequests();
+      const receiverName = data?.receiver?.display_name || 'Your friend request';
+      setToast({ message: `${receiverName} declined your friend request.`, type: 'warning' });
     });
 
     return () => {
@@ -538,6 +697,10 @@ function App() {
     preserveRoomSessionForNavigation('history');
   };
 
+  const handleOpenFriends = () => {
+    preserveRoomSessionForNavigation('friends');
+  };
+
   const handleBackToPractice = () => {
     preserveRoomSessionForNavigation('selector');
   };
@@ -597,9 +760,12 @@ function App() {
 
       <AppHeader
         onHome={handleBackToPractice}
+        onOpenFriends={handleOpenFriends}
         onLogout={handleLogout}
         onOpenHistory={handleOpenHistory}
         isAuthenticated={Boolean(user)}
+        user={user}
+        pendingFriendRequestCount={friendRequests.filter((request) => request?.direction !== 'outgoing').length}
       />
 
       <main className={mainClassName}>
@@ -619,7 +785,48 @@ function App() {
                 canReturnToRoom={roomResumeAvailable}
                 roomCode={roomCode || readRoomSession()?.roomCode || ''}
                 resumeUsername={readRoomSession()?.username || username}
+                user={user}
+                friends={friends}
+                friendSearchResults={friendSearchResults}
+                isFriendSearchLoading={isFriendSearchLoading}
+                onSearchUsers={handleSearchUsers}
+                onRemoveFriend={handleRemoveFriend}
               />
+            )}
+
+            {status === 'friends' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={handleBackToPractice}
+                    className="h-9 w-9 rounded-full"
+                    aria-label="Back to home"
+                    title="Back to home"
+                  >
+                    ←
+                  </Button>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Social
+                    </p>
+                    <h2 className="text-xl font-bold">Friends</h2>
+                  </div>
+                </div>
+
+                <FriendsPanel
+                  friends={friends}
+                  searchResults={friendSearchResults}
+                  friendRequests={friendRequests}
+                  onSearchUsers={handleSearchUsers}
+                  onSendFriendRequest={handleSendFriendRequest}
+                  onAcceptFriendRequest={handleAcceptFriendRequest}
+                  onRejectFriendRequest={handleRejectFriendRequest}
+                  onRemoveFriend={handleRemoveFriend}
+                  isSearching={isFriendSearchLoading}
+                />
+              </div>
             )}
 
             {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
@@ -633,6 +840,10 @@ function App() {
                 onStartAssessment={handleStartAssessment}
                 onLeaveRoom={handleLeaveRoom}
                 currentSocketId={socket?.id || ''}
+                currentUserId={user?.id || null}
+                friends={friends}
+                friendRequests={friendRequests}
+                onSendFriendRequest={handleSendFriendRequest}
               />
             )}
 

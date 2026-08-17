@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch index.js",
+    "dev": "node --env-file=.env --watch index.js",
     "build": "node --check index.js",
-    "start": "node index.js"
+    "start": "node --env-file=.env index.js"
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",

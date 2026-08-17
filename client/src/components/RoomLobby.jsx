@@ -3,14 +3,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { CopyIcon, CheckIcon, PersonIcon } from '@radix-ui/react-icons';
+import { CopyIcon, CheckIcon, PersonIcon, ClockIcon } from '@radix-ui/react-icons';
 import { Separator } from '@/components/ui/separator';
 
-function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSocketId }) {
+function RoomLobby({
+  roomCode,
+  room,
+  onStartAssessment,
+  onLeaveRoom,
+  currentSocketId,
+  currentUserId,
+  friends = [],
+  friendRequests = [],
+  onSendFriendRequest,
+}) {
   const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
   const [copied, setCopied] = useState(false);
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
   const isHost = room.players[0]?.id === currentSocketId;
+  const isKanjiAssessment = room?.deckType === 'kanji';
+  const friendIds = new Set((friends || []).map((friend) => friend.user_id || friend.id));
+  const pendingRequestReceiverIds = new Set(
+    (friendRequests || [])
+      .filter((request) => request?.direction === 'outgoing')
+      .map((request) => request?.receiver_id ?? request?.receiver?.id)
+      .filter(Boolean)
+      .map(String),
+  );
 
   const handleCopyLink = async () => {
     try {
@@ -72,26 +91,63 @@ function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSock
             <Separator />
 
             <div className="space-y-3">
-              {room.players.map((player, idx) => (
-                <div
-                  key={player.id}
-                  className="flex items-center gap-4 rounded-lg border border-border p-3"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-                    {idx + 1}
+              {room.players.map((player, idx) => {
+                const isCurrentUser = player.userId && currentUserId && player.userId === currentUserId;
+                const isAlreadyFriend = player.userId && friendIds.has(player.userId);
+                const isRequestPending = player.userId && pendingRequestReceiverIds.has(String(player.userId));
+                const canAddFriend = Boolean(currentUserId)
+                  && Boolean(player.userId)
+                  && !isCurrentUser
+                  && !isAlreadyFriend
+                  && !isRequestPending;
+
+                return (
+                  <div
+                    key={player.id}
+                    className="flex items-center gap-4 rounded-lg border border-border p-3"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{player.name}
+                        {isRequestPending ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          aria-label="Friend request pending"
+                          title="Friend request pending"
+                          disabled
+                        >
+                          <ClockIcon className="h-4 w-4" />
+                        </Button>
+                      ) : canAddFriend ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => onSendFriendRequest?.(player.userId)}
+                          aria-label={`Send friend request to ${player.name}`}
+                          title="Send friend request"
+                        >
+                          <PersonIcon className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {idx === 0 ? 'Host' : 'Guest'}
+                        {player.connected === false && ' (disconnected)'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={player.connected === false ? 'destructive' : 'success'}>
+                        {player.connected === false ? 'Offline' : 'Online'}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{player.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {idx === 0 ? 'Host' : 'Guest'}
-                      {player.connected === false && ' (disconnected)'}
-                    </p>
-                  </div>
-                  <Badge variant={player.connected === false ? 'destructive' : 'success'}>
-                    {player.connected === false ? 'Offline' : 'Online'}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
 
               {room.players.length === 1 && (
                 <div className="flex items-center gap-4 rounded-lg border border-dashed border-border p-3 opacity-60">
@@ -129,8 +185,8 @@ function RoomLobby({ roomCode, room, onStartAssessment, onLeaveRoom, currentSock
             <CardContent>
               <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
                 <li>The host shares the room code or invite link, then both players join</li>
-                <li>Each round shows the same kana sentence to both players</li>
-                <li>Type your romaji answer and submit (spacing is flexible for checking)</li>
+                <li>Each round shows the same {isKanjiAssessment ? 'kanji' : 'kana sentence'} to both players</li>
+                <li>{isKanjiAssessment ? 'Read the kanji and type its romaji reading' : 'Type the romaji reading for the kana sentence'} and submit (spacing is flexible for checking)</li>
                 <li>After both submissions, answers/translation are revealed and the next card starts automatically</li>
                 <li>At the end, you get per-player accuracy stats and answer review</li>
               </ul>
