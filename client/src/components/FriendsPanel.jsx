@@ -168,7 +168,7 @@ function FriendsPanel({
         <CardContent className="space-y-3 p-3 sm:p-4">
           <div className="space-y-2">
             {friends.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No friends yet. Search above to add one.</p>
+              <p className="text-sm text-muted-foreground">No friends yet. Search to add one.</p>
             ) : (
               friends.map((friend) => (
                 <div key={friend.id || friend.user_id} className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/20 p-2.5">
