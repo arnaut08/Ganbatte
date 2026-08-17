@@ -33,7 +33,7 @@ function FriendsPanel({
 
     const timer = window.setTimeout(() => {
       onSearchUsersRef.current?.(trimmed);
-    }, 250);
+    }, 500);
 
     return () => window.clearTimeout(timer);
   }, [query]);
