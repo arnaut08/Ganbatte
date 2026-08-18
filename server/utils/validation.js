@@ -7,7 +7,21 @@ export const roomCodeSchema = z.string()
 
 export const usernameSchema = z.string().trim().min(1).max(40);
 export const sessionKeySchema = z.string().trim().min(16).max(100);
-export const answerSchema = z.string().trim().min(1).max(500);
+
+const matchingPairSchema = z.object({
+  left: z.string().trim().min(1).max(200).optional(),
+  right: z.string().trim().min(1).max(200).optional(),
+}).passthrough();
+
+export const answerSchema = z.union([
+  z.string().trim().min(1).max(500),
+  z.array(matchingPairSchema).max(20),
+  z.object({
+    selectedLeft: z.string().trim().max(200).optional(),
+    selectedRight: z.string().trim().max(200).optional(),
+    pairs: z.array(matchingPairSchema).max(20).default([]),
+  }).passthrough(),
+]);
 export const cardCountSchema = z.coerce.number().int().min(1).max(25).default(10);
 
 export const cardSchema = z.object({

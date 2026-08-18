@@ -24,6 +24,7 @@ function RoomSelector({
   onCreateRoom,
   onJoinRoom,
   onOpenKanjiStudy,
+  onOpenGrammarPractice,
   onReturnToRoom,
   onDeclineRoomResume,
   prefillRoomCode = '',
@@ -40,6 +41,7 @@ function RoomSelector({
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [screen, setScreen] = useState('home');
   const [deckType, setDeckType] = useState('kana');
+  const [grammarLevel, setGrammarLevel] = useState(3);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const joinCodeInputRef = useRef(null);
@@ -67,7 +69,11 @@ function RoomSelector({
     if (!isSocketReady) return;
 
     const normalizedGroups = deckType === 'kanji' ? selectedGroups : [];
-    onCreateRoom({ type: deckType, groups: normalizedGroups });
+    const normalizedSettings = deckType === 'grammar'
+      ? { type: 'grammar', groups: [], maxLesson: grammarLevel, count: 5 }
+      : { type: deckType, groups: normalizedGroups };
+
+    onCreateRoom(normalizedSettings);
   };
 
   const handleJoin = (e) => {
@@ -168,6 +174,18 @@ function RoomSelector({
                 <Button onClick={onOpenKanjiStudy}>Study</Button>
               </CardContent>
             </Card>
+
+            <Card className="border-border max-w-2xl">
+              <CardHeader>
+                <CardTitle>Genki Grammar</CardTitle>
+                <CardDescription>
+                  Generate Genki Volume 1 grammar questions up to a selected lesson level.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button onClick={() => onOpenGrammarPractice(3, 5)}>Practice grammar</Button>
+              </CardContent>
+            </Card>
             </div>
           </div>
         ) : (
@@ -239,8 +257,34 @@ function RoomSelector({
                           >
                             Kanji
                           </Button>
+                          <Button
+                            type="button"
+                            variant={deckType === 'grammar' ? 'default' : 'outline'}
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setDeckType('grammar')}
+                          >
+                            Grammar
+                          </Button>
                         </div>
                       </div>
+
+                      {deckType === 'grammar' && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Lesson level
+                          </label>
+                          <select
+                            value={grammarLevel}
+                            onChange={(event) => setGrammarLevel(Number(event.target.value) || 1)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            {[1,2,3,4,5,6,7,8,9,10,11,12].map((level) => (
+                              <option key={level} value={level}>Lesson {level}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                       {deckType === 'kanji' && (
                         <div className="flex items-center gap-2">
