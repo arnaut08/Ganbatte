@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import rateLimit from 'express-rate-limit';
 import { isAllowedOrigin, JSON_BODY_LIMIT } from './config/env.js';
+import { attachAuthContext } from './middleware/auth.js';
+import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 
 const app = express();
 
@@ -27,5 +29,6 @@ app.use(rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
 }));
+app.use(attachAuthContext);
 
 export default app;
