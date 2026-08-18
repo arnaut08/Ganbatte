@@ -25,6 +25,28 @@ test('translation accepts alternate accepted answers', () => {
   assert.equal(isQuestionCorrect(question, 'これはあなたのかばんです'), false);
 });
 
+test('romaji answers are converted to kana before checking the canonical answer', () => {
+  const question = {
+    type: 'translation',
+    correctAnswer: 'これは私のかばんです',
+    acceptedAnswers: ['これは私のかばんです'],
+  };
+
+  assert.equal(isQuestionCorrect(question, 'kore wa watashi no kaban desu'), true);
+  assert.equal(isQuestionCorrect(question, 'kore wa anata no kaban desu'), false);
+});
+
+test('normalization is skipped when the canonical answer is already romaji', () => {
+  const question = {
+    type: 'translation',
+    correctAnswer: 'kore wa watashi no kaban desu',
+    acceptedAnswers: ['kore wa watashi no kaban desu'],
+  };
+
+  assert.equal(isQuestionCorrect(question, 'kore wa watashi no kaban desu'), true);
+  assert.equal(isQuestionCorrect(question, 'これは私のかばんです'), false);
+});
+
 test('matching compares pair sets without order', () => {
   const question = {
     type: 'matching',

@@ -1,5 +1,120 @@
-function normalizeText(value) {
-  return String(value ?? '').trim().toLowerCase();
+const ROMAJI_TO_KANA = {
+  'kyo': 'きょ', 'kyu': 'きゅ', 'kya': 'きゃ',
+  'gyo': 'ぎょ', 'gyu': 'ぎゅ', 'gya': 'ぎゃ',
+  'sho': 'しょ', 'shu': 'しゅ', 'sha': 'しゃ',
+  'jyo': 'じょ', 'jyu': 'じゅ', 'jya': 'じゃ',
+  'jo': 'じょ', 'ju': 'じゅ', 'ja': 'じゃ',
+  'cho': 'ちょ', 'chu': 'ちゅ', 'cha': 'ちゃ',
+  'nyo': 'にょ', 'nyu': 'にゅ', 'nya': 'にゃ',
+  'hyo': 'ひょ', 'hyu': 'ひゅ', 'hya': 'ひゃ',
+  'byo': 'びょ', 'byu': 'びゅ', 'bya': 'びゃ',
+  'pyo': 'ぴょ', 'pyu': 'ぴゅ', 'pya': 'ぴゃ',
+  'myo': 'みょ', 'myu': 'みゅ', 'mya': 'みゃ',
+  'ryo': 'りょ', 'ryu': 'りゅ', 'rya': 'りゃ',
+  'shi': 'し', 'chi': 'ち', 'tsu': 'つ', 'fu': 'ふ',
+  'ka': 'か', 'ki': 'き', 'ku': 'く', 'ke': 'け', 'ko': 'こ',
+  'ga': 'が', 'gi': 'ぎ', 'gu': 'ぐ', 'ge': 'げ', 'go': 'ご',
+  'sa': 'さ', 'si': 'し', 'su': 'す', 'se': 'せ', 'so': 'そ',
+  'za': 'ざ', 'zi': 'じ', 'zu': 'ず', 'ze': 'ぜ', 'zo': 'ぞ',
+  'ta': 'た', 'ti': 'ち', 'tu': 'つ', 'te': 'て', 'to': 'と',
+  'da': 'だ', 'di': 'ぢ', 'du': 'づ', 'de': 'で', 'do': 'ど',
+  'na': 'な', 'ni': 'に', 'nu': 'ぬ', 'ne': 'ね', 'no': 'の',
+  'ha': 'は', 'hi': 'ひ', 'hu': 'ふ', 'he': 'へ', 'ho': 'ほ',
+  'ba': 'ば', 'bi': 'び', 'bu': 'ぶ', 'be': 'べ', 'bo': 'ぼ',
+  'pa': 'ぱ', 'pi': 'ぴ', 'pu': 'ぷ', 'pe': 'ぺ', 'po': 'ぽ',
+  'ma': 'ま', 'mi': 'み', 'mu': 'む', 'me': 'め', 'mo': 'も',
+  'ya': 'や', 'yu': 'ゆ', 'yo': 'よ',
+  'ra': 'ら', 'ri': 'り', 'ru': 'る', 're': 'れ', 'ro': 'ろ',
+  'wa': 'わ', 'wo': 'を', 'n': 'ん',
+  'a': 'あ', 'i': 'い', 'u': 'う', 'e': 'え', 'o': 'お',
+};
+
+const ROMAJI_SYLLABLE_KEYS = Object.keys(ROMAJI_TO_KANA).sort((left, right) => right.length - left.length);
+
+const KANJI_TO_KANA = {
+  '私は': 'わたしは',
+  '私の': 'わたしの',
+  '私': 'わたし',
+  'あなた': 'あなた',
+  '彼': 'かれ',
+  '彼女': 'かのじょ',
+  '学生': 'がくせい',
+  '先生': 'せんせい',
+  '学校': 'がっこう',
+  '駅': 'えき',
+  '友達': 'ともだち',
+  '家': 'うち',
+  'これは': 'これは',
+  'それは': 'それは',
+  'あれは': 'あれは',
+  'かばん': 'かばん',
+  'です': 'です',
+};
+
+function looksLikeRomaji(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return false;
+  return /[a-zA-Z]/.test(text) && !/[ぁ-ゖァ-ヺー]/.test(text);
+}
+
+function convertRomajiToKana(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  return words.map((word) => {
+    if (word === 'wa') return 'は';
+    if (word === 'wo') return 'を';
+
+    let result = '';
+    let index = 0;
+    while (index < word.length) {
+      const match = ROMAJI_SYLLABLE_KEYS.find((syllable) => word.startsWith(syllable, index));
+      if (match) {
+        result += ROMAJI_TO_KANA[match];
+        index += match.length;
+      } else {
+        result += word[index];
+        index += 1;
+      }
+    }
+
+    return result;
+  }).join('');
+}
+
+function normalizeJapaneseText(value) {
+  const entries = Object.entries(KANJI_TO_KANA).sort((left, right) => right[0].length - left[0].length);
+  let normalized = value;
+
+  for (const [kanji, kana] of entries) {
+    normalized = normalized.replaceAll(kanji, kana);
+  }
+
+  return normalized;
+}
+
+function normalizePlainText(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/[。！？、,.!?]/g, '')
+    .replace(/\s+/g, '')
+    .toLowerCase();
+}
+
+export function normalizeText(value, expectedValue = value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  const reference = String(expectedValue ?? '').trim();
+  const shouldNormalize = reference && !looksLikeRomaji(reference);
+
+  if (!shouldNormalize) {
+    return normalizePlainText(raw);
+  }
+
+  const normalized = looksLikeRomaji(raw) ? convertRomajiToKana(raw) : raw;
+  return normalizePlainText(normalizeJapaneseText(normalized));
 }
 
 function normalizePairs(value) {
@@ -70,8 +185,8 @@ export function isQuestionCorrect(question, answer) {
     return typeof question.correctAnswer !== 'undefined' && normalizeText(answer) === normalizeText(question.correctAnswer);
   }
 
-  const normalizedAnswer = normalizeText(answer);
-  return correct.some((candidate) => normalizeText(candidate) === normalizedAnswer);
+  const normalizedAnswer = normalizeText(answer, correct[0]);
+  return correct.some((candidate) => normalizeText(candidate, candidate) === normalizedAnswer);
 }
 
 export function summarizeResults(questions = [], answers = []) {

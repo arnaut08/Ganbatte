@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { getMatchingResultScore, summarizeResults } from '@/utils/grammarScoring';
+import { getMatchingResultScore, normalizeText, summarizeResults } from '@/utils/grammarScoring';
 
 function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
   const [selectedLesson, setSelectedLesson] = useState(3);
@@ -307,11 +307,12 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       }
 
       if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) {
-        return question.acceptedAnswers.some((candidate) => String(candidate).trim().toLowerCase() === String(rawAnswer ?? '').trim().toLowerCase());
+        const normalizedAnswer = normalizeText(rawAnswer);
+        return question.acceptedAnswers.some((candidate) => normalizeText(candidate) === normalizedAnswer);
       }
 
       if (typeof question.correctAnswer !== 'undefined') {
-        return String(question.correctAnswer).trim().toLowerCase() === String(rawAnswer ?? '').trim().toLowerCase();
+        return normalizeText(question.correctAnswer) === normalizeText(rawAnswer);
       }
 
       return false;
