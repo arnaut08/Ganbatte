@@ -10,6 +10,11 @@ const server = createServer(app);
 
 app.use('/api', friendRoutes);
 app.use('/api', gameRoutes);
+
+app.get('/health', (_, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 

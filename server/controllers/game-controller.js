@@ -51,6 +51,3 @@ export function generateCards(req, res) {
   res.json({ type: deckType, groups: rawGroups, cards });
 }
 
-export function healthCheck(_req, res) {
-  res.json({ status: 'ok' });
-}
