@@ -170,20 +170,14 @@ function RoomLobby({
             <Button
               size="lg"
               onClick={onStartAssessment}
-              disabled={!isReady || isPreparingAssessment}
+              disabled={!isReady || isPreparingAssessment || !isHost}
             >
-              {isPreparingAssessment ? 'Preparing deck...' : isReady ? 'Start' : 'Waiting'}
+              {isPreparingAssessment ? 'Preparing deck...' : !isHost ? 'Waiting for host' : isReady ? 'Start' : 'Waiting'}
             </Button>
             <Button size="lg" variant="secondary" onClick={onLeaveRoom}>
               Leave
             </Button>
           </div>
-
-          {isPreparingAssessment && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-950/20 p-3 text-sm text-amber-200">
-              Generating the grammar deck. This can take a moment while the Gemini prompt is processed.
-            </div>
-          )}
 
           <Card className="border-accent/20 bg-accent/5">
             <CardHeader>

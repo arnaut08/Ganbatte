@@ -9,6 +9,7 @@ import AuthPage from './components/AuthPage';
 import KanjiStudy from './components/KanjiStudy';
 import AssessmentHistory from './components/AssessmentHistory';
 import GrammarPractice from './components/GrammarPractice';
+import AssessmentLoadingScreen from './components/AssessmentLoadingScreen';
 import AppHeader from './components/layout/AppHeader';
 import FriendsPanel from './components/FriendsPanel';
 import './App.css';
@@ -110,14 +111,38 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if (!room) return;
+
+    if (room.status === 'preparing' && status !== 'assessment-preparing') {
+      transitionToStatus('assessment-preparing');
+      return;
+    }
+
+    if (room.status === 'active' && status === 'assessment-preparing') {
+      setIsPreparingAssessment(false);
+      transitionToStatus('assessment');
+      return;
+    }
+
+    if (room.status === 'completed' && status !== 'results') {
+      setIsPreparingAssessment(false);
+      transitionToStatus('results');
+    }
+  }, [room, status]);
+
   const screenPriority = {
     selector: 0,
     friends: 0,
     'kanji-study': 0,
     'grammar-practice': 0,
+    lobby: 0,
+    assessment: 1,
+    results: 1,
+    'assessment-preparing': 0,
   };
 
-  const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results'];
+  const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results', 'assessment-preparing'];
 
   const transitionToStatus = (nextStatus) => {
     setStatus((current) => {
@@ -128,8 +153,8 @@ function App() {
 
       if (nextPriority < currentPriority) return current;
 
-      const isRoomScreen = ['lobby', 'assessment', 'results'].includes(current);
-      const isRoomTransition = ['lobby', 'assessment', 'results'].includes(nextStatus);
+      const isRoomScreen = ROOM_VIEW_STATUSES.includes(current);
+      const isRoomTransition = ROOM_VIEW_STATUSES.includes(nextStatus);
 
       if (!isRoomScreen && current !== 'selector' && isRoomTransition) {
         return current;
@@ -398,6 +423,11 @@ function App() {
                 return;
               }
 
+              if (nextRoom.status === 'preparing') {
+                transitionToStatus('assessment-preparing');
+                return;
+              }
+
               transitionToStatus(nextRoom.status === 'active' ? 'assessment' : 'lobby');
             } else {
               clearRoomSession();
@@ -431,6 +461,15 @@ function App() {
     newSocket.on('room-created', (code) => {
       setRoomCode(code);
       transitionToStatus('lobby');
+    });
+
+    newSocket.on('assessment-preparing', (data) => {
+      setIsPreparingAssessment(true);
+      if (data && data.room) {
+        setRoom(data.room);
+        if (data.room.cards) setKanaCards(data.room.cards);
+      }
+      transitionToStatus('assessment-preparing');
     });
 
     newSocket.on('player-joined', (data) => {
@@ -642,9 +681,11 @@ function App() {
 
   const handleStartAssessment = () => {
     if (!socket || !roomCode) return;
+    if (!room || room.players?.[0]?.id !== socket.id) return;
 
     if (room?.deckType === 'grammar') {
       setIsPreparingAssessment(true);
+      transitionToStatus('assessment-preparing');
     }
 
     socket.emit('start-assessment', roomCode);
@@ -927,6 +968,14 @@ function App() {
             )}
 
             {status === 'history' && <AssessmentHistory onBack={handleBackToPractice} />}
+
+            {status === 'assessment-preparing' && room?.deckType === 'grammar' && (
+              <AssessmentLoadingScreen
+                title="Preparing the grammar deck"
+                description="Generating the question set and getting both players ready."
+                progress={12}
+              />
+            )}
 
             {status === 'lobby' && room && (
               <RoomLobby

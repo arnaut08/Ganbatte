@@ -260,8 +260,18 @@ export async function configureSocketServer(server, app) {
     socket.on('start-assessment', async (roomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
+      if (room.players[0]?.id !== socket.id) return;
 
       if (room.deckType === 'grammar') {
+        room.status = 'preparing';
+        room.currentCardIndex = 0;
+        room.players.forEach((player) => {
+          player.answers = [];
+          player.hintsUsed = [];
+          player.ready = false;
+        });
+        io.to(roomCode).emit('assessment-preparing', { room });
+
         try {
           const questions = await generateGrammarAssessment({
             maxLesson: room.grammarSettings?.maxLesson || 3,

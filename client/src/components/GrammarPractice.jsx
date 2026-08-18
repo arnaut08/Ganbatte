@@ -211,6 +211,14 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         : (question.correctPairs && typeof question.correctPairs === 'object')
           ? Object.entries(question.correctPairs).map(([left, right]) => ({ left, right }))
           : [];
+      const expectedMap = expectedPairs.reduce((accumulator, pair) => {
+        const left = String(pair.left ?? '').trim();
+        const right = String(pair.right ?? '').trim();
+        if (left && right) {
+          accumulator[left] = right;
+        }
+        return accumulator;
+      }, {});
       const selectedPairs = normalizeMatchingPairs(rawAnswer).reduce((accumulator, pair) => {
         if (pair && pair.left && pair.right) {
           accumulator[String(pair.left).trim()] = String(pair.right).trim();
@@ -218,14 +226,14 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         return accumulator;
       }, {});
 
-      const states = expectedPairs.map((pair) => ({
-        left: String(pair.left ?? '').trim(),
-        right: String(pair.right ?? '').trim(),
-        isCorrect: selectedPairs[String(pair.left ?? '').trim()] === String(pair.right ?? '').trim(),
+      const states = Object.entries(selectedPairs).map(([left, right]) => ({
+        left,
+        right,
+        isCorrect: expectedMap[left] === right,
       }));
 
-      Object.entries(selectedPairs).forEach(([left, right]) => {
-        if (!expectedPairs.some((pair) => String(pair.left ?? '').trim() === left)) {
+      Object.entries(expectedMap).forEach(([left, right]) => {
+        if (!selectedPairs[left]) {
           states.push({
             left,
             right,
@@ -407,11 +415,6 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                                   className={`rounded border px-2 py-1 text-xs ${pair.isCorrect ? 'border-green-500/50 bg-green-500/10 text-green-200' : 'border-red-500/50 bg-red-500/10 text-red-200'}`}
                                 >
                                   {pair.left} → {pair.right}
-                                  {!pair.isCorrect && (
-                                    <span className="ml-2 text-[10px] opacity-80">
-                                      {String(question.correctPairs ?? '').includes(pair.left) ? 'expected' : 'extra'}
-                                    </span>
-                                  )}
                                 </div>
                               ))}
                             </div>
