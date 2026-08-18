@@ -102,6 +102,15 @@ function normalizePlainText(value) {
     .toLowerCase();
 }
 
+function normalizeRomajiReference(value) {
+  const normalized = normalizePlainText(value);
+  if (normalized === 'wo' || normalized === 'o' || normalized === 'を') {
+    return 'o';
+  }
+
+  return normalized;
+}
+
 export function normalizeText(value, expectedValue = value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
@@ -110,7 +119,7 @@ export function normalizeText(value, expectedValue = value) {
   const isReferenceRomaji = !!reference && looksLikeRomaji(reference);
 
   if (isReferenceRomaji) {
-    return normalizePlainText(raw);
+    return normalizeRomajiReference(raw);
   }
 
   const normalized = looksLikeRomaji(raw) ? convertRomajiToKana(raw) : raw;
@@ -192,8 +201,12 @@ export function isQuestionCorrect(question, answer) {
   const normalizedAnswer = normalizeText(answer, referenceAnswer);
   return accepted.some((candidate) => {
     const candidateReference = hasRomajiReference ? question.correctAnswerRomaji : candidate;
-    return normalizeText(candidate, candidateReference) === normalizedAnswer;
-  });
+    const candidateValue = normalizeText(candidate, candidateReference);
+    return candidateValue === normalizedAnswer;
+  }) || (
+    hasRomajiReference
+      && normalizeText(answer, question.correctAnswerRomaji) === normalizeText(question.correctAnswer, question.correctAnswerRomaji)
+  );
 }
 
 export function summarizeResults(questions = [], answers = []) {

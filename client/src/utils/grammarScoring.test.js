@@ -47,6 +47,19 @@ test('normalization is skipped when the canonical answer is already romaji', () 
   assert.equal(isQuestionCorrect(question, 'これは私のかばんです'), false);
 });
 
+test('romaji references accept o as equivalent to wo', () => {
+  const question = {
+    type: 'fill-in-the-blank',
+    correctAnswer: 'を',
+    correctAnswerRomaji: 'wo',
+    acceptedAnswers: ['を'],
+  };
+
+  assert.equal(isQuestionCorrect(question, 'o'), true);
+  assert.equal(isQuestionCorrect(question, 'wo'), true);
+  assert.equal(isQuestionCorrect(question, 'wa'), false);
+});
+
 test('matching compares pair sets without order', () => {
   const question = {
     type: 'matching',

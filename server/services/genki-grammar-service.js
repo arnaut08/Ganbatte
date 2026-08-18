@@ -189,7 +189,7 @@ export function createGeminiPrompt({ maxLesson = 12, count = 10 } = {}) {
     `Only use grammar concepts from lessons 1 through ${maxLesson}.`,
     `Generate 5 ${count} of questions for each type and 2 for matching type question in valid JSON only.`,
     'Please do not use Kanji characters in any of the questions.',
-    'If the correctAnswer is in Japanese, please provide correctAnswerRomaji which contains the romaji representation of the correctAnswer.',
+    'If the correctAnswer is in Japanese, please provide correctAnswerRomaji for each question which contains the romaji representation of the correctAnswer.',
     'Use question types from: multiple-choice, fill-in-the-blank, matching, translation, comprehension.',
     'For translation items, the user sees an English sentence and must provide a Japanese answer.',
     'Return a JSON object with a top-level "questions" array.',
