@@ -97,7 +97,7 @@ function normalizeJapaneseText(value) {
 function normalizePlainText(value) {
   return String(value ?? '')
     .trim()
-    .replace(/[。！？、,.!?]/g, '')
+    .replace(/[\p{P}\p{S}]/gu, '')
     .replace(/\s+/g, '')
     .toLowerCase();
 }
@@ -107,9 +107,9 @@ export function normalizeText(value, expectedValue = value) {
   if (!raw) return '';
 
   const reference = String(expectedValue ?? '').trim();
-  const shouldNormalize = reference && !looksLikeRomaji(reference);
+  const isReferenceRomaji = !!reference && looksLikeRomaji(reference);
 
-  if (!shouldNormalize) {
+  if (isReferenceRomaji) {
     return normalizePlainText(raw);
   }
 
@@ -175,18 +175,25 @@ export function isQuestionCorrect(question, answer) {
     return getMatchingResultScore(question, answer).isCorrect;
   }
 
-  const correct = Array.isArray(question.acceptedAnswers)
+  const accepted = Array.isArray(question.acceptedAnswers)
     ? question.acceptedAnswers
     : typeof question.correctAnswer !== 'undefined'
       ? [question.correctAnswer]
       : [];
 
-  if (correct.length === 0) {
-    return typeof question.correctAnswer !== 'undefined' && normalizeText(answer) === normalizeText(question.correctAnswer);
+  if (accepted.length === 0) {
+    return typeof question.correctAnswer !== 'undefined'
+      && normalizeText(answer, question.correctAnswer) === normalizeText(question.correctAnswer, question.correctAnswer);
   }
 
-  const normalizedAnswer = normalizeText(answer, correct[0]);
-  return correct.some((candidate) => normalizeText(candidate, candidate) === normalizedAnswer);
+  const hasRomajiReference = typeof question.correctAnswerRomaji !== 'undefined' && question.correctAnswerRomaji;
+  const referenceAnswer = hasRomajiReference ? question.correctAnswerRomaji : accepted[0];
+
+  const normalizedAnswer = normalizeText(answer, referenceAnswer);
+  return accepted.some((candidate) => {
+    const candidateReference = hasRomajiReference ? question.correctAnswerRomaji : candidate;
+    return normalizeText(candidate, candidateReference) === normalizedAnswer;
+  });
 }
 
 export function summarizeResults(questions = [], answers = []) {
