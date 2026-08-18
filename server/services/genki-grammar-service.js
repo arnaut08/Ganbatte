@@ -254,70 +254,37 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10 } = 
 
   try {
     const prompt = createGeminiPrompt({ maxLesson: safeMaxLesson, count: safeCount });
-    // const resolvedModel = resolveGeminiModel(GEMINI_MODEL);
-    // const response = await fetch(
-    //   `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`,
-    //   {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({
-    //       contents: [{
-    //         role: 'user',
-    //         parts: [{ text: prompt }],
-    //       }],
-    //       generationConfig: {
-    //         responseMimeType: 'application/json',
-    //       },
-    //     }),
-    //   },
-    // );
-
-    // if (!response.ok) {
-    //   throw new Error(`Gemini API returned ${response.status}`);
-    // }
-
-    // const payload = await response.json();
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // Simulate network delay
-    const tempPayload = {
-  "candidates": [
-    {
-      "content": {
-        "parts": [
-          {
-            "text": `{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"lesson\": 1,\n      \"type\": \"multiple-choice\",\n      \"prompt\": \"Which particle is used to indicate possession (e.g., 'Mary's bag')?\",\n      \"choices\": [\"は\", \"の\", \"も\", \"です\"],\n      \"correctAnswer\": \"の\",\n      \"explanation\": \"The particle 'no' is used to connect two nouns and show possession or association.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 2,\n      \"lesson\": 1,\n      \"type\": \"multiple-choice\",\n      \"prompt\": \"What is the correct way to say 'It is 7:00'?\",\n      \"choices\": [\"しちじです\", \"ななじです\", \"じゅうじです\", \"くじです\"],\n      \"correctAnswer\": \"しちじです\",\n      \"explanation\": \"In Japanese, 7 o'clock is specifically read as 'shichiji'.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 3,\n      \"lesson\": 1,\n      \"type\": \"multiple-choice\",\n      \"prompt\": \"Which expression is appropriate for asking someone's major?\",\n      \"choices\": [\"お名前は何ですか\", \"専攻は何ですか\", \"何年生ですか\", \"おいくつですか\"],\n      \"correctAnswer\": \"専攻は何ですか\",\n      \"explanation\": \"'Senkou' means major. 'Senkou wa nan desu ka' translates to 'What is your major?'\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 4,\n      \"lesson\": 1,\n      \"type\": \"multiple-choice\",\n      \"prompt\": \"Choose the correct age for 'twenty years old'.\",\n      \"choices\": [\"にじゅうさい\", \"はたち\", \"にじゅさい\", \"にじゅう\"],\n      \"correctAnswer\": \"はたち\",\n      \"explanation\": \"20 years old is an irregular reading in Japanese, pronounced 'hatachi'.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 5,\n      \"lesson\": 1,\n      \"type\": \"multiple-choice\",\n      \"prompt\": \"What is the polite way to say 'I am a student'?\",\n      \"choices\": [\"学生です\", \"学生のです\", \"学生だ\", \"学生\"],\n      \"correctAnswer\": \"学生です\",\n      \"explanation\": \"The copula 'desu' is used to end sentences politely.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 6,\n      \"lesson\": 2,\n      \"type\": \"fill-in-the-blank\",\n      \"prompt\": \"Translate 'This is a book' into Japanese using the demonstrative pronoun: ____ です。\",\n      \"correctAnswer\": \"これ\",\n      \"acceptedAnswers\": [\"これは\"],\n      \"explanation\": \"'Kore' is used for an object close to the speaker.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 7,\n      \"lesson\": 2,\n      \"type\": \"fill-in-the-blank\",\n      \"prompt\": \"Fill in the blank for 'Is that book over there yours?': あれは ____ の本ですか。\",\n      \"correctAnswer\": \"あなた\",\n      \"acceptedAnswers\": [\"あなた\"],\n      \"explanation\": \"To make 'you' possessive, add 'no' after 'anata'.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 8,\n      \"lesson\": 2,\n      \"type\": \"fill-in-the-blank\",\n      \"prompt\": \"Translate 'That is not a dictionary': それは ____ です。\",\n      \"correctAnswer\": \"辞書じゃありません\",\n      \"acceptedAnswers\": [\"辞書ではありません\", \"辞書じゃないです\"],\n      \"explanation\": \"The negative form of 'desu' is 'ja arimasen' or 'dewa arimasen'.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 9,\n      \"lesson\": 2,\n      \"type\": \"fill-in-the-blank\",\n      \"prompt\": \"How do you say 'Which one is your umbrella?' in Japanese? ____ があなたのかさですか。\",\n      \"correctAnswer\": \"どれ\",\n      \"acceptedAnswers\": [\"どれ\"],\n      \"explanation\": \"'Dore' is the interrogative for selecting one from three or more items.\",\n      \"difficulty\": \"hard\"\n    },\n    {\n      \"id\": 10,\n      \"lesson\": 2,\n      \"type\": \"fill-in-the-blank\",\n      \"prompt\": \"Fill in the location particle: トイレは ____ です。\",\n      \"correctAnswer\": \"あそこ\",\n      \"acceptedAnswers\": [\"そこ\", \"ここ\"],\n      \"explanation\": \"Demonstratives for place: 'koko' (here), 'soko' (there), 'asoko' (over there).\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 11,\n      \"lesson\": 1,\n      \"type\": \"matching\",\n      \"prompt\": \"Match the English phrases to their Japanese equivalents.\",\n      \"leftItems\": [\"1:00\", \"3:00\", \"6:00\", \"8:00\"],\n      \"rightItems\": [\"ろくじ\", \"いちじ\", \"はちじ\", \"さんじ\"],\n      \"correctPairs\": {\n        \"1:00\": \"いちじ\",\n        \"3:00\": \"さんじ\",\n        \"6:00\": \"ろくじ\",\n        \"8:00\": \"はちじ\"\n      },\n      \"explanation\": \"Practice of hour counting in Japanese.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 12,\n      \"lesson\": 1,\n      \"type\": \"matching\",\n      \"prompt\": \"Match the school year with its Japanese term.\",\n      \"leftItems\": [\"1st year\", \"2nd year\", \"3rd year\", \"4th year\"],\n      \"rightItems\": [\"いちねんせい\", \"にねんせい\", \"さんねんせい\", \"よねんせい\"],\n      \"correctPairs\": {\n        \"1st year\": \"いちねんせい\",\n        \"2nd year\": \"にねんせい\",\n        \"3rd year\": \"さんねんせい\",\n        \"4th year\": \"よねんせい\"\n      },\n      \"explanation\": \"Years in school are expressed by adding 'nensei' to numbers.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 13,\n      \"lesson\": 2,\n      \"type\": \"matching\",\n      \"prompt\": \"Match the word to its meaning.\",\n      \"leftItems\": [\"かさ\", \"かばん\", \"ざっし\", \"とけい\"],\n      \"rightItems\": [\"Watch\", \"Magazine\", \"Bag\", \"Umbrella\"],\n      \"correctPairs\": {\n        \"かさ\": \"Umbrella\",\n        \"かばん\": \"Bag\",\n        \"ざっし\": \"Magazine\",\n        \"とけい\": \"Watch\"\n      },\n      \"explanation\": \"Vocabulary from Lesson 2 regarding items.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 14,\n      \"lesson\": 2,\n      \"type\": \"matching\",\n      \"prompt\": \"Match the price/amount to the question.\",\n      \"leftItems\": [\"いくらですか\", \"だれの\", \"どれ\", \"なんさい\"],\n      \"rightItems\": [\"How much\", \"Whose\", \"Which one\", \"How old\"],\n      \"correctPairs\": {\n        \"いくらですか\": \"How much\",\n        \"だれの\": \"Whose\",\n        \"どれ\": \"Which one\",\n        \"なんさい\": \"How old\"\n      },\n      \"explanation\": \"Common interrogatives in Genki Lesson 2.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 15,\n      \"lesson\": 2,\n      \"type\": \"matching\",\n      \"prompt\": \"Match the demonstrative to its distance.\",\n      \"leftItems\": [\"これ\", \"それ\", \"あれ\", \"どれ\"],\n      \"rightItems\": [\"That (far away)\", \"This\", \"Which one\", \"That (near you)\"],\n      \"correctPairs\": {\n        \"これ\": \"This\",\n        \"それ\": \"That (near you)\",\n        \"あれ\": \"That (far away)\",\n        \"どれ\": \"Which one\"\n      },\n      \"explanation\": \"Understanding distance-based demonstratives.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 16,\n      \"lesson\": 1,\n      \"type\": \"translation\",\n      \"englishText\": \"Who is that person?\",\n      \"correctAnswer\": \"あの人はだれですか\",\n      \"acceptedAnswers\": [\"あの方はだれですか\"],\n      \"explanation\": \"Use 'dare' for 'who' and 'no' for the modifier.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 17,\n      \"lesson\": 1,\n      \"type\": \"translation\",\n      \"englishText\": \"I am a Japanese student.\",\n      \"correctAnswer\": \"私は日本人の学生です\",\n      \"acceptedAnswers\": [\"私は日本人の学生です。\"],\n      \"explanation\": \"Connect nationality and occupation using 'no'.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 18,\n      \"lesson\": 2,\n      \"type\": \"translation\",\n      \"englishText\": \"What is this?\",\n      \"correctAnswer\": \"これは何ですか\",\n      \"acceptedAnswers\": [\"これは何ですか。\"],\n      \"explanation\": \"Basic 'kore' structure.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 19,\n      \"lesson\": 2,\n      \"type\": \"translation\",\n      \"englishText\": \"That is not a watch.\",\n      \"correctAnswer\": \"それはとけいじゃありません\",\n      \"acceptedAnswers\": [\"それはとけいではありません\"],\n      \"explanation\": \"Negative form of 'desu'.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 20,\n      \"lesson\": 2,\n      \"type\": \"translation\",\n      \"englishText\": \"This is my bag.\",\n      \"correctAnswer\": \"これは私のかばんです\",\n      \"acceptedAnswers\": [\"これは私のかばんです。\"],\n      \"explanation\": \"Use 'no' to show possession.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 21,\n      \"lesson\": 1,\n      \"type\": \"comprehension\",\n      \"prompt\": \"If Takeshi says 'Mary, nice to meet you', how does he finish the sentence?\",\n      \"choices\": [\"はじめまして\", \"おやすみなさい\", \"こんにちは\", \"ありがとう\"],\n      \"correctAnswer\": \"はじめまして\",\n      \"explanation\": \"Hajimemashite is used when meeting someone for the first time.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 22,\n      \"lesson\": 1,\n      \"type\": \"comprehension\",\n      \"prompt\": \"If someone asks 'おいくつですか', what are they asking?\",\n      \"choices\": [\"Their name\", \"Their major\", \"Their age\", \"Their phone number\"],\n      \"correctAnswer\": \"Their age\",\n      \"explanation\": \"Oikutsu desu ka is a polite way to ask someone's age.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 23,\n      \"lesson\": 2,\n      \"type\": \"comprehension\",\n      \"prompt\": \"When asking for the price of an item, what word is used?\",\n      \"choices\": [\"だれ\", \"どれ\", \"いくら\", \"なんじ\"],\n      \"correctAnswer\": \"いくら\",\n      \"explanation\": \"Ikura is used to ask for the price.\",\n      \"difficulty\": \"medium\"\n    },\n    {\n      \"id\": 24,\n      \"lesson\": 2,\n      \"type\": \"comprehension\",\n      \"prompt\": \"If an item is physically far from both the speaker and the listener, which pronoun is used?\",\n      \"choices\": [\"これ\", \"それ\", \"あれ\", \"どれ\"],\n      \"correctAnswer\": \"あれ\",\n      \"explanation\": \"Are is for objects away from both people.\",\n      \"difficulty\": \"easy\"\n    },\n    {\n      \"id\": 25,\n      \"lesson\": 2,\n      \"type\": \"comprehension\",\n      \"prompt\": \"What does the particle 'mo' indicate when replacing 'wa'?\",\n      \"choices\": [\"Also/Too\", \"Possession\", \"Question marker\", \"Topic marker\"],\n      \"correctAnswer\": \"Also/Too\",\n      \"explanation\": \"The particle 'mo' indicates inclusion, 'also' or 'too'.\",\n      \"difficulty\": \"hard\"\n    }\n  ]\n}`,
-            "thoughtSignature": "El4KXAERTTIPJJGsjBv/uce89JiGJWokZS6FK/8IwMUfNPYbSANGcyBwdHIOHthkbX8OSa49HY7wTBlNUzmUpvgAMqjRABU1xhUIIde7ZxBJTtQy4s6YALWd74mMn43o"
-          }
-        ],
-        "role": "model"
-      },
-      "finishReason": "STOP",
-      "index": 0
-    }
-  ],
-  "usageMetadata": {
-    "promptTokenCount": 191,
-    "candidatesTokenCount": 787,
-    "totalTokenCount": 978,
-    "promptTokensDetails": [
+    const resolvedModel = resolveGeminiModel(GEMINI_MODEL);
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`,
       {
-        "modality": "TEXT",
-        "tokenCount": 191
-      }
-    ],
-    "serviceTier": "standard"
-  },
-  "modelVersion": "gemini-3.5-flash-lite",
-  "responseId": "UJ-Eap2yJ5-vg8UPkoKasAk"
-}
-    const text = tempPayload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [{ text: prompt }],
+          }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini API returned ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
     const questions = parseGeminiAssessment(text);
 
     if (questions.length === 0) {
       return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: safeCount });
     }
 
-    return questions.slice(7, 11);
-    // return questions;
+    return questions;
   } catch (error) {
     console.error('Gemini generation failed; falling back to local template assessment:', error);
     return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: safeCount });
