@@ -16,6 +16,7 @@ function RoomLobby({
   friends = [],
   friendRequests = [],
   onSendFriendRequest,
+  isPreparingAssessment = false,
 }) {
   const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
   const [copied, setCopied] = useState(false);
@@ -169,9 +170,9 @@ function RoomLobby({
             <Button
               size="lg"
               onClick={onStartAssessment}
-              disabled={!isReady}
+              disabled={!isReady || isPreparingAssessment || !isHost}
             >
-              {isReady ? 'Start' : 'Waiting'}
+              {isPreparingAssessment ? 'Preparing deck...' : !isHost ? 'Waiting for host' : isReady ? 'Start' : 'Waiting'}
             </Button>
             <Button size="lg" variant="secondary" onClick={onLeaveRoom}>
               Leave
@@ -185,8 +186,9 @@ function RoomLobby({
             <CardContent>
               <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
                 <li>The host shares the room code or invite link, then both players join</li>
-                <li>Each round shows the same {isKanjiAssessment ? 'kanji' : 'kana sentence'} to both players</li>
-                <li>{isKanjiAssessment ? 'Read the kanji and type its romaji reading' : 'Type the romaji reading for the kana sentence'} and submit (spacing is flexible for checking)</li>
+                <li>Each round shows the same {isKanjiAssessment ? 'kanji' : room?.deckType === 'grammar' ? 'grammar question' : 'kana sentence'} to both players</li>
+                <li>{isKanjiAssessment ? 'Read the kanji and type its romaji reading' : room?.deckType === 'grammar' ? 'Answer the grammar prompt, then press Ready when both you and your opponent are ready to move on' : 'Type the romaji reading for the kana sentence'} and submit (spacing is flexible for checking)</li>
+                <li>For grammar rounds, each question must be answered and confirmed with Ready before the deck advances. The question only moves on once both players are ready.</li>
                 <li>After both submissions, answers/translation are revealed and the next card starts automatically</li>
                 <li>At the end, you get per-player accuracy stats and answer review</li>
               </ul>

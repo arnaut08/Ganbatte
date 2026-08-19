@@ -8,12 +8,15 @@ import Results from './components/Results';
 import AuthPage from './components/AuthPage';
 import KanjiStudy from './components/KanjiStudy';
 import AssessmentHistory from './components/AssessmentHistory';
+import GrammarPractice from './components/GrammarPractice';
+import AssessmentLoadingScreen from './components/AssessmentLoadingScreen';
 import AppHeader from './components/layout/AppHeader';
 import FriendsPanel from './components/FriendsPanel';
 import './App.css';
 import {
   acceptFriendRequest,
   generateCards,
+  generateGrammarAssessment,
   getFriendRequests,
   getFriends,
   getKanaCards,
@@ -81,6 +84,8 @@ function App() {
   const [friendSearchResults, setFriendSearchResults] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [isFriendSearchLoading, setIsFriendSearchLoading] = useState(false);
+  const [grammarQuestions, setGrammarQuestions] = useState([]);
+  const [isPreparingAssessment, setIsPreparingAssessment] = useState(false);
   const [toast, setToast] = useState(null);
   const statusRef = useRef(status);
   const inviteJoinAttemptedRef = useRef(false);
@@ -106,17 +111,38 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if (!room) return;
+
+    if (room.status === 'preparing' && status !== 'assessment-preparing') {
+      transitionToStatus('assessment-preparing');
+      return;
+    }
+
+    if (room.status === 'active' && status === 'assessment-preparing') {
+      setIsPreparingAssessment(false);
+      transitionToStatus('assessment');
+      return;
+    }
+
+    if (room.status === 'completed' && status !== 'results') {
+      setIsPreparingAssessment(false);
+      transitionToStatus('results');
+    }
+  }, [room, status]);
+
   const screenPriority = {
     selector: 0,
     friends: 0,
     'kanji-study': 0,
-    history: 0,
-    lobby: 1,
-    assessment: 2,
-    results: 3,
+    'grammar-practice': 0,
+    lobby: 0,
+    assessment: 1,
+    results: 1,
+    'assessment-preparing': 0,
   };
 
-  const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results'];
+  const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results', 'assessment-preparing'];
 
   const transitionToStatus = (nextStatus) => {
     setStatus((current) => {
@@ -127,8 +153,8 @@ function App() {
 
       if (nextPriority < currentPriority) return current;
 
-      const isRoomScreen = ['lobby', 'assessment', 'results'].includes(current);
-      const isRoomTransition = ['lobby', 'assessment', 'results'].includes(nextStatus);
+      const isRoomScreen = ROOM_VIEW_STATUSES.includes(current);
+      const isRoomTransition = ROOM_VIEW_STATUSES.includes(nextStatus);
 
       if (!isRoomScreen && current !== 'selector' && isRoomTransition) {
         return current;
@@ -385,11 +411,24 @@ function App() {
         if (savedRoomCode && savedUsername) {
           newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response) => {
             if (response?.success) {
+              const nextRoom = response.room;
               setRoomCode(savedRoomCode);
               setUsername(savedUsername);
-              setRoom(response.room);
-              setKanaCards(response.room.cards || []);
-              transitionToStatus(response.room.status === 'active' ? 'assessment' : 'lobby');
+              setRoom(nextRoom);
+              setKanaCards(nextRoom.cards || []);
+
+              if (nextRoom.status === 'completed') {
+                setResults(normalizeRoomResults(nextRoom.players));
+                transitionToStatus('results');
+                return;
+              }
+
+              if (nextRoom.status === 'preparing') {
+                transitionToStatus('assessment-preparing');
+                return;
+              }
+
+              transitionToStatus(nextRoom.status === 'active' ? 'assessment' : 'lobby');
             } else {
               clearRoomSession();
             }
@@ -424,6 +463,15 @@ function App() {
       transitionToStatus('lobby');
     });
 
+    newSocket.on('assessment-preparing', (data) => {
+      setIsPreparingAssessment(true);
+      if (data && data.room) {
+        setRoom(data.room);
+        if (data.room.cards) setKanaCards(data.room.cards);
+      }
+      transitionToStatus('assessment-preparing');
+    });
+
     newSocket.on('player-joined', (data) => {
       if (data && data.room) {
         setRoom(data.room);
@@ -432,6 +480,7 @@ function App() {
     });
 
     newSocket.on('assessment-started', (data) => {
+      setIsPreparingAssessment(false);
       if (data && data.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
@@ -484,11 +533,7 @@ function App() {
           ? data.room.players
           : [];
 
-      const resultsArr = rawResults.map((player) => ({
-        name: player.name,
-        userId: player.userId ?? player.user_id ?? null,
-        answers: Array.isArray(player.answers) ? player.answers : [],
-      }));
+      const resultsArr = normalizeRoomResults(rawResults);
       console.log("resultsArr", resultsArr, rawResults);
       setResults(resultsArr);
       transitionToStatus('results');
@@ -563,9 +608,13 @@ function App() {
   // Expose a simple global hook the lobby can call (avoids prop drilling)
   useEffect(() => {
     window.generateCards = (c = 10, start = false) => handleGenerateCards(c, start);
+    window.generateGrammarAssessment = (maxLesson = 12, count = 10) => handleOpenGrammarPractice(maxLesson, count);
     return () => {
       try {
         delete window.generateCards;
+      } catch (e) {}
+      try {
+        delete window.generateGrammarAssessment;
       } catch (e) {}
     };
   }, [socket, roomCode]);
@@ -585,8 +634,10 @@ function App() {
       const hostName = (name || getDisplayName()).trim();
       if (!hostName) return;
       const normalizedDeckOptions = {
-        type: deckOptions?.type === 'kanji' ? 'kanji' : 'kana',
+        type: deckOptions?.type === 'grammar' ? 'grammar' : deckOptions?.type === 'kanji' ? 'kanji' : 'kana',
         groups: Array.isArray(deckOptions?.groups) ? deckOptions.groups : [],
+        maxLesson: deckOptions?.type === 'grammar' ? Number(deckOptions.maxLesson) || 3 : undefined,
+        count: deckOptions?.type === 'grammar' ? Number(deckOptions.count) || 5 : undefined,
       };
       setUsername(hostName);
       setPrefillRoomCode('');
@@ -629,9 +680,15 @@ function App() {
   };
 
   const handleStartAssessment = () => {
-    if (socket && roomCode) {
-      socket.emit('start-assessment', roomCode);
+    if (!socket || !roomCode) return;
+    if (!room || room.players?.[0]?.id !== socket.id) return;
+
+    if (room?.deckType === 'grammar') {
+      setIsPreparingAssessment(true);
+      transitionToStatus('assessment-preparing');
     }
+
+    socket.emit('start-assessment', roomCode);
   };
 
   const handleSubmitAnswer = (answer) => {
@@ -651,6 +708,12 @@ function App() {
       socket.emit('player-ready', roomCode);
     }
   };
+
+  const normalizeRoomResults = (rawResults = []) => rawResults.map((player) => ({
+    name: player.name,
+    userId: player.userId ?? player.user_id ?? null,
+    answers: Array.isArray(player.answers) ? player.answers : [],
+  }));
 
   const handleLeaveRoom = () => {
     if (!socket || !roomCode) return;
@@ -740,6 +803,24 @@ function App() {
     preserveRoomSessionForNavigation('kanji-study');
   };
 
+  const handleOpenGrammarPractice = async (maxLesson = 12, count = 10) => {
+    try {
+      const response = await generateGrammarAssessment(maxLesson, count);
+      const questions = Array.isArray(response?.questions) ? response.questions : [];
+
+      if (questions.length === 0) {
+        setToast({ message: 'No grammar questions were generated.', type: 'warning' });
+        return;
+      }
+
+      setGrammarQuestions(questions);
+      setStatus('grammar-practice');
+    } catch (error) {
+      console.error('Failed to generate grammar assessment:', error);
+      setToast({ message: error.message || 'Unable to generate grammar assessment.', type: 'error' });
+    }
+  };
+
   const handleOpenHistory = () => {
     preserveRoomSessionForNavigation('history');
   };
@@ -825,6 +906,7 @@ function App() {
                 onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}
+                onOpenGrammarPractice={handleOpenGrammarPractice}
                 onReturnToRoom={handleReturnToRoom}
                 onDeclineRoomResume={handleDeclineRoomResume}
                 prefillRoomCode={prefillRoomCode}
@@ -878,7 +960,22 @@ function App() {
 
             {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
 
+            {status === 'grammar-practice' && (
+              <GrammarPractice
+                questions={grammarQuestions}
+                onBack={handleBackToPractice}
+              />
+            )}
+
             {status === 'history' && <AssessmentHistory onBack={handleBackToPractice} />}
+
+            {status === 'assessment-preparing' && room?.deckType === 'grammar' && (
+              <AssessmentLoadingScreen
+                title="Preparing the grammar deck"
+                description="Generating the question set and getting both players ready."
+                progress={12}
+              />
+            )}
 
             {status === 'lobby' && room && (
               <RoomLobby
@@ -891,21 +988,45 @@ function App() {
                 friends={friends}
                 friendRequests={friendRequests}
                 onSendFriendRequest={handleSendFriendRequest}
+                isPreparingAssessment={isPreparingAssessment}
               />
             )}
 
             {status === 'assessment' && room && (
-              <Assessment
+              room.deckType === 'grammar' ? (
+                <GrammarPractice
+                  questions={room.cards || grammarQuestions}
+                  room={room}
+                  username={username}
+                  onBack={handleBackToPractice}
+                  onNextCard={handleNextCard}
+                  onSubmitAnswer={handleSubmitAnswer}
+                />
+              ) : (
+                <Assessment
+                  room={room}
+                  kanaCards={kanaCards}
+                  onSubmitAnswer={handleSubmitAnswer}
+                  onUseHint={handleUseHint}
+                  onNextCard={handleNextCard}
+                  username={username}
+                />
+              )
+            )}
+
+            {status === 'results' && results && room?.deckType === 'grammar' && (
+              <GrammarPractice
+                questions={room.cards || grammarQuestions}
                 room={room}
-                kanaCards={kanaCards}
-                onSubmitAnswer={handleSubmitAnswer}
-                onUseHint={handleUseHint}
-                onNextCard={handleNextCard}
                 username={username}
+                onBack={handleBackToPractice}
+                onNextCard={handleNextCard}
+                onSubmitAnswer={handleSubmitAnswer}
+                forceShowResults
               />
             )}
 
-            {status === 'results' && results && (
+            {status === 'results' && results && room?.deckType !== 'grammar' && (
               <Results
                 results={results}
                 roomCode={roomCode}

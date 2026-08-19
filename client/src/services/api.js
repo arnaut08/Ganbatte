@@ -122,6 +122,13 @@ export function getKanjiCards() {
   return request('/api/kanji-cards');
 }
 
+export function generateGrammarAssessment(maxLesson = 12, count = 10) {
+  const safeMaxLesson = Number.isFinite(Number(maxLesson)) ? Number(maxLesson) : 12;
+  const safeCount = Number.isFinite(Number(count)) ? Number(count) : 10;
+
+  return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}`);
+}
+
 export function getRoom(roomCode) {
   return request(`/api/rooms/${encodeURIComponent(roomCode)}`);
 }

@@ -17,6 +17,7 @@ import {
   usernameSchema,
 } from '../utils/validation.js';
 import { generateRandomCards, generateRandomKanjiCards } from '../services/card-service.js';
+import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
 import {
@@ -93,10 +94,12 @@ export async function configureSocketServer(server, app) {
 
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
-      const deckType = deckConfig?.type === 'kanji' ? 'kanji' : 'kana';
-      const cards = deckType === 'kanji'
-        ? generateRandomKanjiCards(Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10)
-        : generateRandomCards(KANA_SENTENCES, 10);
+      const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : 'kana';
+      const cards = deckType === 'grammar'
+        ? []
+        : deckType === 'kanji'
+          ? generateRandomKanjiCards(Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10)
+          : generateRandomCards(KANA_SENTENCES, 10);
 
       roomState.rooms.set(roomCode, {
         code: roomCode,
@@ -113,6 +116,10 @@ export async function configureSocketServer(server, app) {
         cards,
         deckType,
         selectedGroups: Array.isArray(deckConfig?.groups) ? deckConfig.groups : [],
+        grammarSettings: deckType === 'grammar' ? {
+          maxLesson: Number(deckConfig?.maxLesson) || 3,
+          count: Number(deckConfig?.count) || 5,
+        } : null,
         currentCardIndex: 0,
         status: 'waiting',
       });
@@ -250,18 +257,43 @@ export async function configureSocketServer(server, app) {
       if (callback) callback({ success: true, room });
     });
 
-    socket.on('start-assessment', (roomCode) => {
+    socket.on('start-assessment', async (roomCode) => {
       const room = roomState.rooms.get(roomCode);
-      if (room) {
-        room.status = 'active';
+      if (!room) return;
+      if (room.players[0]?.id !== socket.id) return;
+
+      if (room.deckType === 'grammar') {
+        room.status = 'preparing';
         room.currentCardIndex = 0;
         room.players.forEach((player) => {
           player.answers = [];
           player.hintsUsed = [];
           player.ready = false;
         });
-        io.to(roomCode).emit('assessment-started', { room });
+        io.to(roomCode).emit('assessment-preparing', { room });
+
+        try {
+          const questions = await generateGrammarAssessment({
+            maxLesson: room.grammarSettings?.maxLesson || 3,
+            count: room.grammarSettings?.count || 5,
+          });
+          room.cards = questions;
+          room.questions = questions;
+        } catch (error) {
+          console.error('Failed to generate grammar assessment deck:', error);
+          room.cards = [];
+          room.questions = [];
+        }
       }
+
+      room.status = 'active';
+      room.currentCardIndex = 0;
+      room.players.forEach((player) => {
+        player.answers = [];
+        player.hintsUsed = [];
+        player.ready = false;
+      });
+      io.to(roomCode).emit('assessment-started', { room });
     });
 
     socket.on('submit-answer', (roomCode, answer) => {
@@ -276,7 +308,12 @@ export async function configureSocketServer(server, app) {
           const idx = room.currentCardIndex;
           player.answers[idx] = parsedAnswer.data;
           const currentCard = room.cards?.[idx];
-          player.ready = Boolean(currentCard && isCorrectRomajiAnswer(parsedAnswer.data, currentCard.romaji));
+
+          if (room.deckType === 'grammar') {
+            player.ready = false;
+          } else {
+            player.ready = Boolean(currentCard && isCorrectRomajiAnswer(parsedAnswer.data, currentCard.romaji));
+          }
 
           io.to(roomCode).emit('answer-submitted', {
             room,

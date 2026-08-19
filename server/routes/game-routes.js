@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireAuth } from '../middleware/auth.js';
 import {
   generateCards,
   getKanaCards,
@@ -7,6 +8,8 @@ import {
 } from '../controllers/game-controller.js';
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get('/kana-cards', getKanaCards);
 router.get('/kanji-cards', getKanjiCards);

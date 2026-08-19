@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { requireAuth } from './auth.js';
+import friendRoutes from '../routes/friend-routes.js';
+import gameRoutes from '../routes/game-routes.js';
+import assessmentRoutes from '../routes/assessment-routes.js';
 
 test('requireAuth rejects unauthenticated requests', () => {
   let statusCode;
@@ -43,4 +46,10 @@ test('requireAuth continues when the user is present', () => {
   });
 
   assert.equal(called, true);
+});
+
+test('protected routers enforce auth before controllers', () => {
+  assert.equal(friendRoutes.stack[0].handle, requireAuth);
+  assert.equal(gameRoutes.stack[0].handle, requireAuth);
+  assert.equal(assessmentRoutes.stack[0].handle, requireAuth);
 });
