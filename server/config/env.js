@@ -18,7 +18,7 @@ export const REDIS_URL = process.env.REDIS_URL || '';
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
-export const FALLBACK_GEMINI_MODEL = 'gemini-3.6-flash';
+export const FALLBACK_GEMINI_MODEL = 'gemini-3.5-flash';
 
 export function isAllowedOrigin(origin) {
   return !origin || CLIENT_ORIGINS.includes(origin.replace(/\/$/, ''));
