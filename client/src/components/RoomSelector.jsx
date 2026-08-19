@@ -41,7 +41,7 @@ function RoomSelector({
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [screen, setScreen] = useState('home');
   const [deckType, setDeckType] = useState('kana');
-  const [grammarLevel, setGrammarLevel] = useState(3);
+  const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const joinCodeInputRef = useRef(null);
