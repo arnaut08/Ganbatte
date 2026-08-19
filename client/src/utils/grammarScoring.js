@@ -64,7 +64,7 @@ function convertRomajiToKana(value) {
   const words = text.toLowerCase().split(/\s+/).filter(Boolean);
   return words.map((word) => {
     if (word === 'wa') return 'は';
-    if (word === 'wo') return 'を';
+    if (word === 'wo' || word === 'o') return 'を';
 
     let result = '';
     let index = 0;
@@ -198,15 +198,22 @@ export function isQuestionCorrect(question, answer) {
   const hasRomajiReference = typeof question.correctAnswerRomaji !== 'undefined' && question.correctAnswerRomaji;
   const referenceAnswer = hasRomajiReference ? question.correctAnswerRomaji : accepted[0];
 
+  if (hasRomajiReference) {
+    const normalizedAnswer = normalizeText(answer, question.correctAnswerRomaji);
+    const normalizedReference = normalizeText(question.correctAnswerRomaji, question.correctAnswerRomaji);
+    const normalizedCanonical = normalizeText(question.correctAnswer, question.correctAnswerRomaji);
+
+    if (normalizedAnswer === normalizedReference || normalizedAnswer === normalizedCanonical) {
+      return true;
+    }
+  }
+
   const normalizedAnswer = normalizeText(answer, referenceAnswer);
   return accepted.some((candidate) => {
     const candidateReference = hasRomajiReference ? question.correctAnswerRomaji : candidate;
     const candidateValue = normalizeText(candidate, candidateReference);
     return candidateValue === normalizedAnswer;
-  }) || (
-    hasRomajiReference
-      && normalizeText(answer, question.correctAnswerRomaji) === normalizeText(question.correctAnswer, question.correctAnswerRomaji)
-  );
+  });
 }
 
 export function summarizeResults(questions = [], answers = []) {

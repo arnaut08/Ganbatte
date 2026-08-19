@@ -60,6 +60,19 @@ test('romaji references accept o as equivalent to wo', () => {
   assert.equal(isQuestionCorrect(question, 'wa'), false);
 });
 
+test('romaji answers are checked directly against correctAnswerRomaji', () => {
+  const question = {
+    type: 'fill-in-the-blank',
+    correctAnswer: 'は',
+    correctAnswerRomaji: 'wa',
+    acceptedAnswers: ['は'],
+  };
+
+  assert.equal(isQuestionCorrect(question, 'wa'), true);
+  assert.equal(isQuestionCorrect(question, 'は'), true);
+  assert.equal(isQuestionCorrect(question, 'ga'), false);
+});
+
 test('matching compares pair sets without order', () => {
   const question = {
     type: 'matching',

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { getMatchingResultScore, normalizeText, summarizeResults } from '@/utils/grammarScoring';
+import { getMatchingResultScore, isQuestionCorrect, normalizeText, summarizeResults } from '@/utils/grammarScoring';
 import { supabase } from '../config/supabase';
 
 function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
@@ -348,48 +348,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       return 'No answer';
     };
 
-    const isQuestionCorrectForPlayer = (question, rawAnswer) => {
-      if (question.type === 'matching') {
-        const expectedPairs = Array.isArray(question.correctPairs)
-          ? question.correctPairs
-          : (question.correctPairs && typeof question.correctPairs === 'object')
-            ? Object.entries(question.correctPairs).map(([left, right]) => ({ left, right }))
-            : [];
-        const normalizedExpected = expectedPairs.reduce((accumulator, pair) => {
-          if (pair && pair.left && pair.right) {
-            accumulator[String(pair.left).trim()] = String(pair.right).trim();
-          }
-          return accumulator;
-        }, {});
-        const givenPairs = Array.isArray(rawAnswer)
-          ? rawAnswer
-          : (rawAnswer && typeof rawAnswer === 'object' && Array.isArray(rawAnswer.pairs))
-            ? rawAnswer.pairs
-            : [];
-        const normalizedGiven = givenPairs.reduce((accumulator, pair) => {
-          if (pair && pair.left && pair.right) {
-            accumulator[String(pair.left).trim()] = String(pair.right).trim();
-          }
-          return accumulator;
-        }, {});
-
-        const expectedKeys = Object.keys(normalizedExpected).sort();
-        const actualKeys = Object.keys(normalizedGiven).sort();
-        if (expectedKeys.length !== actualKeys.length) return false;
-        return expectedKeys.every((key) => normalizedExpected[key] === normalizedGiven[key]);
-      }
-
-      if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) {
-        const normalizedAnswer = normalizeText(rawAnswer);
-        return question.acceptedAnswers.some((candidate) => normalizeText(candidate) === normalizedAnswer);
-      }
-
-      if (typeof question.correctAnswer !== 'undefined') {
-        return normalizeText(question.correctAnswer) === normalizeText(rawAnswer);
-      }
-
-      return false;
-    };
+    const isQuestionCorrectForPlayer = (question, rawAnswer) => isQuestionCorrect(question, rawAnswer);
 
     const getQuestionResultBadge = (question, rawAnswer) => {
       if (question.type !== 'matching') {
