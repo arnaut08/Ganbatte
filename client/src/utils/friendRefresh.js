@@ -15,7 +15,14 @@ export function createFriendRefreshGuard(minIntervalMs = 1000) {
       return true;
     }
 
-    const key = `${userId}:${socketId ?? 'initial'}:${scope}`;
+    const normalizedScope =
+      (typeof scope === 'string' && ['combined', 'friends', 'requests'].includes(scope))
+        ? scope
+        : ((typeof socketId === 'string' && ['combined', 'friends', 'requests'].includes(socketId))
+          ? socketId
+          : 'combined');
+
+    const key = `${userId}:${normalizedScope}`;
     const lastRefresh = lastRefreshByKey.get(key) ?? 0;
 
     if (now - lastRefresh < minIntervalMs) {

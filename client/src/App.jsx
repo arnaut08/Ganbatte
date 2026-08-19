@@ -28,7 +28,6 @@ import {
 } from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
-import { createFriendRefreshGuard } from './utils/friendRefresh';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
 const ROOM_SESSION_STORAGE = 'ganbatte-room-session';
@@ -183,53 +182,84 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const friendRefreshGuardRef = useRef(createFriendRefreshGuard());
+  const socialDataCacheRef = useRef({
+    userId: null,
+    friendsLoaded: false,
+    requestsLoaded: false,
+  });
 
-  const refreshFriends = useCallback(() => {
+  const clearSocialDataCache = useCallback(() => {
+    socialDataCacheRef.current = {
+      userId: null,
+      friendsLoaded: false,
+      requestsLoaded: false,
+    };
+  }, []);
+
+  const refreshFriends = useCallback((force = false) => {
     if (!user) {
       setFriends([]);
       setFriendSearchResults([]);
       return;
     }
 
-    if (!friendRefreshGuardRef.current(user.id, 'friends')) {
+    const cache = socialDataCacheRef.current;
+    if (!force && cache.userId === user.id && cache.friendsLoaded) {
       return;
     }
 
     getFriends()
-      .then((data) => setFriends(Array.isArray(data) ? data : []))
+      .then((data) => {
+        const nextFriends = Array.isArray(data) ? data : [];
+        setFriends(nextFriends);
+        socialDataCacheRef.current = {
+          ...socialDataCacheRef.current,
+          userId: user.id,
+          friendsLoaded: true,
+        };
+      })
       .catch((error) => {
         console.error('Failed to fetch friends:', error);
       });
   }, [user]);
 
-  const refreshFriendRequests = useCallback(() => {
+  const refreshFriendRequests = useCallback((force = false) => {
     if (!user) {
       setFriendRequests([]);
       return;
     }
 
-    if (!friendRefreshGuardRef.current(user.id, 'requests')) {
+    const cache = socialDataCacheRef.current;
+    if (!force && cache.userId === user.id && cache.requestsLoaded) {
       return;
     }
 
     getFriendRequests()
-      .then((data) => setFriendRequests(Array.isArray(data) ? data : []))
+      .then((data) => {
+        const nextRequests = Array.isArray(data) ? data : [];
+        setFriendRequests(nextRequests);
+        socialDataCacheRef.current = {
+          ...socialDataCacheRef.current,
+          userId: user.id,
+          requestsLoaded: true,
+        };
+      })
       .catch((error) => {
         console.error('Failed to fetch friend requests:', error);
       });
   }, [user]);
 
-  const refreshFriendData = useCallback(() => {
+  const refreshFriendData = useCallback((force = false) => {
     if (!user) {
       setFriends([]);
       setFriendSearchResults([]);
       setFriendRequests([]);
-      friendRefreshGuardRef.current?.reset?.();
+      clearSocialDataCache();
       return;
     }
 
-    if (!friendRefreshGuardRef.current(user.id, 'combined')) {
+    const cache = socialDataCacheRef.current;
+    if (!force && cache.userId === user.id && cache.friendsLoaded && cache.requestsLoaded) {
       return;
     }
 
@@ -240,31 +270,44 @@ function App() {
       .then(([nextFriends, nextRequests]) => {
         setFriends(nextFriends);
         setFriendRequests(nextRequests);
+        socialDataCacheRef.current = {
+          userId: user.id,
+          friendsLoaded: true,
+          requestsLoaded: true,
+        };
       })
       .catch((error) => {
         console.error('Failed to refresh friends and requests:', error);
       });
-  }, [user]);
+  }, [clearSocialDataCache, user]);
 
   useEffect(() => {
     if (!user) {
       setFriends([]);
       setFriendSearchResults([]);
       setFriendRequests([]);
-      friendRefreshGuardRef.current?.reset?.();
+      clearSocialDataCache();
       return undefined;
     }
 
-    refreshFriendData();
+    const needsInitialLoad = socialDataCacheRef.current.userId !== user.id
+      || !socialDataCacheRef.current.friendsLoaded
+      || !socialDataCacheRef.current.requestsLoaded;
 
-    const presenceRefreshTimer = window.setInterval(() => {
-      refreshFriendData();
-    }, 30 * 1000);
+    if (needsInitialLoad) {
+      refreshFriendData(true);
+    }
+  }, [clearSocialDataCache, refreshFriendData, user]);
 
-    return () => {
-      window.clearInterval(presenceRefreshTimer);
-    };
-  }, [refreshFriendData, user]);
+  useEffect(() => {
+    if (!user) return undefined;
+
+    if (status === 'friends') {
+      refreshFriendData(true);
+    }
+
+    return undefined;
+  }, [refreshFriendData, status, user]);
 
   const handleSearchUsers = useCallback(async (query) => {
     if (!user) {
@@ -290,9 +333,31 @@ function App() {
     if (!userId || !user) return;
 
     try {
-      await sendFriendRequest(userId);
+      const response = await sendFriendRequest(userId);
+      const nextRequestId = response?.requestId || response?.id || null;
+      if (nextRequestId) {
+        setFriendRequests((current) => {
+          const alreadyExists = current.some((request) => request.id === nextRequestId);
+          if (alreadyExists) return current;
+          return [
+            {
+              id: nextRequestId,
+              sender_id: user.id,
+              receiver_id: userId,
+              status: 'pending',
+              direction: 'outgoing',
+              sender: {
+                id: user.id,
+                user_id: user.id,
+                display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'You',
+              },
+            },
+            ...current,
+          ];
+        });
+      }
       setToast({ message: 'Friend request sent.', type: 'success' });
-      refreshFriendRequests();
+      refreshFriendRequests(true);
     } catch (error) {
       console.error('Failed to send friend request:', error);
       setToast({ message: error.message || 'Unable to send friend request.', type: 'error' });
@@ -315,6 +380,7 @@ function App() {
       }
       setToast({ message: 'Friend request accepted.', type: 'success' });
       setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+      refreshFriendData(true);
     } catch (error) {
       console.error('Failed to accept friend request:', error);
       setToast({ message: error.message || 'Unable to accept friend request.', type: 'error' });
@@ -328,6 +394,7 @@ function App() {
       await rejectFriendRequest(requestId);
       setToast({ message: 'Friend request rejected.', type: 'warning' });
       setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+      refreshFriendRequests(true);
     } catch (error) {
       console.error('Failed to reject friend request:', error);
       setToast({ message: error.message || 'Unable to reject friend request.', type: 'error' });
@@ -341,6 +408,7 @@ function App() {
       await removeFriend(userId);
       setFriends((current) => current.filter((friend) => (friend.user_id || friend.id) !== userId));
       setToast({ message: 'Friend removed.', type: 'warning' });
+      refreshFriends(true);
     } catch (error) {
       console.error('Failed to remove friend:', error);
       setToast({ message: error.message || 'Unable to remove friend.', type: 'error' });
@@ -455,7 +523,6 @@ function App() {
     newSocket.on('disconnect', () => {
       setSocket(null);
       setIsSocketReady(false);
-      friendRefreshGuardRef.current = createFriendRefreshGuard();
     });
 
     newSocket.on('room-created', (code) => {
@@ -555,18 +622,18 @@ function App() {
     });
 
     newSocket.on('friend-request-received', () => {
-      refreshFriendRequests();
+      refreshFriendRequests(true);
       setToast({ message: 'You received a new friend request.', type: 'success' });
     });
 
     newSocket.on('friend-request-accepted', (data) => {
-      refreshFriendData();
+      refreshFriendData(true);
       const friendName = data?.friend?.display_name || 'Your friend';
       setToast({ message: `${friendName} accepted your friend request.`, type: 'success' });
     });
 
     newSocket.on('friend-request-rejected', (data) => {
-      refreshFriendRequests();
+      refreshFriendRequests(true);
       const receiverName = data?.receiver?.display_name || 'Your friend request';
       setToast({ message: `${receiverName} declined your friend request.`, type: 'warning' });
     });
@@ -738,6 +805,7 @@ function App() {
     }
 
     clearRoomSession();
+    clearSocialDataCache();
     sessionStorage.removeItem(SESSION_KEY_STORAGE);
     setUser(null);
     setRoomCode(null);
@@ -988,6 +1056,8 @@ function App() {
                 friends={friends}
                 friendRequests={friendRequests}
                 onSendFriendRequest={handleSendFriendRequest}
+                onAcceptFriendRequest={handleAcceptFriendRequest}
+                onRejectFriendRequest={handleRejectFriendRequest}
                 isPreparingAssessment={isPreparingAssessment}
               />
             )}

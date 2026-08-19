@@ -1,3 +1,14 @@
+export function normalizeFriendshipPair(userId, friendId) {
+  const left = String(userId || '');
+  const right = String(friendId || '');
+
+  if (!left || !right) {
+    return [left, right];
+  }
+
+  return left < right ? [left, right] : [right, left];
+}
+
 export function mergeFriendPresence(friends = [], onlineUserIds = []) {
   const onlineSet = new Set((onlineUserIds ?? []).map((userId) => String(userId)));
 
