@@ -179,11 +179,11 @@ function RoomSelector({
               <CardHeader>
                 <CardTitle>Genki Grammar</CardTitle>
                 <CardDescription>
-                  Generate Genki Volume 1 grammar questions up to a selected lesson level.
+                  Genki Volume 1 lessons summarized in learning blocks.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">
-                <Button onClick={() => onOpenGrammarPractice(3, 5)}>Practice grammar</Button>
+                <Button disabled onClick={() => onOpenGrammarPractice(3, 5)}>Coming Soon</Button>
               </CardContent>
             </Card>
             </div>
