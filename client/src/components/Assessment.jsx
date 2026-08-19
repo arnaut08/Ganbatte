@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
@@ -223,7 +223,7 @@ function Assessment({ room, kanaCards, onSubmitAnswer, onUseHint, onNextCard, us
           )}
 
           <div className="flex items-center gap-2">
-            <Checkbox
+            <Switch
               id="show-opponent"
               checked={showOpponentStatus}
               onCheckedChange={setShowOpponentStatus}

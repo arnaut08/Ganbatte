@@ -4,6 +4,8 @@ import BackButton from './common/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { getMatchingResultScore, isQuestionCorrect, normalizeText, summarizeResults } from '@/utils/grammarScoring';
 import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
 import { supabase } from '../config/supabase';
@@ -14,6 +16,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(Boolean(forceShowResults));
+  const [showOpponentStatus, setShowOpponentStatus] = useState(true);
   const savedResult = useRef(false);
   const isRoomMode = Boolean(room && room.players?.length > 0);
 
@@ -542,11 +545,26 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       <Card className="relative mx-auto w-full max-w-3xl">
         {room && otherPlayer && (
           <div className="mb-3 flex justify-start px-4 pt-4 sm:px-6 md:absolute md:bottom-3 md:left-3 md:z-10 md:mb-0 md:p-0">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/90 px-2 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
-              <span>{otherPlayer.name}</span>
-              <span>{opponentStatus.icon}</span>
-              <span>{opponentStatus.label}</span>
-            </span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/90 px-2 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
+              <div className="flex items-center gap-1.5 pl-1">
+                <Switch
+                  id="show-opponent-status"
+                  checked={showOpponentStatus}
+                  onCheckedChange={setShowOpponentStatus}
+                  className="h-4 w-7"
+                />
+              </div>
+              <span className="inline-flex items-center gap-1.5">
+                <span>{otherPlayer.name}</span>
+                {showOpponentStatus && (
+                  <>
+                    <span>{opponentStatus.icon}</span>
+                    <span>{opponentStatus.label}</span>
+                  </>
+                )}
+                {!showOpponentStatus && <span className="text-muted-foreground">Hidden</span>}
+              </span>
+            </div>
           </div>
         )}
 
