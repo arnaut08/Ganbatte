@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import BackButton from './common/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -377,7 +378,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <Button variant="secondary" onClick={onBack}>Back</Button>
+          <BackButton onClick={onBack} label="Back to previous screen" />
           <div className="text-sm text-muted-foreground">Quiz complete</div>
         </div>
 
@@ -482,7 +483,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={onBack}>Back</Button>
+          <BackButton onClick={onBack} label="Back to previous screen" />
         </div>
 
         <Card>

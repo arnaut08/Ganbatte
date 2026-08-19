@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import {
   PlusIcon,
 } from '@radix-ui/react-icons';
 import { Separator } from '@/components/ui/separator';
+import { canStartAssessment, getPlayerPresenceStatus } from '../utils/roomStatus';
 
 function RoomLobby({
   roomCode,
@@ -27,7 +28,7 @@ function RoomLobby({
   onRejectFriendRequest,
   isPreparingAssessment = false,
 }) {
-  const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
+  const isReady = canStartAssessment(room.players);
   const [copied, setCopied] = useState(false);
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
   const isHost = room.players[0]?.id === currentSocketId;
@@ -135,7 +136,7 @@ function RoomLobby({
                       <p className="font-medium text-foreground">{player.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {idx === 0 ? 'Host' : 'Guest'}
-                        {player.connected === false && ' (disconnected)'}
+                        {getPlayerPresenceStatus(player) === 'away' ? ' (away)' : getPlayerPresenceStatus(player) === 'disconnected' ? ' (offline)' : getPlayerPresenceStatus(player) === 'ready' ? ' (ready)' : ''}
                       </p>
                     </div>
                     {!isCurrentUser && (
@@ -190,8 +191,8 @@ function RoomLobby({
                       </div>
                     )}
                     <div className="flex items-center gap-2">
-                      <Badge variant={player.connected === false ? 'destructive' : 'success'}>
-                        {player.connected === false ? 'Offline' : 'Online'}
+                      <Badge variant={getPlayerPresenceStatus(player) === 'disconnected' ? 'destructive' : getPlayerPresenceStatus(player) === 'away' ? 'secondary' : 'success'}>
+                        {getPlayerPresenceStatus(player) === 'disconnected' ? 'Offline' : getPlayerPresenceStatus(player) === 'away' ? 'Away' : getPlayerPresenceStatus(player) === 'ready' ? 'Ready' : 'In Lobby'}
                       </Badge>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getKanjiCards } from '../services/api';
 import { Button } from '@/components/ui/button';
+import BackButton from './common/BackButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -68,16 +69,11 @@ function KanjiStudy({ onBack }) {
                 Study 100 beginner kanji, grouped by everyday themes.
               </CardDescription>
             </div>
-            <Button
-              variant="secondary"
-              size="icon"
+            <BackButton
               onClick={onBack}
-              className="h-9 w-9 rounded-full self-start sm:self-auto"
-              aria-label="Back to home"
-              title="Back to home"
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-            </Button>
+              label="Back to previous screen"
+              className="self-start sm:self-auto"
+            />
           </div>
         </CardHeader>
       </Card>

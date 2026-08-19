@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeftIcon, ChevronDownIcon } from '@radix-ui/react-icons';
+import BackButton from './common/BackButton';
+import { ChevronDownIcon } from '@radix-ui/react-icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -130,16 +131,7 @@ function RoomSelector({
         ) : screen === 'learning' ? (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={() => setScreen('home')}
-                className="h-9 w-9 rounded-full"
-                aria-label="Back to home"
-                title="Back to home"
-              >
-                <ChevronLeftIcon className="h-4 w-4" />
-              </Button>
+              <BackButton onClick={() => setScreen('home')} label="Back to home" />
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">
                   Learning
@@ -191,16 +183,7 @@ function RoomSelector({
         ) : (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={() => setScreen('home')}
-                className="h-9 w-9 rounded-full"
-                aria-label="Back to home"
-                title="Back to home"
-              >
-                <ChevronLeftIcon className="h-4 w-4" />
-              </Button>
+              <BackButton onClick={() => setScreen('home')} label="Back to home" />
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">
                   Assessment
