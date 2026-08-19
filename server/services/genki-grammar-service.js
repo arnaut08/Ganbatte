@@ -185,7 +185,7 @@ export function resolveGeminiModel(modelName) {
 
 export function createGeminiPrompt({ maxLesson = 12, count = 10 } = {}) {
   return [
-    'You are generating a Genki Volume 1 grammar assessment for Japanese learners.',
+    'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1',
     `Only use grammar concepts from lessons 1 through ${maxLesson}.`,
     `Generate 5 ${count} of questions for each type and 2 for matching type question in valid JSON only.`,
     'Please do not use Kanji characters in any of the questions.',
