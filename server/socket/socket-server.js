@@ -78,6 +78,27 @@ export async function configureSocketServer(server, app) {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
+    const restorePlayerPresenceFromReconnect = () => {
+      const userId = socket.data.user?.id;
+      if (!userId) return;
+
+      for (const [roomCode, room] of roomState.rooms) {
+        const player = room.players.find((candidate) => candidate.userId === userId);
+        if (!player) continue;
+
+        const wasDisconnected = player.connected === false || player.status === 'disconnected';
+        if (!wasDisconnected && player.status === 'in_lobby' && player.presence === 'online') continue;
+
+        player.connected = true;
+        player.status = player.status === 'ready' ? 'ready' : 'in_lobby';
+        player.presence = 'online';
+        delete player.disconnectedAt;
+        io.to(roomCode).emit('player-presence-updated', { room });
+      }
+    };
+
+    restorePlayerPresenceFromReconnect();
+
     socket.on('create-room', (hostName, sessionKey, maybeUserId, maybeDeckConfig, maybeCallback) => {
       const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
       const parsedHostName = usernameSchema.safeParse(hostName);
@@ -111,6 +132,8 @@ export async function configureSocketServer(server, app) {
           answers: [],
           hintsUsed: [],
           connected: true,
+          presence: 'online',
+          status: 'in_lobby',
         }],
         leftPlayers: [],
         cards,
@@ -161,6 +184,8 @@ export async function configureSocketServer(server, app) {
         answers: [],
         hintsUsed: [],
         connected: true,
+        presence: 'online',
+        status: 'in_lobby',
       });
       socket.join(parsedRoomCode.data);
       io.to(parsedRoomCode.data).emit('player-joined', { room });
@@ -208,6 +233,8 @@ export async function configureSocketServer(server, app) {
           answers: Array.isArray(leftPlayer.answers) ? leftPlayer.answers : [],
           hintsUsed: Array.isArray(leftPlayer.hintsUsed) ? leftPlayer.hintsUsed : [],
           connected: true,
+          presence: 'online',
+          status: 'in_lobby',
         };
         room.players.push(player);
         room.leftPlayers = room.leftPlayers.filter(
@@ -218,6 +245,8 @@ export async function configureSocketServer(server, app) {
       player.id = socket.id;
       player.userId = resolvedUserId ?? player.userId ?? socket.data.user?.id ?? null;
       player.connected = true;
+      player.status = 'in_lobby';
+      player.presence = 'online';
       delete player.disconnectedAt;
 
       const cleanupTimer = roomState.roomCleanupTimers.get(parsedRoomCode.data);
@@ -261,6 +290,10 @@ export async function configureSocketServer(server, app) {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
       if (room.players[0]?.id !== socket.id) return;
+      if (!room.players.every((player) => {
+        const status = player.status ?? player.presence ?? 'in_lobby';
+        return player.connected !== false && status !== 'away' && status !== 'disconnected' && status !== 'offline';
+      })) return;
 
       if (room.deckType === 'grammar') {
         room.status = 'preparing';
@@ -382,6 +415,38 @@ export async function configureSocketServer(server, app) {
       advanceRoomIfReady(io, roomCode);
     });
 
+    socket.on('set-player-presence', (roomCode, presence, callback) => {
+      const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+      const normalizedPresence = presence === 'away' ? 'away' : presence === 'ready' ? 'ready' : presence === 'disconnected' || presence === 'offline' ? 'disconnected' : presence === 'in_lobby' || presence === 'online' ? 'in_lobby' : 'in_lobby';
+      if (!parsedRoomCode.success) {
+        if (callback) callback({ success: false, message: 'Invalid room code' });
+        return;
+      }
+
+      const room = roomState.rooms.get(parsedRoomCode.data);
+      if (!room) {
+        if (callback) callback({ success: false, message: 'Room not found' });
+        return;
+      }
+
+      const player = room.players.find((entry) => entry.id === socket.id);
+      if (!player) {
+        if (callback) callback({ success: false, message: 'Player not found in room' });
+        return;
+      }
+
+      if ((player.status ?? player.presence) === normalizedPresence && player.connected !== false) {
+        if (callback) callback({ success: true, room });
+        return;
+      }
+
+      player.status = normalizedPresence;
+      player.presence = normalizedPresence === 'disconnected' ? 'offline' : normalizedPresence === 'away' ? 'away' : 'online';
+      player.connected = normalizedPresence !== 'disconnected';
+      io.to(parsedRoomCode.data).emit('player-presence-updated', { room });
+      if (callback) callback({ success: true, room });
+    });
+
     socket.on('use-hint', (roomCode, cardIndex) => {
       const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
       if (!parsedRoomCode.success) return;
@@ -491,6 +556,8 @@ export async function configureSocketServer(server, app) {
         if (!player) continue;
 
         player.connected = false;
+        player.status = 'disconnected';
+        player.presence = 'offline';
         player.disconnectedAt = Date.now();
         io.to(roomCode).emit('player-left', { room, players: room.players });
 

@@ -1,0 +1,69 @@
+const DEFAULT_STATUS = 'selector';
+
+export function pushScreenHistory(history = [], currentStatus, nextStatus) {
+  const safeHistory = Array.isArray(history) && history.length > 0 ? [...history] : [DEFAULT_STATUS];
+  const current = currentStatus || safeHistory[safeHistory.length - 1] || DEFAULT_STATUS;
+
+  if (!nextStatus || nextStatus === current) {
+    return safeHistory;
+  }
+
+  const lastStatus = safeHistory[safeHistory.length - 1] || DEFAULT_STATUS;
+
+  if (lastStatus === nextStatus) {
+    return safeHistory;
+  }
+
+  if (lastStatus !== current) {
+    safeHistory.push(current);
+  }
+
+  if (safeHistory[safeHistory.length - 1] === nextStatus) {
+    return safeHistory;
+  }
+
+  return [...safeHistory, nextStatus];
+}
+
+export function getPreviousStatus(history = []) {
+  if (!Array.isArray(history) || history.length < 2) {
+    return DEFAULT_STATUS;
+  }
+
+  return history[history.length - 2] || DEFAULT_STATUS;
+}
+
+export function getBackStatus(history = []) {
+  if (!Array.isArray(history) || history.length === 0) {
+    return DEFAULT_STATUS;
+  }
+
+  const current = history[history.length - 1] || DEFAULT_STATUS;
+  const previous = getPreviousStatus(history);
+
+  if (current === DEFAULT_STATUS || previous === current) {
+    return DEFAULT_STATUS;
+  }
+
+  return previous;
+}
+
+export function createNavigationHistory(initialStatus = DEFAULT_STATUS) {
+  return {
+    history: [initialStatus],
+    push(nextStatus) {
+      this.history = pushScreenHistory(this.history, this.history[this.history.length - 1], nextStatus);
+      return this.history;
+    },
+    back() {
+      const previous = getPreviousStatus(this.history);
+      if (!previous || previous === DEFAULT_STATUS && this.history.length <= 1) {
+        return DEFAULT_STATUS;
+      }
+      const nextHistory = [...this.history];
+      nextHistory.pop();
+      this.history = nextHistory;
+      return this.history[this.history.length - 1] || DEFAULT_STATUS;
+    },
+  };
+}

@@ -12,6 +12,7 @@ import GrammarPractice from './components/GrammarPractice';
 import AssessmentLoadingScreen from './components/AssessmentLoadingScreen';
 import AppHeader from './components/layout/AppHeader';
 import FriendsPanel from './components/FriendsPanel';
+import BackButton from './components/common/BackButton';
 import './App.css';
 import {
   acceptFriendRequest,
@@ -28,6 +29,8 @@ import {
 } from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
+import { pushScreenHistory } from './utils/navigation';
+import { canStartAssessment, getPlayerPresenceStatus } from './utils/roomStatus';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
 const ROOM_SESSION_STORAGE = 'ganbatte-room-session';
@@ -79,6 +82,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
+  const [screenHistory, setScreenHistory] = useState(['selector']);
   const [friends, setFriends] = useState([]);
   const [friendSearchResults, setFriendSearchResults] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -88,6 +92,7 @@ function App() {
   const [toast, setToast] = useState(null);
   const statusRef = useRef(status);
   const inviteJoinAttemptedRef = useRef(false);
+  const lastPresenceSyncRef = useRef(null);
   const authRequired = Boolean(supabase);
 
   useEffect(() => {
@@ -436,6 +441,84 @@ function App() {
     }
   }, []);
 
+  const handleSetAwayStatus = useCallback((nextStatus) => {
+    if (!socket || !roomCode) return;
+    const roomPresenceKey = `${roomCode}:${nextStatus}`;
+    if (lastPresenceSyncRef.current === roomPresenceKey) return;
+
+    const currentPlayer = room?.players?.find((player) => player.id === socket.id);
+    const currentStatus = getPlayerPresenceStatus(currentPlayer);
+
+    if (currentStatus === nextStatus) return;
+
+    lastPresenceSyncRef.current = roomPresenceKey;
+    socket.emit('set-player-presence', roomCode, nextStatus);
+  }, [room, roomCode, socket]);
+
+  const syncPresenceForView = useCallback((nextStatus) => {
+    if (!socket || !roomCode) return;
+    const currentStatus = status === 'lobby' ? 'in_lobby' : 'away';
+    const targetStatus = nextStatus === 'lobby' ? 'in_lobby' : 'away';
+
+    if (currentStatus === targetStatus) {
+      return;
+    }
+
+    lastPresenceSyncRef.current = null;
+    handleSetAwayStatus(targetStatus);
+  }, [handleSetAwayStatus, roomCode, socket, status]);
+
+  useEffect(() => {
+    lastPresenceSyncRef.current = null;
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (!socket || !roomCode) return undefined;
+
+    const nextStatus = status === 'lobby' ? 'in_lobby' : 'away';
+    handleSetAwayStatus(nextStatus);
+    return undefined;
+  }, [handleSetAwayStatus, roomCode, socket, status]);
+
+  useEffect(() => {
+    if (!socket || !roomCode || !room?.players?.some((player) => player.id === socket.id)) return undefined;
+
+    const targetStatus = status === 'lobby' ? 'in_lobby' : 'away';
+    const currentPlayer = room.players.find((player) => player.id === socket.id);
+    if (getPlayerPresenceStatus(currentPlayer) !== targetStatus) {
+      lastPresenceSyncRef.current = null;
+      handleSetAwayStatus(targetStatus);
+    }
+
+    return undefined;
+  }, [handleSetAwayStatus, room, roomCode, socket, status]);
+
+  useEffect(() => {
+    if (!socket || !roomCode) return undefined;
+
+    const handleVisibilityChange = () => {
+      const nextStatus = (!document.hidden && status === 'lobby') ? 'in_lobby' : 'away';
+      handleSetAwayStatus(nextStatus);
+    };
+
+    const handleWindowFocus = () => {
+      const nextStatus = status === 'lobby' ? 'in_lobby' : 'away';
+      handleSetAwayStatus(nextStatus);
+    };
+
+    const handleWindowBlur = () => handleSetAwayStatus('away');
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [handleSetAwayStatus, roomCode, socket, status]);
+
   useEffect(() => {
     if (!socket || !isSocketReady || inviteJoinAttemptedRef.current) return;
 
@@ -466,6 +549,11 @@ function App() {
       console.log('Connected to server');
       setSocket(newSocket);
       setIsSocketReady(true);
+
+      if (roomCode) {
+        const nextStatus = status === 'lobby' ? 'in_lobby' : 'away';
+        newSocket.emit('set-player-presence', roomCode, nextStatus);
+      }
 
       const savedSession = readRoomSession();
       const shouldRestoreRoomSession = ROOM_VIEW_STATUSES.includes(statusRef.current) && Boolean(savedSession?.roomCode && savedSession?.username);
@@ -621,6 +709,11 @@ function App() {
       });
     });
 
+    newSocket.on('player-presence-updated', (data) => {
+      if (!data?.room) return;
+      setRoom((prev) => ({ ...(prev ?? {}), ...data.room, players: data.room.players || prev?.players || [] }));
+    });
+
     newSocket.on('friend-request-received', () => {
       refreshFriendRequests(true);
       setToast({ message: 'You received a new friend request.', type: 'success' });
@@ -716,6 +809,10 @@ function App() {
           .then((room) => {
             setRoom(room);
             if (room.cards) setKanaCards(room.cards);
+            setScreenHistory((currentHistory) => {
+              const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
+              return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
+            });
             transitionToStatus('lobby');
             const me = room.players.find((p) => p.id === socket.id);
             if (me) setUsername(me.name);
@@ -738,6 +835,10 @@ function App() {
           setRoomCode(code);
           saveRoomSession(code, playerName);
           setRoom(response.room);
+          setScreenHistory((currentHistory) => {
+            const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
+            return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
+          });
           transitionToStatus('lobby');
         } else {
           alert(response.message);
@@ -749,6 +850,7 @@ function App() {
   const handleStartAssessment = () => {
     if (!socket || !roomCode) return;
     if (!room || room.players?.[0]?.id !== socket.id) return;
+    if (!canStartAssessment(room.players)) return;
 
     if (room?.deckType === 'grammar') {
       setIsPreparingAssessment(true);
@@ -867,8 +969,39 @@ function App() {
     setStatus('selector');
   };
 
+  const navigateToScreen = (nextStatus) => {
+    if (!nextStatus) return;
+
+    const targetPresence = nextStatus === 'lobby' ? 'in_lobby' : 'away';
+    syncPresenceForView(nextStatus);
+
+    setScreenHistory((currentHistory) => {
+      const currentStatus = statusRef.current || currentHistory[currentHistory.length - 1] || 'selector';
+      return pushScreenHistory(currentHistory, currentStatus, nextStatus);
+    });
+    setStatus(nextStatus);
+    if (targetPresence === 'in_lobby' && socket && roomCode) {
+      socket.emit('set-player-presence', roomCode, 'in_lobby');
+    }
+  };
+
+  const handleGoBack = () => {
+    setScreenHistory((currentHistory) => {
+      const safeHistory = currentHistory.length > 0 ? [...currentHistory] : ['selector'];
+      const nextHistory = safeHistory.length > 1 ? safeHistory.slice(0, -1) : ['selector'];
+      const previousStatus = nextHistory[nextHistory.length - 1] || 'selector';
+      if (previousStatus === 'lobby' && socket && roomCode) {
+        socket.emit('set-player-presence', roomCode, 'in_lobby');
+      } else if (socket && roomCode) {
+        socket.emit('set-player-presence', roomCode, 'away');
+      }
+      setStatus(previousStatus);
+      return nextHistory;
+    });
+  };
+
   const handleOpenKanjiStudy = () => {
-    preserveRoomSessionForNavigation('kanji-study');
+    navigateToScreen('kanji-study');
   };
 
   const handleOpenGrammarPractice = async (maxLesson = 12, count = 10) => {
@@ -882,7 +1015,7 @@ function App() {
       }
 
       setGrammarQuestions(questions);
-      setStatus('grammar-practice');
+      navigateToScreen('grammar-practice');
     } catch (error) {
       console.error('Failed to generate grammar assessment:', error);
       setToast({ message: error.message || 'Unable to generate grammar assessment.', type: 'error' });
@@ -890,21 +1023,26 @@ function App() {
   };
 
   const handleOpenHistory = () => {
-    preserveRoomSessionForNavigation('history');
+    navigateToScreen('history');
   };
 
   const handleOpenFriends = () => {
-    preserveRoomSessionForNavigation('friends');
+    navigateToScreen('friends');
   };
 
   const handleBackToPractice = () => {
-    preserveRoomSessionForNavigation('selector');
+    setStatus('selector');
+    setScreenHistory(['selector']);
   };
 
   const handleReturnToRoom = () => {
     const savedSession = readRoomSession();
     if (room && roomCode) {
-      setStatus(room.status === 'active' ? 'assessment' : 'lobby');
+      const nextStatus = room.status === 'active' ? 'assessment' : 'lobby';
+      if (socket && roomCode && nextStatus === 'lobby') {
+        socket.emit('set-player-presence', roomCode, 'in_lobby');
+      }
+      setStatus(nextStatus);
       return;
     }
 
@@ -934,7 +1072,11 @@ function App() {
 
         setRoom(response.room);
         setKanaCards(response.room.cards || []);
-        setStatus(response.room.status === 'active' ? 'assessment' : 'lobby');
+        const nextStatus = response.room.status === 'active' ? 'assessment' : 'lobby';
+        if (nextStatus === 'lobby') {
+          socket.emit('set-player-presence', savedRoomCode, 'in_lobby');
+        }
+        setStatus(nextStatus);
       });
     } catch {
       setStatus('selector');
@@ -994,16 +1136,7 @@ function App() {
             {status === 'friends' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    onClick={handleBackToPractice}
-                    className="h-9 w-9 rounded-full"
-                    aria-label="Back to home"
-                    title="Back to home"
-                  >
-                    ←
-                  </Button>
+                  <BackButton onClick={handleGoBack} label="Back to previous screen" />
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-primary">
                       Social
@@ -1026,16 +1159,16 @@ function App() {
               </div>
             )}
 
-            {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
+            {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}
 
             {status === 'grammar-practice' && (
               <GrammarPractice
                 questions={grammarQuestions}
-                onBack={handleBackToPractice}
+                onBack={handleGoBack}
               />
             )}
 
-            {status === 'history' && <AssessmentHistory onBack={handleBackToPractice} />}
+            {status === 'history' && <AssessmentHistory onBack={handleGoBack} />}
 
             {status === 'assessment-preparing' && room?.deckType === 'grammar' && (
               <AssessmentLoadingScreen
@@ -1051,6 +1184,7 @@ function App() {
                 room={room}
                 onStartAssessment={handleStartAssessment}
                 onLeaveRoom={handleLeaveRoom}
+                onSetAwayStatus={handleSetAwayStatus}
                 currentSocketId={socket?.id || ''}
                 currentUserId={user?.id || null}
                 friends={friends}
@@ -1068,7 +1202,7 @@ function App() {
                   questions={room.cards || grammarQuestions}
                   room={room}
                   username={username}
-                  onBack={handleBackToPractice}
+                  onBack={handleGoBack}
                   onNextCard={handleNextCard}
                   onSubmitAnswer={handleSubmitAnswer}
                 />
@@ -1089,7 +1223,7 @@ function App() {
                 questions={room.cards || grammarQuestions}
                 room={room}
                 username={username}
-                onBack={handleBackToPractice}
+                onBack={handleGoBack}
                 onNextCard={handleNextCard}
                 onSubmitAnswer={handleSubmitAnswer}
                 forceShowResults

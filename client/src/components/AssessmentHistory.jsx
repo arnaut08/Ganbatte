@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../config/supabase';
 import { Button } from '@/components/ui/button';
+import BackButton from './common/BackButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
@@ -79,16 +80,7 @@ function AssessmentHistory({ onBack }) {
               <CardTitle className="text-2xl">Assessment history</CardTitle>
               <CardDescription>Review your previous practice sessions.</CardDescription>
             </div>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={onBack}
-              className="h-9 w-9 rounded-full"
-              aria-label="Back to home"
-              title="Back to home"
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-            </Button>
+            <BackButton onClick={onBack} label="Back to previous screen" />
           </div>
         </CardHeader>
       </Card>
