@@ -267,6 +267,9 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10 } = 
           }],
           generationConfig: {
             responseMimeType: 'application/json',
+            temperature: 1, // Range 0.0 - 2.0
+            topP: 0.95,       // Samples from a wider pool of probable tokens
+            topK: 40,
           },
         }),
       },
