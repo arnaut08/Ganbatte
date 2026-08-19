@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { getMatchingResultScore, isQuestionCorrect, normalizeText, summarizeResults } from '@/utils/grammarScoring';
+import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
 import { supabase } from '../config/supabase';
 
 function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
@@ -102,18 +103,14 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   useEffect(() => {
     if (!isRoomMode || !Array.isArray(currentPlayer?.answers)) return;
 
-    const syncedAnswers = {};
-    currentPlayer.answers.forEach((value, index) => {
-      if (value !== undefined && value !== null) {
-        syncedAnswers[index] = value;
-      }
-    });
+    const syncedAnswers = mergePlayerAnswers(answers, currentPlayer.answers);
 
     setAnswers((previous) => {
-      if (Object.keys(previous).length === Object.keys(syncedAnswers).length && Object.entries(syncedAnswers).every(([key, value]) => JSON.stringify(previous[Number(key)]) === JSON.stringify(value))) {
-        return previous;
-      }
-      return syncedAnswers;
+      const next = mergePlayerAnswers(previous, currentPlayer.answers);
+      const sameShape = Object.keys(previous).length === Object.keys(next).length
+        && Object.entries(next).every(([key, value]) => JSON.stringify(previous[Number(key)]) === JSON.stringify(value));
+      if (sameShape) return previous;
+      return next;
     });
   }, [currentPlayer?.answers, isRoomMode]);
 
