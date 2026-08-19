@@ -201,7 +201,7 @@ export function createGeminiPrompt({ maxLesson = 12, count = 10 } = {}) {
     'For comprehension: include choices and correctAnswer.',
     'Keep all content aligned to Genki Volume 1 only.',
     'Do not include markdown fences or extra commentary.',
-    `Random generation salt: ${crypto.randomUUID()}`
+    `Please generate fresh content and avoid reusing questions in previously generated assessments.`
   ].join('\n');
 }
 
@@ -268,9 +268,7 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10 } = 
           }],
           generationConfig: {
             responseMimeType: 'application/json',
-            temperature: 1, // Range 0.0 - 2.0
-            topP: 0.95,       // Samples from a wider pool of probable tokens
-            topK: 40,
+            temperature: 1.1, // Range 0.0 - 2.0
           },
         }),
       },
