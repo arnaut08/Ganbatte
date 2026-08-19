@@ -201,6 +201,7 @@ export function createGeminiPrompt({ maxLesson = 12, count = 10 } = {}) {
     'For comprehension: include choices and correctAnswer.',
     'Keep all content aligned to Genki Volume 1 only.',
     'Do not include markdown fences or extra commentary.',
+    `Random generation salt: ${crypto.randomUUID()}`
   ].join('\n');
 }
 
@@ -236,7 +237,6 @@ function parseGeminiAssessment(rawText) {
   try {
     const parsed = JSON.parse(source);
     const questions = Array.isArray(parsed?.questions) ? parsed.questions : [];
-    console.log("questions:", questions);
     return questions.map((item, index) => normalizeQuestion(item, index));
   } catch (error) {
     console.error('Unable to parse Gemini response as JSON:', error);
@@ -255,6 +255,7 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10 } = 
   try {
     const prompt = createGeminiPrompt({ maxLesson: safeMaxLesson, count: safeCount });
     const resolvedModel = resolveGeminiModel(GEMINI_MODEL);
+    console.log("Using Gemini model:", resolvedModel);
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`,
       {
