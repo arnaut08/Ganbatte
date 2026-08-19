@@ -373,7 +373,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     };
 
     return (
-      <div className="space-y-4">
+      <div className="mx-auto w-full max-w-4xl space-y-4">
         <div className="flex items-center justify-between gap-3">
           <BackButton onClick={onBack} label="Back to previous screen" />
           <div className="text-sm text-muted-foreground">Quiz complete</div>
@@ -478,7 +478,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
 
   if (!questions.length) {
     return (
-      <div className="space-y-4">
+      <div className="mx-auto w-full max-w-2xl space-y-4">
         <div className="flex items-center gap-3">
           <BackButton onClick={onBack} label="Back to previous screen" />
         </div>
@@ -532,16 +532,16 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-4xl space-y-4">
       <div className="flex items-center justify-end gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Question {visibleIndex + 1} / {questions.length}</span>
         </div>
       </div>
 
-      <Card className="relative">
+      <Card className="relative mx-auto w-full max-w-3xl">
         {room && otherPlayer && (
-          <div className="absolute bottom-3 left-3 z-10">
+          <div className="mb-3 flex justify-start px-4 pt-4 sm:px-6 md:absolute md:bottom-3 md:left-3 md:z-10 md:mb-0 md:p-0">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/90 px-2 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
               <span>{otherPlayer.name}</span>
               <span>{opponentStatus.icon}</span>
@@ -551,12 +551,12 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         )}
 
         <CardHeader>
-          <CardTitle>Grammar practice</CardTitle>
+          <CardTitle>Grammar Assessment</CardTitle>
           <CardDescription>
             Lesson {currentQuestion?.lesson ?? 1} · {currentQuestion?.type ?? 'multiple-choice'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 px-4 pb-4 sm:px-6">
           <Progress value={progress} className="h-2" />
 
           <div className="rounded-md border border-border bg-muted/20 p-4">
@@ -567,12 +567,12 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           </div>
 
           {currentQuestion?.type === 'multiple-choice' && (
-            <div className="grid gap-2">
+            <div className="mx-auto grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
               {currentQuestion.choices?.map((choice) => (
                 <Button
                   key={choice}
                   variant={answers[visibleIndex] === choice ? 'default' : 'outline'}
-                  className="justify-start"
+                  className="w-full justify-start text-left"
                   onClick={() => handleSelectAnswer(visibleIndex, choice)}
                 >
                   {choice}
@@ -582,8 +582,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           )}
 
           {currentQuestion?.type === 'fill-in-the-blank' && (
-            <div className="space-y-2">
+            <div className="mx-auto w-full max-w-xl space-y-2">
               <Input
+                className="w-full"
                 value={answers[visibleIndex] ?? ''}
                 onChange={(event) => handleSelectAnswer(visibleIndex, event.target.value)}
                 placeholder="Type your answer"
@@ -592,7 +593,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           )}
 
           {currentQuestion?.type === 'matching' && (
-            <div className="space-y-4">
+            <div className="mx-auto w-full max-w-3xl space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-foreground">Left options</p>
@@ -605,7 +606,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                         <Button
                           key={item}
                           variant={selected ? 'default' : 'outline'}
-                          className="w-full justify-start"
+                          className="w-full justify-start text-left"
                           disabled={paired}
                           onClick={() => handleMatchingSelectLeft(visibleIndex, item)}
                         >
@@ -627,7 +628,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                         <Button
                           key={item}
                           variant={selected ? 'default' : 'outline'}
-                          className="w-full justify-start"
+                          className="w-full justify-start text-left"
                           disabled={paired}
                           onClick={() => handleMatchingSelectRight(visibleIndex, item)}
                         >
@@ -668,8 +669,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           )}
 
           {currentQuestion?.type === 'translation' && (
-            <div className="space-y-2">
+            <div className="mx-auto w-full max-w-xl space-y-2">
               <Input
+                className="w-full"
                 value={answers[visibleIndex] ?? ''}
                 onChange={(event) => handleSelectAnswer(visibleIndex, event.target.value)}
                 placeholder="Type the Japanese translation"
@@ -678,12 +680,12 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           )}
 
           {currentQuestion?.type === 'comprehension' && (
-            <div className="grid gap-2">
+            <div className="mx-auto grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
               {currentQuestion.choices?.map((choice) => (
                 <Button
                   key={choice}
                   variant={answers[visibleIndex] === choice ? 'default' : 'outline'}
-                  className="justify-start"
+                  className="w-full justify-start text-left"
                   onClick={() => handleSelectAnswer(visibleIndex, choice)}
                 >
                   {choice}
@@ -692,7 +694,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
             <div className="text-sm text-muted-foreground">
               {currentQuestion?.type === 'matching'
                 ? `${getMatchingSelection(visibleIndex).pairs.length} pair(s) selected`
