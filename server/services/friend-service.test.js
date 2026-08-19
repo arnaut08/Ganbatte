@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeFriendPresence } from './friend-service.js';
+import { mergeFriendPresence, normalizeFriendshipPair } from './friend-service.js';
 
 test('mergeFriendPresence keeps friends sorted with online status first', () => {
   const friends = [
@@ -16,4 +16,9 @@ test('mergeFriendPresence keeps friends sorted with online status first', () => 
     { id: 'friend-1', online: false },
     { id: 'friend-3', online: false },
   ]);
+});
+
+test('normalizeFriendshipPair canonicalizes a friendship into a single stored row', () => {
+  assert.deepEqual(normalizeFriendshipPair('user-b', 'user-a'), ['user-a', 'user-b']);
+  assert.deepEqual(normalizeFriendshipPair('user-a', 'user-b'), ['user-a', 'user-b']);
 });

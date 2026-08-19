@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '../config/supabase.js';
 import { getUserSocketId, getUsersPresenceStatus } from '../config/redis.js';
-import { mergeFriendPresence } from '../services/friend-service.js';
+import { mergeFriendPresence, normalizeFriendshipPair } from '../services/friend-service.js';
 
 export async function getFriends(req, res) {
   const user = req.user;
@@ -8,8 +8,8 @@ export async function getFriends(req, res) {
   const supabase = getSupabaseClient();
   const { data: friendshipRows, error: friendshipsError } = await supabase
     .from('friendships')
-    .select('friend_id, profiles!friendships_friend_id_fkey(id, display_name)')
-    .eq('user_id', user.id);
+    .select('user_id, friend_id')
+    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
   if (friendshipsError) {
     console.error('Failed to load friendships:', friendshipsError);
@@ -17,20 +17,38 @@ export async function getFriends(req, res) {
     return;
   }
 
-  const friendRows = (friendshipRows || [])
-    .map((row) => ({
-      id: row.friend_id,
-      user_id: row.friend_id,
-      ...row.profiles,
-      profile: row.profiles,
-    }))
-    .filter((friend) => friend?.id || friend?.user_id);
+  const friendIds = (friendshipRows || [])
+    .map((row) => (row.user_id === user.id ? row.friend_id : row.user_id))
+    .filter(Boolean);
 
-  const friendIds = friendRows.map((friend) => friend.id).filter(Boolean);
   if (friendIds.length === 0) {
     res.json([]);
     return;
   }
+
+  const { data: profileRows, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', friendIds);
+
+  if (profilesError) {
+    console.error('Failed to load friend profiles:', profilesError);
+    res.status(500).json({ error: 'Unable to load friends.' });
+    return;
+  }
+
+  const profileMap = new Map((profileRows || []).map((profile) => [profile.id, profile]));
+  const friendRows = friendIds
+    .map((friendId) => {
+      const profile = profileMap.get(friendId) || { id: friendId, display_name: null };
+      return {
+        id: friendId,
+        user_id: friendId,
+        ...profile,
+        profile,
+      };
+    })
+    .filter((friend) => friend?.id || friend?.user_id);
 
   const onlineIds = await getUsersPresenceStatus(friendIds);
   const friends = mergeFriendPresence(friendRows, onlineIds);
@@ -250,14 +268,14 @@ export async function acceptFriendRequest(req, res) {
     return;
   }
 
-  const rows = [
-    { user_id: request.sender_id, friend_id: request.receiver_id },
-    { user_id: request.receiver_id, friend_id: request.sender_id },
-  ];
+  const [leftUserId, rightUserId] = normalizeFriendshipPair(request.sender_id, request.receiver_id);
 
   const { error: friendshipError } = await supabase
     .from('friendships')
-    .upsert(rows, { onConflict: 'user_id,friend_id', ignoreDuplicates: true });
+    .upsert({ user_id: leftUserId, friend_id: rightUserId }, {
+      onConflict: 'user_id,friend_id',
+      ignoreDuplicates: true,
+    });
 
   if (friendshipError) {
     console.error('Failed to create friendship:', friendshipError);
@@ -374,10 +392,11 @@ export async function removeFriend(req, res) {
   const targetUserId = String(req.params.userId || '').trim();
 
   const supabase = getSupabaseClient();
+  const [leftUserId, rightUserId] = normalizeFriendshipPair(user.id, targetUserId);
   const { error } = await supabase
     .from('friendships')
     .delete()
-    .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`);
+    .or(`and(user_id.eq.${leftUserId},friend_id.eq.${rightUserId}),and(user_id.eq.${rightUserId},friend_id.eq.${leftUserId})`);
 
   if (error) {
     console.error('Failed to remove friendship:', error);

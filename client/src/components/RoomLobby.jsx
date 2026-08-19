@@ -3,7 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { CopyIcon, CheckIcon, PersonIcon, ClockIcon } from '@radix-ui/react-icons';
+import {
+  CopyIcon,
+  CheckIcon,
+  PersonIcon,
+  ClockIcon,
+  Cross2Icon,
+} from '@radix-ui/react-icons';
 import { Separator } from '@/components/ui/separator';
 
 function RoomLobby({
@@ -16,6 +22,8 @@ function RoomLobby({
   friends = [],
   friendRequests = [],
   onSendFriendRequest,
+  onAcceptFriendRequest,
+  onRejectFriendRequest,
   isPreparingAssessment = false,
 }) {
   const isReady = room.players.length === 2 && room.players.every((player) => player.connected !== false);
@@ -28,6 +36,13 @@ function RoomLobby({
     (friendRequests || [])
       .filter((request) => request?.direction === 'outgoing')
       .map((request) => request?.receiver_id ?? request?.receiver?.id)
+      .filter(Boolean)
+      .map(String),
+  );
+  const incomingRequestSenderIds = new Set(
+    (friendRequests || [])
+      .filter((request) => request?.direction === 'incoming')
+      .map((request) => request?.sender_id ?? request?.sender?.id)
       .filter(Boolean)
       .map(String),
   );
@@ -96,11 +111,16 @@ function RoomLobby({
                 const isCurrentUser = player.userId && currentUserId && player.userId === currentUserId;
                 const isAlreadyFriend = player.userId && friendIds.has(player.userId);
                 const isRequestPending = player.userId && pendingRequestReceiverIds.has(String(player.userId));
+                const hasIncomingRequest = player.userId && incomingRequestSenderIds.has(String(player.userId));
+                const incomingRequest = hasIncomingRequest
+                  ? (friendRequests || []).find((request) => (request?.sender_id ?? request?.sender?.id) === player.userId)
+                  : null;
                 const canAddFriend = Boolean(currentUserId)
                   && Boolean(player.userId)
                   && !isCurrentUser
                   && !isAlreadyFriend
-                  && !isRequestPending;
+                  && !isRequestPending
+                  && !hasIncomingRequest;
 
                 return (
                   <div
@@ -111,36 +131,62 @@ function RoomLobby({
                       {idx + 1}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{player.name}
-                        {isRequestPending ? (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          aria-label="Friend request pending"
-                          title="Friend request pending"
-                          disabled
-                        >
-                          <ClockIcon className="h-4 w-4" />
-                        </Button>
-                      ) : canAddFriend ? (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => onSendFriendRequest?.(player.userId)}
-                          aria-label={`Send friend request to ${player.name}`}
-                          title="Send friend request"
-                        >
-                          <PersonIcon className="h-4 w-4" />
-                        </Button>
-                      ) : null}
-                      </p>
+                      <p className="font-medium text-foreground">{player.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {idx === 0 ? 'Host' : 'Guest'}
                         {player.connected === false && ' (disconnected)'}
                       </p>
                     </div>
+                    {!isCurrentUser && (
+                      <div className="flex items-center gap-2">
+                        {hasIncomingRequest && incomingRequest?.id ? (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-green-500 hover:text-green-400"
+                              onClick={() => onAcceptFriendRequest?.(incomingRequest.id)}
+                              aria-label={`Accept friend request from ${player.name}`}
+                              title="Accept friend request"
+                            >
+                              <CheckIcon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-red-500 hover:text-red-400"
+                              onClick={() => onRejectFriendRequest?.(incomingRequest.id)}
+                              aria-label={`Reject friend request from ${player.name}`}
+                              title="Reject friend request"
+                            >
+                              <Cross2Icon className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : isRequestPending ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            aria-label="Friend request pending"
+                            title="Friend request pending"
+                            disabled
+                          >
+                            <ClockIcon className="h-4 w-4" />
+                          </Button>
+                        ) : canAddFriend ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => onSendFriendRequest?.(player.userId)}
+                            aria-label={`Send friend request to ${player.name}`}
+                            title="Send friend request"
+                          >
+                            <PersonIcon className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Badge variant={player.connected === false ? 'destructive' : 'success'}>
                         {player.connected === false ? 'Offline' : 'Online'}
