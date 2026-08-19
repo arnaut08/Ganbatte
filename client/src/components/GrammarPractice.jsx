@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { getMatchingResultScore, normalizeText, summarizeResults } from '@/utils/grammarScoring';
+import { supabase } from '../config/supabase';
 
 function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
   const [selectedLesson, setSelectedLesson] = useState(3);
@@ -11,12 +12,79 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(Boolean(forceShowResults));
+  const savedResult = useRef(false);
+  const isRoomMode = Boolean(room && room.players?.length > 0);
 
   useEffect(() => {
     setShowResults(Boolean(forceShowResults));
   }, [forceShowResults]);
 
-  const isRoomMode = Boolean(room && room.players?.length > 0);
+  useEffect(() => {
+    if (!showResults || !supabase || savedResult.current) return;
+
+    const roomCode = room?.code || '';
+    const questionHash = questions.map((q) => q?.prompt || '').join('|');
+    const storageKey = `ganbatte-saved-grammar:${roomCode || questionHash}`;
+
+    if (sessionStorage.getItem(storageKey) === 'true') {
+      savedResult.current = true;
+      return;
+    }
+
+    // Set the key synchronously to prevent duplicate saves across remounts
+    sessionStorage.setItem(storageKey, 'true');
+    savedResult.current = true;
+
+    const saveGrammarResult = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.user?.id) {
+        console.error('Supabase session unavailable while saving grammar result:', sessionError || 'No active session');
+        sessionStorage.removeItem(storageKey);
+        savedResult.current = false;
+        return;
+      }
+
+      const authenticatedUserId = session.user.id;
+
+      let playerAnswers;
+      let companionUserId = null;
+
+      if (isRoomMode && Array.isArray(room?.players) && room.players.length > 0) {
+        const currentPlayer = room.players.find((player) => player.userId === authenticatedUserId)
+          || room.players.find((player) => player.name === username)
+          || room.players[0];
+        playerAnswers = Array.isArray(currentPlayer?.answers) ? currentPlayer.answers : [];
+        const companion = room.players.find((player) => player !== currentPlayer);
+        companionUserId = companion?.userId || null;
+      } else {
+        playerAnswers = questions.map((_, index) => answers[index]);
+      }
+
+      const summary = summarizeResults(questions, playerAnswers);
+
+      const { error } = await supabase.from('assessment_results').insert({
+        user_id: authenticatedUserId,
+        assessment_type: 'grammar',
+        score_percentage: summary.scorePercent,
+        correct_questions: summary.correctCount,
+        total_questions: summary.totalCount,
+        companion_user_id: companionUserId,
+        details: {
+          answers: playerAnswers,
+          questions,
+        },
+      });
+
+      if (error) {
+        console.error('Unable to save grammar assessment result:', error);
+        sessionStorage.removeItem(storageKey);
+        savedResult.current = false;
+      }
+    };
+
+    saveGrammarResult();
+  }, [showResults, questions, answers, isRoomMode, room, username]);
+
   const visibleIndex = isRoomMode && Number.isInteger(room.currentCardIndex) ? room.currentCardIndex : currentIndex;
   const currentQuestion = questions[visibleIndex] || null;
   const progress = questions.length > 0 ? ((visibleIndex + 1) / questions.length) * 100 : 0;
@@ -174,9 +242,14 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   };
 
   const clearAnswers = () => {
+    const roomCode = room?.code || '';
+    const questionHash = questions.map((q) => q?.prompt || '').join('|');
+    const storageKey = `ganbatte-saved-grammar:${roomCode || questionHash}`;
+    sessionStorage.removeItem(storageKey);
     setAnswers({});
     setCurrentIndex(0);
     setShowResults(false);
+    savedResult.current = false;
   };
 
   if (showResults) {
