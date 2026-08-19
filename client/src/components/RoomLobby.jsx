@@ -9,6 +9,7 @@ import {
   PersonIcon,
   ClockIcon,
   Cross2Icon,
+  PlusIcon,
 } from '@radix-ui/react-icons';
 import { Separator } from '@/components/ui/separator';
 
@@ -177,12 +178,13 @@ function RoomLobby({
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8"
+                            className="h-8 w-8 gap-0"
                             onClick={() => onSendFriendRequest?.(player.userId)}
                             aria-label={`Send friend request to ${player.name}`}
                             title="Send friend request"
                           >
                             <PersonIcon className="h-4 w-4" />
+                            <PlusIcon className="h-3 w-3" />
                           </Button>
                         ) : null}
                       </div>
