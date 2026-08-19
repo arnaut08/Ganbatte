@@ -462,7 +462,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
 
                   <div className="mt-4 rounded-md border border-green-500/20 bg-green-950/10 p-3">
                     <p className="text-sm font-medium text-green-300">Correct answer</p>
-                    <p className="mt-1 text-sm">{getCorrectAnswerLabel(question)}</p>
+                    <p className="mt-1 text-sm">{getCorrectAnswerLabel(question)} {question?.correctAnswerRomaji ? `(${question?.correctAnswerRomaji})` : ''}</p>
                   </div>
 
                   {question.explanation && (

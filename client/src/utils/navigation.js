@@ -48,6 +48,19 @@ export function getBackStatus(history = []) {
   return previous;
 }
 
+export function shouldRedirectToCompletedRoomResults(currentStatus, roomStatus) {
+  if (roomStatus !== 'completed') {
+    return false;
+  }
+
+  const roomFlowStatuses = ['lobby', 'assessment', 'results', 'assessment-preparing'];
+  if (!currentStatus || !roomFlowStatuses.includes(currentStatus)) {
+    return false;
+  }
+
+  return currentStatus !== 'results';
+}
+
 export function createNavigationHistory(initialStatus = DEFAULT_STATUS) {
   return {
     history: [initialStatus],
