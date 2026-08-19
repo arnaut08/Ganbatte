@@ -8,23 +8,23 @@ function AssessmentLoadingScreen({
 }) {
   return (
     <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-4">
-      <Card className="w-full max-w-3xl border-border bg-card/95 shadow-lg">
+      <Card className="w-full max-w-3xl">
         <CardHeader className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-6 w-24" />
             <Badge variant="secondary" className="mx-0">Generating deck</Badge>
           </div>
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-semibold">{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+            <CardTitle className="text-2xl font-black">{title}</CardTitle>
+            <CardDescription className="font-bold">{description}</CardDescription>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-5">
-          <div className="space-y-3 rounded-xl border border-border bg-muted/10 p-4">
+          <div className="space-y-3 border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_#000]">
             <div className="flex items-center justify-between gap-3">
               <Skeleton className="h-5 w-36" />
-              <Skeleton className="h-8 w-20 rounded-full" />
+              <Skeleton className="h-8 w-20" />
             </div>
 
             <div className="space-y-2">
@@ -39,13 +39,13 @@ function AssessmentLoadingScreen({
             </div>
 
             <div className="grid gap-3 pt-2 md:grid-cols-2">
-              <div className="space-y-2 rounded-md border border-border bg-background/40 p-3">
+              <div className="space-y-2 border-2 border-black bg-white p-3 shadow-[2px_2px_0px_0px_#000]">
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
 
-              <div className="space-y-2 rounded-md border border-border bg-background/40 p-3">
+              <div className="space-y-2 border-2 border-black bg-white p-3 shadow-[2px_2px_0px_0px_#000]">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
@@ -54,11 +54,11 @@ function AssessmentLoadingScreen({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-xs font-bold text-black/60">
               <span>Building grammar card set</span>
               <span>Preparing…</span>
             </div>
-            <Skeleton className="h-2.5 w-full rounded-full" />
+            <Skeleton className="h-2.5 w-full" />
           </div>
         </CardContent>
       </Card>

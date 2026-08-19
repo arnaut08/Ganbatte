@@ -1,251 +1,377 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useRef } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
 
-function Assessment({ room, kanaCards, onSubmitAnswer, onUseHint, onNextCard, username }) {
+function Assessment({
+  room,
+  kanaCards = [],
+  onSubmitAnswer,
+  onUseHint,
+  onNextCard,
+  username,
+}) {
   const [answer, setAnswer] = useState('');
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
+  const inputRef = useRef(null);
+  const submissionTimeoutRef = useRef(null);
 
-  const currentCard = kanaCards[room.currentCardIndex];
-  const currentPlayer = room.players.find((p) => p.name === username);
-  const otherPlayer = room.players.find((p) => p.name !== username);
+  const cardIndex = room?.currentCardIndex ?? 0;
+  const currentCard = kanaCards[cardIndex] || {};
+
+  // Safe player lookups
+  const currentPlayer = room?.players?.find((p) => p.name === username);
+  const otherPlayer = room?.players?.find((p) => p.name !== username);
+
+  // Hints calculation
   const totalHintsUsed = Array.isArray(currentPlayer?.hintsUsed)
     ? currentPlayer.hintsUsed.reduce((sum, value) => sum + Number(value || 0), 0)
     : 0;
-  const currentHintsUsed = currentPlayer?.hintsUsed?.[room.currentCardIndex] ?? 0;
+  const currentHintsUsed = currentPlayer?.hintsUsed?.[cardIndex] ?? 0;
 
-  // Determine submission state from room data to avoid race between
-  // local state and server-synced room updates.
-  const submitted = currentPlayer?.answers[room.currentCardIndex] !== undefined;
-  const otherSubmitted = otherPlayer?.answers[room.currentCardIndex] !== undefined;
-  const currentReady = currentPlayer?.ready === true;
-  const otherReady = otherPlayer?.ready === true;
-  const otherAnswer = otherPlayer?.answers[room.currentCardIndex];
-  const otherCorrect = otherAnswer !== undefined
-    && scoreRomajiAnswer(otherAnswer, currentCard?.romaji).percentage === 100;
+  // Real-time submission / ready states
+  const submittedAnswer = currentPlayer?.answers?.[cardIndex];
+  const submitted = submittedAnswer !== undefined && submittedAnswer !== null;
 
+  const otherAnswer = otherPlayer?.answers?.[cardIndex];
+  const otherSubmitted = otherAnswer !== undefined && otherAnswer !== null;
+
+  const currentReady = Boolean(currentPlayer?.ready);
+  const otherReady = Boolean(otherPlayer?.ready);
+
+  const otherCorrect =
+    otherSubmitted &&
+    scoreRomajiAnswer(String(otherAnswer), currentCard?.romaji || '').percentage === 100;
+
+  // Clear timers and reset submission locks on new card
   useEffect(() => {
     setAnswer('');
-  }, [room.currentCardIndex]);
+    setIsSubmittingLocal(false);
+    if (submissionTimeoutRef.current) {
+      clearTimeout(submissionTimeoutRef.current);
+    }
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [cardIndex]);
+
+  // Unlock submission lock when room state updates with current answer
+  useEffect(() => {
+    if (submitted) {
+      setIsSubmittingLocal(false);
+      if (submissionTimeoutRef.current) {
+        clearTimeout(submissionTimeoutRef.current);
+      }
+    }
+  }, [submitted]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (submissionTimeoutRef.current) {
+        clearTimeout(submissionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const isKanjiAssessment = room?.deckType === 'kanji';
   const canUseHint = isKanjiAssessment && !submitted && totalHintsUsed < 2;
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (answer.trim()) {
-      onSubmitAnswer(answer.toLowerCase().trim());
+    if (e) e.preventDefault();
+    const cleanAnswer = answer.trim().toLowerCase();
+
+    if (!cleanAnswer || submitted || isSubmittingLocal) {
+      return;
     }
+
+    setIsSubmittingLocal(true);
+
+    if (typeof onSubmitAnswer === 'function') {
+      onSubmitAnswer(cleanAnswer);
+    }
+
+    // Safety fallback: auto-unlock submit state if network or socket drops
+    if (submissionTimeoutRef.current) {
+      clearTimeout(submissionTimeoutRef.current);
+    }
+    submissionTimeoutRef.current = setTimeout(() => {
+      setIsSubmittingLocal(false);
+    }, 3500);
   };
 
-  const progress = ((room.currentCardIndex + 1) / kanaCards.length) * 100;
-  const submittedAnswer = currentPlayer?.answers[room.currentCardIndex] || '';
-  const answerScore = scoreRomajiAnswer(submittedAnswer, currentCard?.romaji);
+  // Evaluation Metrics
+  const progress = kanaCards.length > 0 ? ((cardIndex + 1) / kanaCards.length) * 100 : 0;
+  const answerScore = scoreRomajiAnswer(submittedAnswer || '', currentCard?.romaji || '');
   const isCorrect = answerScore.percentage === 100;
-  const answerDiff = !isCorrect
-    ? buildRomajiDiff(submittedAnswer, currentCard?.romaji)
+  const answerDiff = !isCorrect && submitted
+    ? buildRomajiDiff(submittedAnswer || '', currentCard?.romaji || '')
     : null;
 
-  const renderDifference = (segments, tokenClass) => segments.map((segment, index) => (
-    <span
-      key={`${segment.type}-${index}`}
-      className={segment.type === 'diff' ? tokenClass : undefined}
-    >
-      {segment.text}
-    </span>
-  ));
+  const renderDifference = (segments = [], tokenClass) =>
+    segments.map((segment, index) => (
+      <span
+        key={`${segment.type}-${index}`}
+        className={segment.type === 'diff' ? tokenClass : undefined}
+      >
+        {segment.text}
+      </span>
+    ));
 
   return (
-    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-4">
-      <Card className="w-full max-w-3xl border-border">
-        <CardHeader>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>
-                Card {room.currentCardIndex + 1} of {kanaCards.length}
-              </span>
-              <Badge variant={isCorrect ? 'success' : 'secondary'}>
-                {isCorrect ? 'Correct' : submitted ? 'Needs review' : 'In progress'}
-              </Badge>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {/* Current Card Display */}
-          <Card className="border-accent/20 bg-accent/5">
-            <CardContent className="flex flex-col items-center gap-4 py-8">
-              <CardTitle className="text-center text-sm uppercase tracking-wider text-muted-foreground">
-                {username}
-              </CardTitle>
-              <div className="text-5xl font-bold text-foreground">
-                {currentCard?.kana}
-              </div>
-              {isKanjiAssessment && (
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Enter the reading in romaji
-                </p>
-              )}
-              {isKanjiAssessment && currentHintsUsed > 0 && (
-                <p className="text-sm text-amber-400">
-                  Hint: {currentCard?.english}
-                </p>
-              )}
-              {submitted && (
-                <Badge
-                  variant={isCorrect ? 'success' : 'destructive'}
-                  className="mt-2 text-sm font-medium"
-                >
-                  {isCorrect ? '✓ Correct!' : '✗ Try again next time'}
-                </Badge>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Input / Answer Review Section */}
+    <main className="container mx-auto max-w-3xl space-y-4 px-4 py-4">
+      {/* 1. Arena Header & Progress HUD */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
           <div>
-            {!submitted ? (
-              <form onSubmit={handleSubmit} className="flex gap-3">
-                <Input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder={isKanjiAssessment ? 'Type the reading...' : 'Type the romaji...'}
-                  className="flex-1"
-                  autoFocus
-                />
-                <Button type="submit" disabled={!answer.trim()}>
-                  Submit
-                </Button>
-                {canUseHint && (
-                  <Button type="button" variant="secondary" onClick={() => onUseHint(room.currentCardIndex)}>
-                    Hint ({2 - totalHintsUsed})
-                  </Button>
-                )}
-              </form>
+            <span className="font-mono text-xs font-black uppercase tracking-wider text-[#FFDE59]">
+              // BATTLE ARENA: {isKanjiAssessment ? 'KANJI DRILL' : 'KANA READING'}
+            </span>
+            <h1 className="text-2xl font-black uppercase tracking-tight text-white sm:text-3xl leading-tight">
+              {isKanjiAssessment ? 'Kanji Assessment' : 'Reading Assessment'}
+            </h1>
+          </div>
+
+          <div className="border-2 border-black bg-white px-3 py-1 font-mono text-xs font-black text-black shadow-[3px_3px_0px_0px_#000000]">
+            CARD {cardIndex + 1} / {kanaCards.length || 1}
+          </div>
+        </div>
+
+        {/* Neo-Brutalist Progress Bar */}
+        <div className="h-3.5 w-full border-2 border-black bg-[#1a1f2c] p-0.5 shadow-[2px_2px_0px_0px_#000000]">
+          <div
+            className="h-full bg-[#A3E636] transition-all duration-300 ease-out"
+            style={{ width: `${Math.max(5, progress)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 2. Main Arena Battle Container */}
+      <div className="relative border-2 border-black bg-[#1a1f2c] p-5 shadow-[6px_6px_0px_0px_#000000] space-y-5 sm:p-6">
+        
+        {/* Target Phrase Hero Card */}
+        <div className="relative border-2 border-black bg-[#FFDE59] p-6 shadow-[4px_4px_0px_0px_#000000] sm:p-8">
+          <div className="flex items-center justify-between">
+            <span className="border-2 border-black bg-black px-2 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-[#FFDE59]">
+              TARGET PHRASE
+            </span>
+            <span className="font-mono text-xs font-bold text-black/70">
+              OPERATOR: {username}
+            </span>
+          </div>
+
+          {/* Target Japanese Text */}
+          <div className="my-6 text-center">
+            <p className="jp-font text-2xl font-black text-black sm:text-4xl tracking-wide leading-relaxed">
+              {currentCard?.kana || '...'}
+            </p>
+          </div>
+
+          {/* Subtext Prompt & Hint */}
+          <div className="flex flex-col items-center gap-1 text-center font-mono text-xs font-black uppercase tracking-wider text-black/70">
+            {isKanjiAssessment ? (
+              currentHintsUsed > 0 ? (
+                <span className="border border-black bg-white px-2 py-0.5 text-black shadow-[1.5px_1.5px_0px_0px_#000]">
+                  HINT: {currentCard?.english}
+                </span>
+              ) : (
+                <span>ENTER READING IN ROMAJI</span>
+              )
             ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Your answer
-                  </p>
-                  <div className="rounded-md border border-border bg-muted/30 p-3 font-mono text-sm">
-                    {isCorrect || !answerDiff ? (
-                      <span>{submittedAnswer}</span>
-                    ) : (
-                      renderDifference(answerDiff.given, 'text-destructive')
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Correct answer
-                  </p>
-                  <div className="rounded-md border border-border bg-muted/30 p-3 font-mono text-sm">
-                    {isCorrect || !answerDiff ? (
-                      <span>{currentCard?.romaji}</span>
-                    ) : (
-                      renderDifference(answerDiff.expected, 'text-green-400')
-                    )}
-                  </div>
-                </div>
-
-                {currentCard?.english && (
-                  <p className="text-sm text-muted-foreground">
-                    English: <strong className="text-foreground">{currentCard.english}</strong>
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between pt-2">
-                  {!currentReady ? (
-                    <Button onClick={() => onNextCard()}>Ready</Button>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Waiting...</span>
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {otherReady
-                      ? 'Other player ready'
-                      : otherSubmitted
-                      ? 'Other player submitted'
-                      : 'Other player not submitted'}
-                  </span>
-                </div>
-              </div>
+              <span>TRANSLITERATE TO ROMAJI</span>
             )}
           </div>
-          
-          {/* Opponent Status */}
-          {showOpponentStatus && (
-            <Card className="border-border bg-card/50">
-              <CardContent className="py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {otherPlayer ? otherPlayer.name : 'Opponent'}
-                    </span>
-                    {otherPlayer && otherSubmitted && otherCorrect && (
-                      <Badge variant="success" className="text-xs">
-                        ✓ Correct
-                      </Badge>
-                    )}
-                    {otherPlayer && otherSubmitted && !otherCorrect && (
-                      <Badge variant="destructive" className="text-xs">
-                        ✗ Incorrect
-                      </Badge>
-                    )}
-                    {otherPlayer && !otherSubmitted && (
-                      <Badge variant="outline" className="text-xs">
-                        ⏳ Not submitted
-                      </Badge>
-                    )}
-                  </div>
-                  {otherReady && (
-                    <Badge variant="success" className="text-xs">
-                      ✅ Ready
-                    </Badge>
+        </div>
+
+        {/* 3. Input Form / Post-Submission Review */}
+        {!submitted ? (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <span className="absolute left-3.5 top-3.5 font-mono text-base font-black text-neutral-400 select-none">
+                  &gt;
+                </span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  autoFocus
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSubmit(e);
+                    }
+                  }}
+                  placeholder={
+                    isKanjiAssessment
+                      ? 'Type reading in romaji...'
+                      : 'Type romaji reading...'
+                  }
+                  className="h-13 w-full border-2 border-black bg-white pl-8 pr-4 font-mono text-base font-black text-black shadow-[4px_4px_0px_0px_#000000] placeholder:font-sans placeholder:text-sm placeholder:font-bold placeholder:text-neutral-400 focus-visible:bg-[#f3f9ff] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                {canUseHint && (
+                  <button
+                    type="button"
+                    onClick={() => onUseHint?.(cardIndex)}
+                    className="h-13 border-2 border-black bg-[#FFDE59] px-4 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] hover:bg-[#ffe57e] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                  >
+                    Hint ({2 - totalHintsUsed})
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!answer.trim() || isSubmittingLocal}
+                  className="h-13 min-w-[120px] border-2 border-black bg-[#A3E636] px-6 font-mono text-sm font-black uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed"
+                >
+                  {isSubmittingLocal ? 'Submitting...' : 'Submit →'}
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          /* Round Evaluation */
+          <div className="space-y-4 border-2 border-black bg-[#252c3d] p-4 shadow-[4px_4px_0px_0px_#000000]">
+            <div className="flex items-center justify-between border-b-2 border-black/40 pb-2">
+              <span className="font-mono text-xs font-black uppercase tracking-wider text-white">
+                // ROUND EVALUATION
+              </span>
+              <span
+                className={`border-2 border-black px-2.5 py-0.5 font-mono text-xs font-black uppercase ${
+                  isCorrect
+                    ? 'bg-[#A3E636] text-black'
+                    : 'bg-[#FF6B6B] text-black'
+                }`}
+              >
+                {isCorrect ? '✔ CORRECT' : '✖ INCORRECT'}
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* User Answer */}
+              <div className="border-2 border-black bg-[#1a1f2c] p-3 shadow-[2px_2px_0px_0px_#000000]">
+                <span className="font-mono text-[10px] font-black uppercase text-neutral-400">
+                  YOUR INPUT
+                </span>
+                <p className="mt-1 font-mono text-base font-black text-white">
+                  {isCorrect || !answerDiff ? (
+                    submittedAnswer
+                  ) : (
+                    renderDifference(
+                      answerDiff.given,
+                      'text-[#FF6B6B] font-black'
+                    )
                   )}
-                  {!otherPlayer && (
-                    <span className="text-sm text-muted-foreground">
-                      Waiting for opponent...
-                    </span>
+                </p>
+              </div>
+
+              {/* Correct Target Answer */}
+              <div className="border-2 border-black bg-[#A3E636] p-3 shadow-[2px_2px_0px_0px_#000000]">
+                <span className="font-mono text-[10px] font-black uppercase text-black/70">
+                  CORRECT ROMAJI
+                </span>
+                <p className="mt-1 font-mono text-base font-black text-black">
+                  {isCorrect || !answerDiff ? (
+                    currentCard?.romaji
+                  ) : (
+                    renderDifference(answerDiff.expected, 'font-black underline')
                   )}
+                </p>
+              </div>
+            </div>
+
+            {currentCard?.english && (
+              <p className="font-mono text-xs font-bold text-neutral-300">
+                MEANING:{' '}
+                <span className="text-white font-black">
+                  {currentCard.english}
+                </span>
+              </p>
+            )}
+
+            {/* Next Card Ready Trigger */}
+            <div className="flex items-center justify-between border-t-2 border-black/40 pt-3">
+              {!currentReady ? (
+                <button
+                  type="button"
+                  onClick={() => onNextCard?.()}
+                  className="border-2 border-black bg-[#A3E636] px-5 py-2 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                  Ready for Next →
+                </button>
+              ) : (
+                <div className="inline-flex items-center gap-2 border-2 border-black bg-[#FFDE59] px-3.5 py-1.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000]">
+                  <span className="h-2 w-2 animate-ping bg-black" />
+                  <span>Waiting for Next Card...</span>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+
+              <span className="font-mono text-xs font-bold text-neutral-400">
+                {otherReady
+                  ? '● Other player ready'
+                  : otherSubmitted
+                  ? '● Other player submitted'
+                  : '○ Other player formulating...'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 4. Opponent Status HUD Bar */}
+        <div className="flex items-center justify-between border-t-2 border-neutral-700/60 pt-4">
+          {showOpponentStatus ? (
+            <div className="flex items-center gap-3 border-2 border-black bg-[#252c3d] px-3.5 py-2 shadow-[2px_2px_0px_0px_#000000]">
+              <span className="font-mono text-xs font-black uppercase text-white">
+                VS {otherPlayer ? otherPlayer.name : 'OPPONENT'}:
+              </span>
+              <div>
+                {otherPlayer && otherSubmitted && otherCorrect && (
+                  <span className="border border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[10px] font-black uppercase text-black">
+                    ✔ Correct
+                  </span>
+                )}
+                {otherPlayer && otherSubmitted && !otherCorrect && (
+                  <span className="border border-black bg-[#FF6B6B] px-2 py-0.5 font-mono text-[10px] font-black uppercase text-black">
+                    ✖ Wrong
+                  </span>
+                )}
+                {otherPlayer && !otherSubmitted && (
+                  <span className="border border-black bg-neutral-700 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-neutral-300">
+                    Typing...
+                  </span>
+                )}
+                {!otherPlayer && (
+                  <span className="font-mono text-xs font-bold text-neutral-400">
+                    Waiting...
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div />
           )}
 
+          {/* Toggle Switch */}
           <div className="flex items-center gap-2">
             <Switch
               id="show-opponent"
               checked={showOpponentStatus}
               onCheckedChange={setShowOpponentStatus}
             />
-            <Label htmlFor="show-opponent" className="text-sm text-muted-foreground cursor-pointer">
-              Show opponent status
+            <Label
+              htmlFor="show-opponent"
+              className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 cursor-pointer select-none"
+            >
+              Opponent HUD
             </Label>
           </div>
-
-          {/* Hint */}
-          <Card className="border-yellow-900/30 bg-yellow-950/30">
-            <CardContent className="py-3">
-              <p className="text-sm text-yellow-400">
-                {isKanjiAssessment
-                  ? '💡 Tip: Type the romaji reading for the kanji character shown above'
-                  : '💡 Tip: Type the romaji (Latin letters) for the kana character shown above'}
-              </p>
-            </CardContent>
-          </Card>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </main>
   );
 }
 

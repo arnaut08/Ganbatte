@@ -1088,9 +1088,9 @@ function App() {
   return (
     <div className="app-container min-h-screen">
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm rounded-md border border-amber-500/30 bg-slate-900/95 px-4 py-3 text-sm text-white shadow-lg backdrop-blur-sm">
+        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm border-2 border-black bg-white px-4 py-3 text-sm font-bold text-black shadow-[5px_5px_0px_0px_#000]">
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
+            <span className="mt-0.5 inline-block h-3 w-3 shrink-0 border-2 border-black bg-[#FFDE59]" />
             <span>{toast.message}</span>
           </div>
         </div>
@@ -1135,15 +1135,15 @@ function App() {
 
             {status === 'friends' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                   <BackButton onClick={handleGoBack} label="Back to previous screen" />
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                    <p className="text-xs font-black uppercase tracking-wider text-[#2563eb]">
                       Social
                     </p>
                     <h2 className="text-xl font-bold">Friends</h2>
                   </div>
-                </div>
+                </div> */}
 
                 <FriendsPanel
                   friends={friends}
@@ -1155,6 +1155,7 @@ function App() {
                   onRejectFriendRequest={handleRejectFriendRequest}
                   onRemoveFriend={handleRemoveFriend}
                   isSearching={isFriendSearchLoading}
+                  onBack={handleGoBack}
                 />
               </div>
             )}

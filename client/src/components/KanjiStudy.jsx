@@ -3,14 +3,13 @@ import { getKanjiCards } from '../services/api';
 import { Button } from '@/components/ui/button';
 import BackButton from './common/BackButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -53,164 +52,209 @@ function KanjiStudy({ onBack }) {
     : `${selectedGroups.length} groups selected`;
 
   return (
-    <main className="container mx-auto max-w-3xl space-y-6 p-6 font-sora">
-      {/* Header */}
-      <Card className="border-border font-sora">
-        <CardHeader className="p-4 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1 min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wider text-primary sm:text-sm">
-                Kanji practice
-              </p>
-              <CardTitle className="font-sora text-xl sm:text-2xl">
-                Build your reading foundation
-              </CardTitle>
-              <CardDescription className="text-sm leading-relaxed sm:text-base">
-                Study 100 beginner kanji, grouped by everyday themes.
-              </CardDescription>
-            </div>
-            <BackButton
-              onClick={onBack}
-              label="Back to previous screen"
-              className="self-start sm:self-auto"
-            />
-          </div>
-        </CardHeader>
-      </Card>
+    <main className="container mx-auto max-w-3xl space-y-6 px-4 py-6">
+      {/* 1. Cohesive Screen Header & Aligned Filter Dropdown */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+            title="Back to previous screen"
+          >
+            <span className="font-mono text-lg font-black">&lt;</span>
+          </button>
 
-      {/* Filter */}
-      <div className="relative max-w-[15rem] font-sora">
-        <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between"
-              aria-label="Filter Kanji groups"
-            >
-              <span>{filterSummary}</span>
-              <ChevronDownIcon className="h-4 w-4 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-full border-border bg-popover" align="start">
-            <DropdownMenuItem
-              className={selectedGroups.length === 0 ? 'bg-accent/50' : ''}
-              onSelect={() => {
-                setSelectedGroups([]);
-                setCardIndex(0);
-                setIsRevealed(false);
-                setIsFilterOpen(false);
-              }}
-            >
-              <span className="mr-2">
-                {selectedGroups.length === 0 ? '✓' : ''}
-              </span>
-              All kanji
-            </DropdownMenuItem>
-            {kanjiData.groups.map((group) => (
-              <DropdownMenuItem
-                key={group.id}
-                className={selectedGroups.includes(group.id) ? 'bg-accent/50' : ''}
-                onSelect={() => selectGroup(group.id)}
+          <div className="flex flex-col justify-center">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
+          // PRACTICE: KANJI DECK
+            </span>
+            <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
+              Reading Foundation
+            </h1>
+          </div>
+        </div>
+
+        {/* Filter Dropdown */}
+        <div className="shrink-0">
+          <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-11 items-center justify-between gap-3 border-2 border-black bg-white px-4 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                aria-label="Filter Kanji groups"
               >
-                <span className="mr-2">
-                  {selectedGroups.includes(group.id) ? '✓' : ''}
-                </span>
-                {group.name}
+                <span className="truncate max-w-[140px]">{filterSummary}</span>
+                <ChevronDownIcon className="h-4 w-4 stroke-[3]" />
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              className="w-56 border-2 border-black bg-[#1a1f2c] p-1.5 shadow-[5px_5px_0px_0px_#000000]"
+              align="end"
+            >
+              {/* All Kanji Option */}
+              <DropdownMenuItem
+                className={`cursor-pointer px-3 py-2 font-mono text-xs font-black uppercase transition-all ${selectedGroups.length === 0
+                    ? 'border border-black bg-[#FFDE59] text-black'
+                    : 'text-white hover:bg-[#252c3d]'
+                  }`}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setSelectedGroups([]);
+                  setCardIndex(0);
+                  setIsRevealed(false);
+                }}
+              >
+                <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ' '}</span>
+                All kanji
               </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+
+              <div className="my-1 border-t-2 border-black/40" />
+
+              {/* Group Items */}
+              {kanjiData.groups.map((group) => {
+                const isSelected = selectedGroups.includes(group.id);
+
+                return (
+                  <DropdownMenuItem
+                    key={group.id}
+                    className={`cursor-pointer px-3 py-2 font-mono text-xs font-black uppercase transition-all ${isSelected
+                        ? 'border border-black bg-[#FFDE59] text-black'
+                        : 'text-white hover:bg-[#252c3d]'
+                      }`}
+                    onSelect={(e) => {
+                      e.preventDefault(); // <--- Must be present
+                      selectGroup(group.id);
+                    }}
+                  >
+                    <span className="mr-2 font-bold">{isSelected ? '✓' : ' '}</span>
+                    {group.name}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      {/* Kanji Card */}
+      {/* 2. Loading State */}
       {isLoading && (
-        <Card className="border-border font-sora">
-          <CardContent className="flex flex-col items-center justify-center py-16 font-sora">
-            <Skeleton className="mb-4 h-6 w-3/4" />
-            <Skeleton className="h-24 w-24 rounded-full" />
-          </CardContent>
-        </Card>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {!isLoading && !error && card && (
-        <Card className="border-accent/20 font-sora">
-          <CardContent className="flex flex-col items-center justify-center py-12 font-sora">
-            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-primary font-sora">
-              {card.groupName}
-            </p>
-            <div className="text-7xl font-bold text-foreground sm:text-8xl">
-              {card.kanji}
-            </div>
-            {isRevealed ? (
-              <div className="mt-8 w-full max-w-md space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="border-border font-sora">
-                    <CardContent className="p-4 font-sora">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sora">
-                        Reading
-                      </p>
-                      <p className="mt-1 text-xl font-medium text-foreground font-sora">
-                        {card.reading}
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-border font-sora">
-                    <CardContent className="p-4 font-sora">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sora">
-                        Meaning
-                      </p>
-                      <p className="mt-1 text-xl font-medium text-foreground font-sora">
-                        {card.meaning}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-                {card.example && (
-                  <Card className="border-border font-sora">
-                    <CardContent className="p-4 font-sora">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sora">
-                        Example
-                      </p>
-                      <p className="mt-1 text-lg text-foreground font-sora">
-                        {card.example[0]}
-                      </p>
-                      <p className="text-sm text-muted-foreground font-sora">
-                        {card.example[1]}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            ) : (
-              <Button
-                className="mt-8"
-                onClick={() => setIsRevealed(true)}
-              >
-                Show reading
-              </Button>
-            )}
-            <p className="mt-6 text-sm text-muted-foreground font-sora">
-              Card {cardIndex + 1} of {cards.length}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center border-2 border-black bg-[#1a1f2c] py-20 shadow-[6px_6px_0px_0px_#000000]">
+          <div className="h-4 w-32 bg-[#252c3d] animate-pulse mb-6" />
+          <div className="h-28 w-28 bg-[#252c3d] animate-pulse mb-6" />
+          <div className="h-10 w-36 bg-[#252c3d] animate-pulse" />
+        </div>
       )}
 
-      {/* Controls */}
+      {/* 3. Error Banner */}
+      {error && (
+        <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-sm font-black uppercase text-black shadow-[4px_4px_0px_0px_#000000]">
+          {error}
+        </div>
+      )}
+
+      {/* 4. Main Kanji Flashcard */}
       {!isLoading && !error && card && (
-        <div className="flex justify-center gap-3">
-          <Button variant="secondary" onClick={() => moveCard(-1)}>
-            <ChevronLeftIcon className="h-4 w-4" />
-            Previous
-          </Button>
-          <Button onClick={() => moveCard(1)}>
-            <ChevronRightIcon className="h-4 w-4" />
-            Next
-          </Button>
+        <div className="relative border-2 border-black bg-[#FFDE59] p-6 shadow-[6px_6px_0px_0px_#000000] sm:p-8">
+          {/* Group Theme Banner */}
+          <div className="flex justify-center">
+            <span className="border-2 border-black bg-black px-3 py-1 font-mono text-[11px] font-black uppercase tracking-wider text-[#FFDE59] shadow-[2px_2px_0px_0px_#ffffff]">
+              {card.groupName}
+            </span>
+          </div>
+
+          {/* Hero Kanji Display */}
+          <div className="my-8 flex justify-center">
+            <div className="kana-font select-none text-8xl font-black text-black sm:text-9xl tracking-normal leading-none">
+              {card.kanji}
+            </div>
+          </div>
+
+          {/* Revealed Solution Panel */}
+          {isRevealed ? (
+            <div className="mt-8 space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Reading Box */}
+                <div className="border-2 border-black bg-white p-4 shadow-[3px_3px_0px_0px_#000000]">
+                  <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-500">
+                // READING
+                  </span>
+                  <p className="jp-font mt-1 text-2xl font-black text-black">
+                    {card.reading}
+                  </p>
+                </div>
+
+                {/* Meaning Box */}
+                <div className="border-2 border-black bg-white p-4 shadow-[3px_3px_0px_0px_#000000]">
+                  <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-500">
+                // MEANING
+                  </span>
+                  <p className="mt-1 text-2xl font-black text-black capitalize">
+                    {card.meaning}
+                  </p>
+                </div>
+              </div>
+
+              {/* Example Sentence Box */}
+              {card.example && (
+                <div className="border-2 border-black bg-white p-4 shadow-[3px_3px_0px_0px_#000000] space-y-1">
+                  <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-500">
+                // EXAMPLE USAGE
+                  </span>
+                  <p className="jp-font text-lg font-bold text-black leading-snug">
+                    {card.example[0]}
+                  </p>
+                  <p className="font-mono text-xs font-bold text-neutral-600">
+                    {card.example[1]}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Reveal Action Button */
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setIsRevealed(true)}
+                className="border-2 border-black bg-white px-8 py-3.5 font-mono text-sm font-black uppercase text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Show Reading →
+              </button>
+            </div>
+          )}
+
+          {/* Card Counter Footer */}
+          <div className="mt-8 text-center">
+            <span className="font-mono text-xs font-black uppercase tracking-wider text-black/70">
+              CARD {cardIndex + 1} OF {cards.length}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Bottom Navigation Controls */}
+      {!isLoading && !error && card && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => moveCard(-1)}
+            disabled={cardIndex === 0}
+            className="flex h-11 items-center gap-1.5 border-2 border-black bg-white px-5 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed"
+          >
+            <ChevronLeftIcon className="h-4 w-4 stroke-[3]" />
+            <span>Prev</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => moveCard(1)}
+            disabled={cardIndex === cards.length - 1}
+            className="flex h-11 items-center gap-1.5 border-2 border-black bg-[#A3E636] px-6 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed"
+          >
+            <span>Next</span>
+            <ChevronRightIcon className="h-4 w-4 stroke-[3]" />
+          </button>
         </div>
       )}
     </main>

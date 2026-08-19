@@ -1,37 +1,13 @@
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PersonIcon } from '@radix-ui/react-icons';
 import logo from '../../assets/logo.svg';
-
-function UserAvatarIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M3 14.5c0-2.5 4-4 7-4s7 1.5 7 4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 function AppHeader({
   onHome,
@@ -43,87 +19,148 @@ function AppHeader({
   pendingFriendRequestCount = 0,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const userInitial = (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'U').charAt(0).toUpperCase();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const userInitial = (
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'U'
+  )
+    .charAt(0)
+    .toUpperCase();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 15);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <header className="gradient-heading border-b">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Button
-          variant="link"
-          className="flex items-center gap-3 p-0 text-foreground hover:text-primary"
+    <header
+      className={`sticky top-0 z-50 w-full px-3 transition-all duration-300 sm:px-6 ${
+        isScrolled
+          ? 'border-b border-white/10 bg-[#131722]/80 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.4)]'
+          : 'border-b border-transparent bg-transparent shadow-none'
+      }`}
+    >
+      <div className="container mx-auto flex h-16 items-center justify-between gap-2 sm:h-20 sm:gap-4">
+        {/* Brand Logo & Title Lockup */}
+        <button
+          type="button"
           onClick={onHome}
           aria-label="Go to home"
+          className="group flex min-w-0 items-center gap-2 rounded-none border-0 bg-transparent p-0 text-left shadow-none transition-transform hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] sm:gap-3.5"
         >
-          <img src={logo} alt="Ganbatte logo" className="h-12 w-12 object-contain" />
-          <div className="flex flex-col items-start">
-            <h1 className="font-sora font-bold text-foreground">
-              <span className="text-foreground text-xl">GANBATTE</span>
-              <span className="text-primary text-l" lang="ja">
+          {/* Origami Logo Icon */}
+          <div className="-rotate-3 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden border-2 border-black bg-[#FFDE59] shadow-[2px_2px_0px_0px_#000000] transition-transform duration-150 group-hover:rotate-0 sm:h-12 sm:w-12 sm:shadow-[3px_3px_0px_0px_#000000]">
+            <img
+              src={logo}
+              alt="Ganbatte Logo"
+              className="h-7 w-7 object-contain brightness-0 scale-110 sm:h-10 sm:w-10"
+            />
+          </div>
+
+          {/* Title Lockup + Tagline */}
+          <div className="flex min-w-0 flex-col justify-center">
+            <div className="flex items-center gap-1.5 sm:gap-2.5">
+              <span className="font-black text-base tracking-tight text-white uppercase leading-none sm:text-2xl">
+                GANBATTE
+              </span>
+              <span className="shrink-0 border-2 border-black bg-[#A3E636] px-1 py-0.5 text-[9px] font-black text-black shadow-[1.5px_1.5px_0px_0px_#000000] leading-none sm:px-1.5 sm:text-xs sm:shadow-[2px_2px_0px_0px_#000000]">
                 頑張って
               </span>
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Stop saying 'Nani?' to everything.
-            </p>
-          </div>
-        </Button>
+            </div>
 
+            {/* Always Visible Tagline: Concise on mobile, full on desktop */}
+            <span className="mt-0.5 block truncate font-mono text-[10px] font-bold text-[#FF6B6B] tracking-tight sm:mt-1 sm:text-xs sm:tracking-wide">
+              <span className="inline sm:hidden">// Stop saying &apos;Nani?&apos; to everything.</span>
+              <span className="hidden sm:inline">// Stop saying &apos;Nani?&apos; to everything.</span>
+            </span>
+          </div>
+        </button>
+
+        {/* Authenticated Controls */}
         {isAuthenticated && (
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            {/* Friends Button */}
             <div className="relative">
               <Button
-                variant="ghost"
+                variant="neutral"
                 size="icon"
-                className="h-10 w-10 rounded-full border border-border bg-background/60"
+                className="h-9 w-9 rounded-none border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
                 aria-label="Open friends"
                 title="Friends"
                 onClick={onOpenFriends}
               >
-                <PersonIcon className="h-4 w-4" />
+                <PersonIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               {pendingFriendRequestCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center border-2 border-black bg-[#FF6B6B] px-1 text-[9px] font-black text-black sm:h-5 sm:min-w-5 sm:text-[10px]">
                   {pendingFriendRequestCount > 99 ? '99+' : pendingFriendRequestCount}
                 </span>
               )}
             </div>
 
+            {/* User Profile Menu */}
             <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="neutral"
                   size="icon"
-                  className="h-13 w-13 rounded-full border border-border"
+                  className="h-9 w-9 border-2 border-black bg-[#A3E636] p-0 text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1.5px_1.5px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
                   aria-label="Open user menu"
                   aria-expanded={isMenuOpen}
                   title="User menu"
                 >
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                      {userInitial}
-                    </AvatarFallback>
-                  </Avatar>
+                  <span className="font-mono text-sm font-black uppercase sm:text-lg">
+                    {userInitial}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
+
               <DropdownMenuContent
                 align="end"
-                className="w-64 bg-popover border-border"
+                sideOffset={8}
+                className="w-60 border-2 border-black bg-[#1a1f2c] p-1.5 shadow-[5px_5px_0px_0px_#000000] sm:w-64 sm:shadow-[6px_6px_0px_0px_#000000]"
               >
-                <div className="flex items-center gap-3 border-b border-border px-3 py-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                {/* User Header Block */}
+                <div className="mb-1.5 flex items-center gap-2.5 border-2 border-black bg-[#252c3d] p-2 sm:p-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-black bg-[#A3E636] font-mono text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:h-9 sm:w-9 sm:text-sm">
                     {userInitial}
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
-                      {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner'}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-black uppercase tracking-tight text-white leading-tight">
+                      {user?.user_metadata?.full_name ||
+                        user?.email?.split('@')[0] ||
+                        'Learner'}
                     </p>
+                    <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-[#A3E636]">
+                      <span className="h-1.5 w-1.5 bg-[#A3E636]" /> ONLINE
+                    </span>
                   </div>
                 </div>
-                <DropdownMenuItem onSelect={onOpenHistory}>
-                  Assessment history
+
+                {/* Menu Option: History */}
+                <DropdownMenuItem
+                  onSelect={onOpenHistory}
+                  className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#FFDE59] hover:text-black focus:border-black focus:bg-[#FFDE59] focus:text-black sm:px-3 sm:py-2"
+                >
+                  <span>Assessment History</span>
+                  <span className="text-sm font-bold">&rarr;</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border" />
-                <DropdownMenuItem onSelect={onLogout}>Log out</DropdownMenuItem>
+
+                <div className="my-1 border-t-2 border-black/40" />
+
+                {/* Menu Option: Logout */}
+                <DropdownMenuItem
+                  onSelect={onLogout}
+                  className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 font-mono text-xs font-black uppercase text-[#FF6B6B] transition-all hover:border-black hover:bg-[#FF6B6B] hover:text-black focus:border-black focus:bg-[#FF6B6B] focus:text-black sm:px-3 sm:py-2"
+                >
+                  <span>Log Out</span>
+                  <span className="font-mono text-xs font-bold">[ESC]</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
