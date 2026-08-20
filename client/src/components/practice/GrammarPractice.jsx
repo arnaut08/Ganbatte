@@ -688,7 +688,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           <p className="jp-font mt-1 text-lg font-black text-black leading-snug sm:text-xl">
             {currentQuestion?.prompt}
           </p>
-          {currentQuestion?.englishText && (
+          {currentQuestion?.englishText && currentQuestion?.type !== 'translation' && (
             <p className="mt-2 font-mono text-xs font-bold text-black/80">
               EN: {currentQuestion.englishText}
             </p>
