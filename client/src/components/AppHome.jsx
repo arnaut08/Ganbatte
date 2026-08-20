@@ -8,18 +8,34 @@ function AppHome({
   onCreateRoom,
   onJoinRoom,
   onOpenKanjiStudy,
+  onScreenChange,
+  screen: controlledScreen,
   prefillRoomCode = '',
   isSocketReady = false,
   canReturnToRoom = false,
   roomCode = '',
 }) {
-  const [screen, setScreen] = useState('home');
+  const [internalScreen, setInternalScreen] = useState(controlledScreen || 'home');
+  const screen = controlledScreen ?? internalScreen;
+  const setScreen = (nextScreen) => {
+    if (onScreenChange) {
+      onScreenChange(nextScreen);
+      return;
+    }
+    setInternalScreen(nextScreen);
+  };
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [deckType, setDeckType] = useState('kana');
   const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const joinCodeInputRef = useRef(null);
+
+  useEffect(() => {
+    if (controlledScreen && controlledScreen !== screen) {
+      setInternalScreen(controlledScreen);
+    }
+  }, [controlledScreen, screen]);
 
   useEffect(() => {
     if (prefillRoomCode) {

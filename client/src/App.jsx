@@ -83,6 +83,8 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
   const [screenHistory, setScreenHistory] = useState(['selector']);
+  const [selectorScreen, setSelectorScreen] = useState('home');
+  const [appHomeKey, setAppHomeKey] = useState(0);
   const [friends, setFriends] = useState([]);
   const [friendSearchResults, setFriendSearchResults] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -896,6 +898,7 @@ function App() {
       setResults(null);
       setPrefillRoomCode('');
       setStatus('selector');
+      setSelectorScreen('practice');
     });
   };
 
@@ -916,8 +919,7 @@ function App() {
     setResults(null);
     setPrefillRoomCode('');
     setStatus('selector');
-
-    if (!supabase) return;
+      setSelectorScreen('home');
 
     try {
       const { error } = await supabase.auth.signOut();
@@ -1032,7 +1034,9 @@ function App() {
 
   const handleBackToPractice = () => {
     setStatus('selector');
+    setSelectorScreen('home');
     setScreenHistory(['selector']);
+    setAppHomeKey((value) => value + 1);
   };
 
   const handleReturnToRoom = () => {
@@ -1113,6 +1117,9 @@ function App() {
           <>
             {status === 'selector' && (
               <AppHome
+                key={appHomeKey}
+                screen={selectorScreen}
+                onScreenChange={setSelectorScreen}
                 onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}

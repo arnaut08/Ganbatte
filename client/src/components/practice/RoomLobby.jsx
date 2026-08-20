@@ -64,9 +64,9 @@ function RoomLobby({
       {/* 1. Screen Header Lockup */}
       <div className="mb-6 flex items-center gap-4">
         <button
-          onClick={() => setScreen('home')}
+          onClick={onLeaveRoom}
           className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-          title="Back to home"
+          title="Leave room"
         >
           <span className="font-mono text-lg font-black">&lt;</span>
         </button>
