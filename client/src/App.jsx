@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import { Button } from '@/components/ui/button';
 import AppHome from './components/AppHome';
 import RoomLobby from './components/practice/RoomLobby';
 import Assessment from './components/practice/Assessment';
@@ -12,7 +11,6 @@ import GrammarPractice from './components/practice/GrammarPractice';
 import AssessmentLoadingScreen from './components/learning/AssessmentLoadingScreen';
 import AppHeader from './components/layout/AppHeader';
 import FriendsPanel from './components/social/FriendsPanel';
-import BackButton from './components/common/BackButton';
 import './App.css';
 import {
   acceptFriendRequest,
@@ -1259,15 +1257,9 @@ function App() {
                 room={room}
                 onStartAssessment={handleStartAssessment}
                 onLeaveRoom={handleLeaveRoom}
-                onSetAwayStatus={handleSetAwayStatus}
                 currentSocketId={socket?.id || ''}
                 currentUserId={user?.id || null}
                 currentSessionKey={getSessionKey()}
-                friends={friends}
-                friendRequests={friendRequests}
-                onSendFriendRequest={handleSendFriendRequest}
-                onAcceptFriendRequest={handleAcceptFriendRequest}
-                onRejectFriendRequest={handleRejectFriendRequest}
                 isPreparingAssessment={isPreparingAssessment}
               />
             )}

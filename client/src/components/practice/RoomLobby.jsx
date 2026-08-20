@@ -1,17 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
   CopyIcon,
   CheckIcon,
-  PersonIcon,
-  ClockIcon,
-  Cross2Icon,
-  PlusIcon,
 } from '@radix-ui/react-icons';
-import { Separator } from '@/components/ui/separator';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
 
 function RoomLobby({
@@ -21,11 +14,6 @@ function RoomLobby({
   onLeaveRoom,
   currentSocketId,
   currentUserId,
-  friends = [],
-  friendRequests = [],
-  onSendFriendRequest,
-  onAcceptFriendRequest,
-  onRejectFriendRequest,
   isPreparingAssessment = false,
   currentSessionKey,
 }) {
@@ -37,21 +25,6 @@ function RoomLobby({
     || (currentUserId && hostPlayer?.userId === currentUserId)
     || (currentSessionKey && hostPlayer?.sessionKey === currentSessionKey);
   const isKanjiAssessment = room?.deckType === 'kanji';
-  const friendIds = new Set((friends || []).map((friend) => friend.user_id || friend.id));
-  const pendingRequestReceiverIds = new Set(
-    (friendRequests || [])
-      .filter((request) => request?.direction === 'outgoing')
-      .map((request) => request?.receiver_id ?? request?.receiver?.id)
-      .filter(Boolean)
-      .map(String),
-  );
-  const incomingRequestSenderIds = new Set(
-    (friendRequests || [])
-      .filter((request) => request?.direction === 'incoming')
-      .map((request) => request?.sender_id ?? request?.sender?.id)
-      .filter(Boolean)
-      .map(String),
-  );
 
   const handleCopyLink = async () => {
     try {

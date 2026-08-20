@@ -159,10 +159,6 @@ export function rejectFriendRequest(requestId) {
   return request(`/api/friend-requests/${encodeURIComponent(requestId)}/reject`, { method: 'POST' });
 }
 
-export function addFriend(userId) {
-  return request(`/api/friends/${encodeURIComponent(userId)}`, { method: 'POST' });
-}
-
 export function removeFriend(userId) {
   return request(`/api/friends/${encodeURIComponent(userId)}`, { method: 'DELETE' });
 }
