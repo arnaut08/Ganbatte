@@ -3,9 +3,6 @@ import { Button } from '@/components/ui/button';
 import BackButton from '../common/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { getMatchingResultScore, isQuestionCorrect, summarizeResults } from '@/utils/grammarScoring';
 import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
 import { supabase } from '../../config/supabase';
@@ -94,19 +91,13 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   const currentQuestion = questions[visibleIndex] || null;
   const progress = questions.length > 0 ? ((visibleIndex + 1) / questions.length) * 100 : 0;
   const isLastQuestion = questions.length > 0 && visibleIndex === questions.length - 1;
-  const allQuestionsAnswered = questions.length > 0 && questions.every((question, index) => answers[index] !== undefined);
   const results = useMemo(() => summarizeResults(questions, questions.map((_, index) => answers[index])), [answers, questions]);
   const currentPlayer = room?.players?.find((player) => player.name === username) || room?.players?.[0] || null;
   const otherPlayer = room?.players?.find((player) => player !== currentPlayer) || null;
   const isCurrentPlayerReady = currentPlayer?.ready === true;
-  const showAllQuestionsAnsweredBanner = isRoomMode
-    ? isCurrentPlayerReady && isLastQuestion
-    : allQuestionsAnswered;
 
   useEffect(() => {
     if (!isRoomMode || !Array.isArray(currentPlayer?.answers)) return;
-
-    const syncedAnswers = mergePlayerAnswers(answers, currentPlayer.answers);
 
     setAnswers((previous) => {
       const next = mergePlayerAnswers(previous, currentPlayer.answers);
@@ -124,7 +115,6 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     if (typeof currentAnswer === 'object' && Array.isArray(currentAnswer.pairs)) return currentAnswer.pairs.length > 0;
     return true;
   })();
-  const isOtherPlayerReady = otherPlayer?.ready === true;
   const otherHasCurrentAnswer = Array.isArray(otherPlayer?.answers) && otherPlayer.answers[visibleIndex] !== undefined;
   const opponentStatus = room && otherPlayer
     ? {
@@ -235,11 +225,6 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     }
 
     setShowResults(true);
-  };
-
-  const handlePrevious = () => {
-    if (isRoomMode) return;
-    setCurrentIndex((index) => Math.max(index - 1, 0));
   };
 
   const clearAnswers = () => {
@@ -790,7 +775,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                       return (
                         <button
                           key={item}
-                          disabled={paired}
+                          disabled={paired || isCurrentPlayerReady}
                           onClick={() => handleMatchingSelectLeft(visibleIndex, item)}
                           className={`flex w-full items-center justify-between border-2 border-black p-3.5 text-left font-black transition-all ${paired
                             ? 'border-black/50 bg-[#161a24] text-neutral-500 opacity-60 line-through cursor-not-allowed shadow-none'
@@ -830,7 +815,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                       return (
                         <button
                           key={item}
-                          disabled={paired}
+                          disabled={paired || isCurrentPlayerReady}
                           onClick={() => handleMatchingSelectRight(visibleIndex, item)}
                           className={`jp-font flex w-full items-center justify-between border-2 border-black p-3.5 text-left font-black transition-all ${paired
                             ? 'border-black/50 bg-[#161a24] text-neutral-500 opacity-60 line-through cursor-not-allowed shadow-none'
@@ -863,6 +848,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                     <Button
                       size="sm"
                       onClick={() => handleUndoMatching(visibleIndex)}
+                      disabled={isCurrentPlayerReady}
                       className="border-2 border-black bg-[#FF6B6B] px-3 py-1 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-[#ff8585] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                     >
                       Undo All
