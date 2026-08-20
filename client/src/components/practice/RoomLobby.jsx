@@ -102,7 +102,7 @@ function RoomLobby({
           </div>
 
           {/* Direct Link Bar (Host Only) */}
-          {isHost && (
+          {isHost && room.players.length < 2 && (
             <div className="flex flex-col gap-2 border-2 border-black bg-[#1a1f2c] p-4 shadow-[4px_4px_0px_0px_#000000]">
               <label className="font-mono text-[10px] font-black uppercase tracking-wider text-[#70CFF8]">
             // DIRECT INVITE LINK
