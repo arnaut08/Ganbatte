@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
-import RoomSelector from './components/RoomSelector';
-import RoomLobby from './components/RoomLobby';
-import Assessment from './components/Assessment';
-import Results from './components/Results';
-import AuthPage from './components/AuthPage';
-import KanjiStudy from './components/KanjiStudy';
-import AssessmentHistory from './components/AssessmentHistory';
-import GrammarPractice from './components/GrammarPractice';
-import AssessmentLoadingScreen from './components/AssessmentLoadingScreen';
+import AppHome from './components/AppHome';
+import RoomLobby from './components/practice/RoomLobby';
+import Assessment from './components/practice/Assessment';
+import Results from './components/practice/Results';
+import AuthPage from './components/auth/AuthPage';
+import KanjiStudy from './components/learning/KanjiStudy';
+import AssessmentHistory from './components/learning/AssessmentHistory';
+import GrammarPractice from './components/practice/GrammarPractice';
+import AssessmentLoadingScreen from './components/learning/AssessmentLoadingScreen';
 import AppHeader from './components/layout/AppHeader';
-import FriendsPanel from './components/FriendsPanel';
+import FriendsPanel from './components/social/FriendsPanel';
 import BackButton from './components/common/BackButton';
 import './App.css';
 import {
@@ -1112,7 +1112,7 @@ function App() {
         {!authLoading && (!authRequired || user) && (
           <>
             {status === 'selector' && (
-              <RoomSelector
+              <AppHome
                 onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}

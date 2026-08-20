@@ -12,7 +12,7 @@ import {
   PlusIcon,
 } from '@radix-ui/react-icons';
 import { Separator } from '@/components/ui/separator';
-import { canStartAssessment, getPlayerPresenceStatus } from '../utils/roomStatus';
+import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
 
 function RoomLobby({
   roomCode,

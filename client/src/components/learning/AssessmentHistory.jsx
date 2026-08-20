@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../config/supabase';
+import { supabase } from '../../config/supabase';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
 const PAGE_SIZE = 10;

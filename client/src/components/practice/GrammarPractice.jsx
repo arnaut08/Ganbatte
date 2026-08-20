@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import BackButton from './common/BackButton';
+import BackButton from '../common/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { getMatchingResultScore, isQuestionCorrect, summarizeResults } from '@/utils/grammarScoring';
 import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
-import { supabase } from '../config/supabase';
+import { supabase } from '../../config/supabase';
 
 function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
   const [selectedLesson, setSelectedLesson] = useState(3);

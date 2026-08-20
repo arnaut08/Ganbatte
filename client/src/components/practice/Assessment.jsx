@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
+import { buildRomajiDiff, scoreRomajiAnswer } from '../../utils/romaji';
 
 function Assessment({
   room,

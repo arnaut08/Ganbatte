@@ -19,39 +19,114 @@ Ganbatte/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
+│   ├── .env.example
 │   └── src/
 │       ├── App.jsx
 │       ├── App.css
 │       ├── index.css
 │       ├── config.js
-│       ├── assets/logo.svg
+│       ├── assets/
+│       │   └── logo.svg
 │       ├── components/
-│       │   ├── layout/AppHeader.jsx
-│       │   ├── AuthPage.jsx
-│       │   ├── KanjiStudy.jsx
-│       │   ├── RoomSelector.jsx
-│       │   ├── RoomLobby.jsx
-│       │   ├── Assessment.jsx
-│       │   └── Results.jsx
-│       ├── services/api.js
-│       ├── config/supabase.js
-│       └── utils/romaji.js
+│       │   ├── AppHome.jsx
+│       │   ├── auth/
+│       │   │   ├── AuthPage.jsx
+│       │   │   └── AuthPage.css
+│       │   ├── common/
+│       │   │   └── BackButton.jsx
+│       │   ├── layout/
+│       │   │   └── AppHeader.jsx
+│       │   ├── learning/
+│       │   │   ├── LearningScreen.jsx
+│       │   │   ├── KanjiStudy.jsx
+│       │   │   ├── KanjiStudy.css
+│       │   │   ├── AssessmentHistory.jsx
+│       │   │   ├── AssessmentHistory.css
+│       │   │   └── AssessmentLoadingScreen.jsx
+│       │   ├── practice/
+│       │   │   ├── PracticeScreen.jsx
+│       │   │   ├── Assessment.jsx
+│       │   │   ├── Assessment.css
+│       │   │   ├── RoomLobby.jsx
+│       │   │   ├── RoomLobby.css
+│       │   │   ├── GrammarPractice.jsx
+│       │   │   ├── Results.jsx
+│       │   │   └── Results.css
+│       │   ├── social/
+│       │   │   └── FriendsPanel.jsx
+│       │   └── ui/
+│       │       ├── alert.jsx
+│       │       ├── badge.jsx
+│       │       ├── button.jsx
+│       │       ├── card.jsx
+│       │       ├── checkbox.jsx
+│       │       ├── dropdown-menu.jsx
+│       │       ├── input.jsx
+│       │       ├── label.jsx
+│       │       ├── progress.jsx
+│       │       ├── separator.jsx
+│       │       ├── skeleton.jsx
+│       │       ├── switch.jsx
+│       │       └── table.jsx
+│       ├── config/
+│       │   └── supabase.js
+│       ├── lib/
+│       │   └── utils.js
+│       ├── services/
+│       │   └── api.js
+│       └── utils/
+│           ├── friendRefresh.js
+│           ├── grammarRoomSync.js
+│           ├── grammarScoring.js
+│           ├── navigation.js
+│           ├── romaji.js
+│           ├── roomStatus.js
+│           └── statusTransitions.js
 ├── server/
 │   ├── index.js
 │   ├── app.js
 │   ├── package.json
-│   ├── config/env.js
-│   ├── config/supabase.js
-│   ├── config/redis.js
-│   ├── database/migrations/001_create_kana_sentences.sql
-│   ├── database/migrations/002_create_profiles.sql
-│   ├── database/migrations/003_create_assessment_results.sql
-│   ├── data/kana-sentences.js
-│   ├── data/kanji.js
-│   ├── repositories/kana-sentence-repository.js
-│   ├── services/card-service.js
-│   └── utils/validation.js
-├── .github/copilot-instructions.md
+│   ├── config/
+│   │   ├── env.js
+│   │   ├── redis.js
+│   │   └── supabase.js
+│   ├── controllers/
+│   │   ├── assessment-controller.js
+│   │   └── friend-controller.js
+│   ├── database/
+│   │   └── migrations/
+│   │       ├── 001_create_kana_sentences.sql
+│   │       ├── 002_create_profiles.sql
+│   │       ├── 003_create_assessment_results.sql
+│   │       ├── 004_create_friendships.sql
+│   │       └── 005_create_friend_requests.sql
+│   ├── data/
+│   │   ├── kana-sentences.js
+│   │   └── kanji.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── error-handler.js
+│   ├── repositories/
+│   │   └── kana-sentence-repository.js
+│   ├── routes/
+│   │   ├── assessment-routes.js
+│   │   ├── friend-routes.js
+│   │   └── game-routes.js
+│   ├── services/
+│   │   ├── card-service.js
+│   │   ├── friend-service.js
+│   │   └── genki-grammar-service.js
+│   ├── socket/
+│   │   └── socket-server.js
+│   └── utils/
+│       ├── romaji.js
+│       ├── socket-room-utils.js
+│       └── validation.js
+├── .github/
+│   └── copilot-instructions.md
+├── package.json
+├── README.md
+├── TECHNICAL.md
 └── package.json
 ```
 

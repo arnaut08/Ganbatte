@@ -39,11 +39,10 @@ function AppHeader({
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full px-3 transition-all duration-300 sm:px-6 ${
-        isScrolled
+      className={`sticky top-0 z-50 w-full px-3 transition-all duration-300 sm:px-6 ${isScrolled
           ? 'border-b border-white/10 bg-[#131722]/80 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.4)]'
           : 'border-b border-transparent bg-transparent shadow-none'
-      }`}
+        }`}
     >
       <div className="container mx-auto flex h-16 items-center justify-between gap-2 sm:h-20 sm:gap-4">
         {/* Brand Logo & Title Lockup */}
@@ -54,11 +53,11 @@ function AppHeader({
           className="group flex min-w-0 items-center gap-2 rounded-none border-0 bg-transparent p-0 text-left shadow-none transition-transform hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] sm:gap-3.5"
         >
           {/* Origami Logo Icon */}
-          <div className="-rotate-3 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden border-2 border-black bg-[#FFDE59] shadow-[2px_2px_0px_0px_#000000] transition-transform duration-150 group-hover:rotate-0 sm:h-12 sm:w-12 sm:shadow-[3px_3px_0px_0px_#000000]">
+          <div className="-rotate-3 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden border-2 border-black bg-[#FFDE59] shadow-[2px_2px_0px_0px_#000000] transition-transform duration-150 group-hover:rotate-0 sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]">
             <img
               src={logo}
               alt="Ganbatte Logo"
-              className="h-7 w-7 object-contain brightness-0 scale-110 sm:h-10 sm:w-10"
+              className="h-7 w-7 object-contain brightness-0 scale-110 sm:h-9 sm:w-9"
             />
           </div>
 
@@ -73,10 +72,8 @@ function AppHeader({
               </span>
             </div>
 
-            {/* Always Visible Tagline: Concise on mobile, full on desktop */}
             <span className="mt-0.5 block truncate font-mono text-[10px] font-bold text-[#FF6B6B] tracking-tight sm:mt-1 sm:text-xs sm:tracking-wide">
-              <span className="inline sm:hidden">// Stop saying &apos;Nani?&apos; to everything.</span>
-              <span className="hidden sm:inline">// Stop saying &apos;Nani?&apos; to everything.</span>
+          // Stop saying &apos;Nani?&apos; to everything.
             </span>
           </div>
         </button>
@@ -84,12 +81,12 @@ function AppHeader({
         {/* Authenticated Controls */}
         {isAuthenticated && (
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            {/* Friends Button */}
+            {/* Friends Button (Cleaned up: dark backdrop, neo-brutalist hover state) */}
             <div className="relative">
               <Button
                 variant="neutral"
                 size="icon"
-                className="h-9 w-9 rounded-none border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
+                className="h-8 w-8 rounded-none border-2 border-black bg-[#252c3d] text-white shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#343d52] hover:text-[#FFDE59] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:h-10 sm:w-10 sm:shadow-[2.5px_2.5px_0px_0px_#000000]"
                 aria-label="Open friends"
                 title="Friends"
                 onClick={onOpenFriends}
@@ -97,7 +94,7 @@ function AppHeader({
                 <PersonIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               {pendingFriendRequestCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center border-2 border-black bg-[#FF6B6B] px-1 text-[9px] font-black text-black sm:h-5 sm:min-w-5 sm:text-[10px]">
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center border-2 border-black bg-[#FF6B6B] px-1 text-[9px] font-black text-black sm:h-5 sm:min-w-5 sm:text-[10px]">
                   {pendingFriendRequestCount > 99 ? '99+' : pendingFriendRequestCount}
                 </span>
               )}
@@ -142,7 +139,7 @@ function AppHeader({
                   </div>
                 </div>
 
-                {/* Menu Option: History */}
+                {/* Assessment History */}
                 <DropdownMenuItem
                   onSelect={onOpenHistory}
                   className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#FFDE59] hover:text-black focus:border-black focus:bg-[#FFDE59] focus:text-black sm:px-3 sm:py-2"
@@ -153,7 +150,7 @@ function AppHeader({
 
                 <div className="my-1 border-t-2 border-black/40" />
 
-                {/* Menu Option: Logout */}
+                {/* Logout */}
                 <DropdownMenuItem
                   onSelect={onLogout}
                   className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 font-mono text-xs font-black uppercase text-[#FF6B6B] transition-all hover:border-black hover:bg-[#FF6B6B] hover:text-black focus:border-black focus:bg-[#FF6B6B] focus:text-black sm:px-3 sm:py-2"

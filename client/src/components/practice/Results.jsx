@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons';
-import { buildRomajiDiff, scoreRomajiAnswer } from '../utils/romaji';
-import { supabase } from '../config/supabase';
+import { buildRomajiDiff, scoreRomajiAnswer } from '../../utils/romaji';
+import { supabase } from '../../config/supabase';
 
 function renderDifference(answer, expected, side) {
   const segments = buildRomajiDiff(answer, expected)[side];

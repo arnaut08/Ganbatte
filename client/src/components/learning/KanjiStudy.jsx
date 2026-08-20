@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getKanjiCards } from '../services/api';
+import { getKanjiCards } from '../../services/api';
 import { Button } from '@/components/ui/button';
-import BackButton from './common/BackButton';
+import BackButton from '../common/BackButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   DropdownMenu,
