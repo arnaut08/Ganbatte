@@ -1,97 +1,6 @@
 /* ===== App-specific styles ===== */
 /* These styles provide the shadcn/ui base layer and custom utility overrides */
 
-/* Neo-brutal loading orbit */
-.loader-orbit {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 76px;
-  border: 3px solid #000;
-  background: #ffffff;
-  box-shadow: 6px 6px 0px 0px #000;
-  animation: loaderPulse 2s ease-in-out infinite;
-}
-
-.loader-ring {
-  position: absolute;
-  inset: 10px;
-  border: 3px solid #000;
-  border-top-color: #A3E636;
-  border-right-color: #70CFF8;
-  animation: loaderSpin 1.2s linear infinite;
-}
-
-.loader-core {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #000;
-  background: #FFDE59;
-  box-shadow: 2px 2px 0px 0px #000;
-  animation: loaderCore 1.4s ease-in-out infinite;
-}
-
-.question-pulse,
-.question-pulse-delayed,
-.question-pulse-slow {
-  animation: questionFloat 1.8s ease-in-out infinite;
-}
-
-.question-pulse-delayed {
-  animation-delay: 0.25s;
-}
-
-.question-pulse-slow {
-  animation-delay: 0.5s;
-}
-
-@keyframes loaderSpin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes loaderPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 6px 6px 0px 0px #000;
-  }
-  50% {
-    transform: scale(1.04);
-    box-shadow: 4px 4px 0px 0px #000;
-  }
-}
-
-@keyframes loaderCore {
-  0%,
-  100% {
-    transform: scale(0.8);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-}
-
-@keyframes questionFloat {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.8;
-  }
-  50% {
-    transform: translateY(-3px);
-    opacity: 1;
-  }
-}
-
 /* Kanji Hero Display (High legibility, open geometry, heavy weight) */
 .kana-font {
   font-family: 'Zen Kaku Gothic New', 'M PLUS 1', 'Hiragino Kaku Gothic ProN', sans-serif;
@@ -113,19 +22,6 @@
   background-size: 26px 26px;
 }
 
-/* ===== Utility overrides ===== */
-.text-primary-color {
-  color: var(--primary);
-}
-
-.text-accent-color {
-  color: var(--accent);
-}
-
-.text-secondary {
-  color: var(--secondary-foreground);
-}
-
 /* ===== Responsive adjustments ===== */
 @media (max-width: 768px) {
   .container {
@@ -137,8 +33,5 @@
 @media (max-width: 480px) {
   .text-5xl {
     font-size: 2.5rem;
-  }
-  .sm\:text-8xl {
-    font-size: 4rem;
   }
 }
