@@ -18,7 +18,6 @@ import {
   generateGrammarAssessment,
   getFriendRequests,
   getFriends,
-  getKanaCards,
   getRoom,
   rejectFriendRequest,
   removeFriend,
@@ -768,13 +767,6 @@ function App() {
       newSocket.disconnect();
     };
   }, [authLoading, authRequired, refreshFriendData, user]);
-
-  // Fetch kana cards
-  useEffect(() => {
-    getKanaCards()
-      .then((data) => setKanaCards(data))
-      .catch((err) => console.error('Error fetching kana cards:', err));
-  }, []);
 
   const handleGenerateCards = async (count = 10, startAfter = false) => {
     try {
