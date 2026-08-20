@@ -1,16 +1,11 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { cn } from "../../lib/utils";
 
-const Skeleton = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      'animate-pulse rounded-md bg-muted',
-      className,
-    )}
-    {...props}
-  />
-));
-Skeleton.displayName = 'Skeleton';
-
-export { Skeleton };
+export function Skeleton({ className, ...props }) {
+  return (
+    <div
+      className={cn("animate-pulse border-2 border-black bg-neutral-300 shadow-[3px_3px_0px_0px_#000]", className)}
+      {...props}
+    />
+  );
+}

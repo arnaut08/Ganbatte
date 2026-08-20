@@ -1,6 +1,3 @@
-export const PLAYER_STATUS_VALUES = ['in_lobby', 'away', 'disconnected', 'ready'];
-export const ROOM_STATUS_VALUES = ['waiting_for_guest', 'guest_joined', 'ready_to_start', 'in_assessment'];
-
 export function getPlayerPresenceStatus(player = null) {
   if (!player) return 'disconnected';
 
@@ -13,19 +10,9 @@ export function getPlayerPresenceStatus(player = null) {
   return 'in_lobby';
 }
 
-export function isPlayerInLobby(player = null) {
+function isPlayerInLobby(player = null) {
   const status = getPlayerPresenceStatus(player);
   return status === 'in_lobby' || status === 'ready';
-}
-
-export function getRoomLobbyState(players = []) {
-  const normalizedPlayers = Array.isArray(players) ? players : [];
-
-  if (normalizedPlayers.length === 0) return 'waiting_for_guest';
-  if (normalizedPlayers.length === 1) return 'waiting_for_guest';
-  if (normalizedPlayers.length === 2 && normalizedPlayers.every(isPlayerInLobby)) return 'ready_to_start';
-  if (normalizedPlayers.length === 2) return 'guest_joined';
-  return 'guest_joined';
 }
 
 export function canStartAssessment(players = []) {

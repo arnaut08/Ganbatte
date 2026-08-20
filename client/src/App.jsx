@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import { Button } from '@/components/ui/button';
-import RoomSelector from './components/RoomSelector';
-import RoomLobby from './components/RoomLobby';
-import Assessment from './components/Assessment';
-import Results from './components/Results';
-import AuthPage from './components/AuthPage';
-import KanjiStudy from './components/KanjiStudy';
-import AssessmentHistory from './components/AssessmentHistory';
-import GrammarPractice from './components/GrammarPractice';
-import AssessmentLoadingScreen from './components/AssessmentLoadingScreen';
+import AppHome from './components/AppHome';
+import RoomLobby from './components/practice/RoomLobby';
+import Assessment from './components/practice/Assessment';
+import Results from './components/practice/Results';
+import AuthPage from './components/auth/AuthPage';
+import KanjiStudy from './components/learning/KanjiStudy';
+import AssessmentHistory from './components/learning/AssessmentHistory';
+import GrammarPractice from './components/practice/GrammarPractice';
+import AssessmentLoadingScreen from './components/learning/AssessmentLoadingScreen';
 import AppHeader from './components/layout/AppHeader';
-import FriendsPanel from './components/FriendsPanel';
-import BackButton from './components/common/BackButton';
+import FriendsPanel from './components/social/FriendsPanel';
 import './App.css';
 import {
   acceptFriendRequest,
@@ -29,7 +27,7 @@ import {
 } from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
-import { pushScreenHistory, shouldRedirectToCompletedRoomResults } from './utils/navigation';
+import { pushScreenHistory } from './utils/navigation';
 import { canStartAssessment, getPlayerPresenceStatus } from './utils/roomStatus';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
@@ -81,8 +79,9 @@ function App() {
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
-  const [screenHistory, setScreenHistory] = useState(['selector']);
+  const [_, setScreenHistory] = useState(['selector']);
+  const [selectorScreen, setSelectorScreen] = useState('home');
+  const [appHomeKey, setAppHomeKey] = useState(0);
   const [friends, setFriends] = useState([]);
   const [friendSearchResults, setFriendSearchResults] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -98,12 +97,6 @@ function App() {
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
-
-  useEffect(() => {
-    const savedSession = readRoomSession();
-    const hasSavedRoom = Boolean(roomCode || savedSession?.roomCode);
-    setRoomResumeAvailable(Boolean(hasSavedRoom && !ROOM_VIEW_STATUSES.includes(status)));
-  }, [roomCode, room, status]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -129,11 +122,11 @@ function App() {
       return;
     }
 
-    if (shouldRedirectToCompletedRoomResults(status, room.status)) {
+    if (room.status === 'completed' && status !== 'results' && status !== 'lobby' && !results) {
       setIsPreparingAssessment(false);
       transitionToStatus('results');
     }
-  }, [room, status]);
+  }, [room, results, status]);
 
   const screenPriority = {
     selector: 0,
@@ -694,6 +687,45 @@ function App() {
       transitionToStatus('results');
     });
 
+    newSocket.on('room-returned-to-lobby', (data) => {
+      if (!data?.room) return;
+      setRoom(data.room);
+      setKanaCards(data.room.cards || []);
+      setResults(null);
+      setIsPreparingAssessment(false);
+      setStatus('lobby');
+    });
+
+    newSocket.on('assessment-action-denied', (data) => {
+      setToast({ message: data?.message || 'Waiting for the host to choose an action.', type: 'warning' });
+    });
+
+    newSocket.on('assessment-action-requested', (data) => {
+      if (data?.hostSocketId && data.hostSocketId !== newSocket.id) return;
+
+      const actionLabel = data?.action === 'replay' ? 'Start a New Assessment' : 'Start New Session';
+      setToast({
+        message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`,
+        type: 'warning',
+      });
+    });
+
+    newSocket.on('player-exited-lobby', (data) => {
+      if (!data?.room) return;
+
+      setRoom(data.room);
+      setKanaCards(data.room.cards || []);
+      setResults(null);
+      setIsPreparingAssessment(false);
+      setStatus('lobby');
+      setToast({
+        message: data.exitedPlayerWasHost
+          ? 'The host exited the lobby. You are now the host.'
+          : 'The guest exited the lobby.',
+        type: 'warning',
+      });
+    });
+
     newSocket.on('player-left', (data) => {
       const roomData = data?.room ?? { players: data?.players ?? [] };
       setRoom((prev) => {
@@ -849,7 +881,7 @@ function App() {
 
   const handleStartAssessment = () => {
     if (!socket || !roomCode) return;
-    if (!room || room.players?.[0]?.id !== socket.id) return;
+    if (!room || !isCurrentPlayerHost) return;
     if (!canStartAssessment(room.players)) return;
 
     if (room?.deckType === 'grammar') {
@@ -858,6 +890,42 @@ function App() {
     }
 
     socket.emit('start-assessment', roomCode);
+  };
+
+  const handleReplayAssessment = () => {
+    if (!socket || !roomCode || !room) return;
+    if (!isCurrentPlayerHost) {
+      setToast({ message: 'Waiting for the host to replay this assessment.', type: 'warning' });
+      return;
+    }
+
+    socket.emit('replay-assessment', roomCode);
+  };
+
+  const handleStartNewSession = () => {
+    if (!socket || !roomCode || !room) return;
+
+    socket.emit('exit-lobby', roomCode, (response) => {
+      if (!response?.success) return;
+
+      clearRoomSession();
+      setRoomCode(null);
+      setRoom(null);
+      setUsername('');
+      setResults(null);
+      setPrefillRoomCode('');
+      setStatus('selector');
+      setSelectorScreen('practice');
+    });
+  };
+
+  const isCurrentPlayerHost = room?.players?.[0]?.id === socket?.id
+    || (user?.id && room?.players?.[0]?.userId === user.id)
+    || room?.players?.[0]?.sessionKey === getSessionKey();
+
+  const handleRequestHost = (action) => {
+    if (!socket || !roomCode || !room) return;
+    socket.emit('request-assessment-action', roomCode, action);
   };
 
   const handleSubmitAnswer = (answer) => {
@@ -882,6 +950,7 @@ function App() {
     name: player.name,
     userId: player.userId ?? player.user_id ?? null,
     answers: Array.isArray(player.answers) ? player.answers : [],
+    hintsUsed: Array.isArray(player.hintsUsed) ? player.hintsUsed : [],
   }));
 
   const handleLeaveRoom = () => {
@@ -896,6 +965,7 @@ function App() {
       setResults(null);
       setPrefillRoomCode('');
       setStatus('selector');
+      setSelectorScreen('practice');
     });
   };
 
@@ -916,8 +986,7 @@ function App() {
     setResults(null);
     setPrefillRoomCode('');
     setStatus('selector');
-
-    if (!supabase) return;
+      setSelectorScreen('home');
 
     try {
       const { error } = await supabase.auth.signOut();
@@ -1032,7 +1101,9 @@ function App() {
 
   const handleBackToPractice = () => {
     setStatus('selector');
+    setSelectorScreen('home');
     setScreenHistory(['selector']);
+    setAppHomeKey((value) => value + 1);
   };
 
   const handleReturnToRoom = () => {
@@ -1088,9 +1159,9 @@ function App() {
   return (
     <div className="app-container min-h-screen">
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm rounded-md border border-amber-500/30 bg-slate-900/95 px-4 py-3 text-sm text-white shadow-lg backdrop-blur-sm">
+        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm border-2 border-black bg-white px-4 py-3 text-sm font-bold text-black shadow-[5px_5px_0px_0px_#000]">
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
+            <span className="mt-0.5 inline-block h-3 w-3 shrink-0 border-2 border-black bg-[#FFDE59]" />
             <span>{toast.message}</span>
           </div>
         </div>
@@ -1112,7 +1183,10 @@ function App() {
         {!authLoading && (!authRequired || user) && (
           <>
             {status === 'selector' && (
-              <RoomSelector
+              <AppHome
+                key={appHomeKey}
+                screen={selectorScreen}
+                onScreenChange={setSelectorScreen}
                 onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}
@@ -1121,7 +1195,6 @@ function App() {
                 onDeclineRoomResume={handleDeclineRoomResume}
                 prefillRoomCode={prefillRoomCode}
                 isSocketReady={isSocketReady}
-                canReturnToRoom={roomResumeAvailable}
                 roomCode={roomCode || readRoomSession()?.roomCode || ''}
                 resumeUsername={readRoomSession()?.username || username}
                 user={user}
@@ -1135,15 +1208,15 @@ function App() {
 
             {status === 'friends' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                   <BackButton onClick={handleGoBack} label="Back to previous screen" />
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                    <p className="text-xs font-black uppercase tracking-wider text-[#2563eb]">
                       Social
                     </p>
                     <h2 className="text-xl font-bold">Friends</h2>
                   </div>
-                </div>
+                </div> */}
 
                 <FriendsPanel
                   friends={friends}
@@ -1155,6 +1228,7 @@ function App() {
                   onRejectFriendRequest={handleRejectFriendRequest}
                   onRemoveFriend={handleRemoveFriend}
                   isSearching={isFriendSearchLoading}
+                  onBack={handleGoBack}
                 />
               </div>
             )}
@@ -1184,14 +1258,9 @@ function App() {
                 room={room}
                 onStartAssessment={handleStartAssessment}
                 onLeaveRoom={handleLeaveRoom}
-                onSetAwayStatus={handleSetAwayStatus}
                 currentSocketId={socket?.id || ''}
                 currentUserId={user?.id || null}
-                friends={friends}
-                friendRequests={friendRequests}
-                onSendFriendRequest={handleSendFriendRequest}
-                onAcceptFriendRequest={handleAcceptFriendRequest}
-                onRejectFriendRequest={handleRejectFriendRequest}
+                currentSessionKey={getSessionKey()}
                 isPreparingAssessment={isPreparingAssessment}
               />
             )}
@@ -1238,6 +1307,10 @@ function App() {
                 username={username}
                 user={user}
                 room={room}
+                isHost={isCurrentPlayerHost}
+                onReplaySet={handleReplayAssessment}
+                onStartNewSession={handleStartNewSession}
+                onRequestHost={handleRequestHost}
               />
             )}
           </>

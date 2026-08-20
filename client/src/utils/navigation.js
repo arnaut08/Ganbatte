@@ -48,35 +48,3 @@ export function getBackStatus(history = []) {
   return previous;
 }
 
-export function shouldRedirectToCompletedRoomResults(currentStatus, roomStatus) {
-  if (roomStatus !== 'completed') {
-    return false;
-  }
-
-  const roomFlowStatuses = ['lobby', 'assessment', 'results', 'assessment-preparing'];
-  if (!currentStatus || !roomFlowStatuses.includes(currentStatus)) {
-    return false;
-  }
-
-  return currentStatus !== 'results';
-}
-
-export function createNavigationHistory(initialStatus = DEFAULT_STATUS) {
-  return {
-    history: [initialStatus],
-    push(nextStatus) {
-      this.history = pushScreenHistory(this.history, this.history[this.history.length - 1], nextStatus);
-      return this.history;
-    },
-    back() {
-      const previous = getPreviousStatus(this.history);
-      if (!previous || previous === DEFAULT_STATUS && this.history.length <= 1) {
-        return DEFAULT_STATUS;
-      }
-      const nextHistory = [...this.history];
-      nextHistory.pop();
-      this.history = nextHistory;
-      return this.history[this.history.length - 1] || DEFAULT_STATUS;
-    },
-  };
-}

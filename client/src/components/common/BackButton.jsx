@@ -6,11 +6,11 @@ function BackButton({ onClick, className, label = 'Back', ...props }) {
   return (
     <Button
       type="button"
-      variant="secondary"
+      variant="neutral"
       size="icon"
       onClick={onClick}
       className={cn(
-        'h-9 w-9 rounded-full border border-border bg-background/60 shadow-sm hover:bg-accent',
+        'h-9 w-9 rounded-none border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000]',
         className,
       )}
       aria-label={label}

@@ -14,7 +14,7 @@ const ROMAJI_SYLLABLES = [
   'a', 'i', 'u', 'e', 'o', 'n',
 ];
 
-export function normalizeRomaji(value) {
+function normalizeRomaji(value) {
   return (value || '')
     .toLowerCase()
     .trim()
@@ -23,7 +23,7 @@ export function normalizeRomaji(value) {
     .join('');
 }
 
-export function tokenizeNormalizedRomaji(normalized) {
+function tokenizeNormalizedRomaji(normalized) {
   const tokens = [];
   let index = 0;
 
@@ -41,7 +41,7 @@ export function tokenizeNormalizedRomaji(normalized) {
   return tokens;
 }
 
-export function tokenizeRomaji(value) {
+function tokenizeRomaji(value) {
   return tokenizeNormalizedRomaji(normalizeRomaji(value)).map((token) => token.value);
 }
 
@@ -58,6 +58,10 @@ export function scoreRomajiAnswer(answer, expected) {
     total: expectedTokens.length,
     percentage: expectedTokens.length === 0 ? 0 : Math.round((matched / expectedTokens.length) * 100),
   };
+}
+
+export function areRomajiAnswersEqual(answer, expected) {
+  return normalizeRomaji(answer) === normalizeRomaji(expected);
 }
 
 function buildNormalizedMap(rawValue) {
@@ -197,5 +201,14 @@ export function buildRomajiDiff(givenRaw, expectedRaw) {
   return {
     given: buildDiffSegments(givenMapped, given, givenMatches, expected),
     expected: buildDiffSegments(expectedMapped, expected, expectedMatches, given),
+  };
+}
+
+export function buildDirectRomajiDiff(givenRaw, expectedRaw) {
+  const type = areRomajiAnswersEqual(givenRaw, expectedRaw) ? 'plain' : 'diff';
+
+  return {
+    given: [{ type, text: givenRaw || '∅' }],
+    expected: [{ type, text: expectedRaw || '∅' }],
   };
 }

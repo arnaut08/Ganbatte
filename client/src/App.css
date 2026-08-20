@@ -1,26 +1,25 @@
 /* ===== App-specific styles ===== */
 /* These styles provide the shadcn/ui base layer and custom utility overrides */
 
+/* Neo-brutal loading orbit */
 .loader-orbit {
   position: relative;
   display: grid;
   place-items: center;
   width: 76px;
   height: 76px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, rgba(96, 165, 250, 0.12), rgba(52, 211, 153, 0.16));
-  border: 1px solid rgba(96, 165, 250, 0.35);
-  box-shadow: inset 0 0 18px rgba(96, 165, 250, 0.12), 0 0 28px rgba(52, 211, 153, 0.08);
+  border: 3px solid #000;
+  background: #ffffff;
+  box-shadow: 6px 6px 0px 0px #000;
   animation: loaderPulse 2s ease-in-out infinite;
 }
 
 .loader-ring {
   position: absolute;
-  inset: 8px;
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  border-top-color: hsl(var(--accent));
-  border-right-color: hsl(var(--primary));
+  inset: 10px;
+  border: 3px solid #000;
+  border-top-color: #A3E636;
+  border-right-color: #70CFF8;
   animation: loaderSpin 1.2s linear infinite;
 }
 
@@ -28,9 +27,9 @@
   position: relative;
   width: 16px;
   height: 16px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-  box-shadow: 0 0 16px rgba(96, 165, 250, 0.8);
+  border: 2px solid #000;
+  background: #FFDE59;
+  box-shadow: 2px 2px 0px 0px #000;
   animation: loaderCore 1.4s ease-in-out infinite;
 }
 
@@ -61,11 +60,11 @@
   0%,
   100% {
     transform: scale(1);
-    box-shadow: inset 0 0 18px rgba(96, 165, 250, 0.12), 0 0 20px rgba(52, 211, 153, 0.08);
+    box-shadow: 6px 6px 0px 0px #000;
   }
   50% {
     transform: scale(1.04);
-    box-shadow: inset 0 0 22px rgba(96, 165, 250, 0.16), 0 0 32px rgba(52, 211, 153, 0.12);
+    box-shadow: 4px 4px 0px 0px #000;
   }
 }
 
@@ -93,80 +92,25 @@
   }
 }
 
-@layer base {
-  :root {
-    --background: 220 7% 8%;
-    --foreground: 220 12% 92%;
-    --card: 220 13% 13%;
-    --card-foreground: 220 12% 92%;
-    --popover: 220 13% 13%;
-    --popover-foreground: 220 12% 92%;
-    --primary: 217 70% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 59%;
-    --secondary-foreground: 220 12% 92%;
-    --muted: 220 18% 30%;
-    --muted-foreground: 220 19% 55%;
-    --accent: 155 50% 45%;
-    --accent-foreground: 220 12% 92%;
-    --destructive: 0 90% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 17%;
-    --input: 220 20% 17%;
-    --ring: 217 70% 55%;
-  }
+/* Kanji Hero Display (High legibility, open geometry, heavy weight) */
+.kana-font {
+  font-family: 'Zen Kaku Gothic New', 'M PLUS 1', 'Hiragino Kaku Gothic ProN', sans-serif;
+  font-weight: 900;
+  letter-spacing: normal; /* Avoid negative letter spacing on dense characters */
+}
 
-  .dark {
-    --background: 220 7% 8%;
-    --foreground: 220 12% 93%;
-    --card: 220 13% 13%;
-    --card-foreground: 220 12% 93%;
-    --popover: 220 13% 13%;
-    --popover-foreground: 220 12% 93%;
-    --primary: 217 70% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 59%;
-    --secondary-foreground: 220 12% 93%;
-    --muted: 220 18% 30%;
-    --muted-foreground: 220 19% 55%;
-    --accent: 155 50% 45%;
-    --accent-foreground: 220 12% 93%;
-    --destructive: 0 90% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 17%;
-    --input: 220 20% 17%;
-    --ring: 217 70% 55%;
-  }
+/* Secondary Japanese Text & Examples */
+.jp-font {
+  font-family: 'Zen Kaku Gothic New', 'BIZ UDPGothic', sans-serif;
+  font-weight: 700;
+}
 
-  /* Sora font for UI text */
-  .font-sans {
-    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      'sans-serif';
-  }
-
-  /* Japanese serif font for kanji display */
-  .kana-font {
-    font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-  }
-
-  /* Japanese sans-serif font */
-  .jp-font {
-    font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
-  }
-
-  /* Gradient heading background (AppHeader) */
-  .gradient-heading {
-    background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
-  }
-
-  .app-container {
-    min-height: 100vh;
-    background-color: var(--background);
-    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      'sans-serif';
-  }
+.app-container {
+  min-height: 100vh;
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--pattern-dot) 1.5px, transparent 0);
+  background-size: 26px 26px;
 }
 
 /* ===== Utility overrides ===== */

@@ -19,3 +19,24 @@ test('merges room answers without clearing newer local selections', () => {
 
   assert.deepEqual(next, { 0: 'watashi', 1: 'desu', 2: 'arimasu' });
 });
+
+test('preserves matching answer state when the server returns submitted pairs', () => {
+  const previous = {
+    0: {
+      selectedLeft: null,
+      selectedRight: null,
+      pairs: [{ left: 'one', right: 'いち' }],
+    },
+  };
+  const roomAnswers = [[{ left: 'one', right: 'いち' }]];
+
+  const next = mergePlayerAnswers(previous, roomAnswers);
+
+  assert.deepEqual(next, {
+    0: {
+      selectedLeft: null,
+      selectedRight: null,
+      pairs: [{ left: 'one', right: 'いち' }],
+    },
+  });
+});
