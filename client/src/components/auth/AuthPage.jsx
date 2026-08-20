@@ -57,7 +57,7 @@ function AuthPage() {
   };
 
   return (
-    <main className="flex min-h-[calc(100vh-64px)] items-center justify-center p-4">
+    <main className="flex items-center justify-center p-4">
       <div className="w-full max-w-md border-2 border-black bg-[#FFDE59] p-6 shadow-[8px_8px_0px_0px_#000000] sm:p-8">
 
         {/* 1. Mode Switcher Tabs */}
