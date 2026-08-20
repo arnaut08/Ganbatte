@@ -950,6 +950,7 @@ function App() {
     name: player.name,
     userId: player.userId ?? player.user_id ?? null,
     answers: Array.isArray(player.answers) ? player.answers : [],
+    hintsUsed: Array.isArray(player.hintsUsed) ? player.hintsUsed : [],
   }));
 
   const handleLeaveRoom = () => {

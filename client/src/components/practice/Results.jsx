@@ -352,13 +352,32 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
               </div>
 
               {/* Hints Footer for Kanji Decks */}
-              {isKanjiDeck && (
-                <div className="font-mono text-[11px] font-bold text-[#FFDE59] pt-1">
-                  {results
-                    .map((player) => `${player.name}: ${Number(player.hintsUsed?.[i] || 0)} hint(s)`)
-                    .join(' · ')}
-                </div>
-              )}
+              {isKanjiDeck && (() => {
+                const playersWithHints = results.filter(
+                  (player) => Number(player.hintsUsed?.[i] || 0) > 0
+                );
+
+                if (playersWithHints.length === 0) return null;
+
+                return (
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-black/40">
+                    <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                    // Hints Used:
+                    </span>
+                    {playersWithHints.map((player, pi) => {
+                      const count = Number(player.hintsUsed?.[i] || 0);
+                      return (
+                        <span
+                          key={pi}
+                          className="inline-flex items-center gap-1.5 border-2 border-black bg-[#FFDE59] px-2 py-0.5 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000]"
+                        >
+                          <span>{player.name}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>
