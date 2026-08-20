@@ -131,7 +131,7 @@ function App() {
       return;
     }
 
-    if (room.status === 'completed' && status !== 'results' && !results) {
+    if (room.status === 'completed' && status !== 'results' && status !== 'lobby' && !results) {
       setIsPreparingAssessment(false);
       transitionToStatus('results');
     }
@@ -696,6 +696,45 @@ function App() {
       transitionToStatus('results');
     });
 
+    newSocket.on('room-returned-to-lobby', (data) => {
+      if (!data?.room) return;
+      setRoom(data.room);
+      setKanaCards(data.room.cards || []);
+      setResults(null);
+      setIsPreparingAssessment(false);
+      setStatus('lobby');
+    });
+
+    newSocket.on('assessment-action-denied', (data) => {
+      setToast({ message: data?.message || 'Waiting for the host to choose an action.', type: 'warning' });
+    });
+
+    newSocket.on('assessment-action-requested', (data) => {
+      if (data?.hostSocketId && data.hostSocketId !== newSocket.id) return;
+
+      const actionLabel = data?.action === 'replay' ? 'Start a New Assessment' : 'Start New Session';
+      setToast({
+        message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`,
+        type: 'warning',
+      });
+    });
+
+    newSocket.on('player-exited-lobby', (data) => {
+      if (!data?.room) return;
+
+      setRoom(data.room);
+      setKanaCards(data.room.cards || []);
+      setResults(null);
+      setIsPreparingAssessment(false);
+      setStatus('lobby');
+      setToast({
+        message: data.exitedPlayerWasHost
+          ? 'The host exited the lobby. You are now the host.'
+          : 'The guest exited the lobby.',
+        type: 'warning',
+      });
+    });
+
     newSocket.on('player-left', (data) => {
       const roomData = data?.room ?? { players: data?.players ?? [] };
       setRoom((prev) => {
@@ -851,7 +890,7 @@ function App() {
 
   const handleStartAssessment = () => {
     if (!socket || !roomCode) return;
-    if (!room || room.players?.[0]?.id !== socket.id) return;
+    if (!room || !isCurrentPlayerHost) return;
     if (!canStartAssessment(room.players)) return;
 
     if (room?.deckType === 'grammar') {
@@ -860,6 +899,42 @@ function App() {
     }
 
     socket.emit('start-assessment', roomCode);
+  };
+
+  const handleReplayAssessment = () => {
+    if (!socket || !roomCode || !room) return;
+    if (!isCurrentPlayerHost) {
+      setToast({ message: 'Waiting for the host to replay this assessment.', type: 'warning' });
+      return;
+    }
+
+    socket.emit('replay-assessment', roomCode);
+  };
+
+  const handleStartNewSession = () => {
+    if (!socket || !roomCode || !room) return;
+
+    socket.emit('exit-lobby', roomCode, (response) => {
+      if (!response?.success) return;
+
+      clearRoomSession();
+      setRoomCode(null);
+      setRoom(null);
+      setUsername('');
+      setResults(null);
+      setPrefillRoomCode('');
+      setStatus('selector');
+      setSelectorScreen('practice');
+    });
+  };
+
+  const isCurrentPlayerHost = room?.players?.[0]?.id === socket?.id
+    || (user?.id && room?.players?.[0]?.userId === user.id)
+    || room?.players?.[0]?.sessionKey === getSessionKey();
+
+  const handleRequestHost = (action) => {
+    if (!socket || !roomCode || !room) return;
+    socket.emit('request-assessment-action', roomCode, action);
   };
 
   const handleSubmitAnswer = (answer) => {
@@ -1195,6 +1270,7 @@ function App() {
                 onSetAwayStatus={handleSetAwayStatus}
                 currentSocketId={socket?.id || ''}
                 currentUserId={user?.id || null}
+                currentSessionKey={getSessionKey()}
                 friends={friends}
                 friendRequests={friendRequests}
                 onSendFriendRequest={handleSendFriendRequest}
@@ -1246,6 +1322,10 @@ function App() {
                 username={username}
                 user={user}
                 room={room}
+                isHost={isCurrentPlayerHost}
+                onReplaySet={handleReplayAssessment}
+                onStartNewSession={handleStartNewSession}
+                onRequestHost={handleRequestHost}
               />
             )}
           </>

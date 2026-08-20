@@ -27,11 +27,15 @@ function RoomLobby({
   onAcceptFriendRequest,
   onRejectFriendRequest,
   isPreparingAssessment = false,
+  currentSessionKey,
 }) {
   const isReady = canStartAssessment(room.players);
   const [copied, setCopied] = useState(false);
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
-  const isHost = room.players[0]?.id === currentSocketId;
+  const hostPlayer = room.players[0];
+  const isHost = hostPlayer?.id === currentSocketId
+    || (currentUserId && hostPlayer?.userId === currentUserId)
+    || (currentSessionKey && hostPlayer?.sessionKey === currentSessionKey);
   const isKanjiAssessment = room?.deckType === 'kanji';
   const friendIds = new Set((friends || []).map((friend) => friend.user_id || friend.id));
   const pendingRequestReceiverIds = new Set(

@@ -60,6 +60,10 @@ export function scoreRomajiAnswer(answer, expected) {
   };
 }
 
+export function areRomajiAnswersEqual(answer, expected) {
+  return normalizeRomaji(answer) === normalizeRomaji(expected);
+}
+
 function buildNormalizedMap(rawValue) {
   const raw = rawValue || '';
   const lower = raw.toLowerCase();
@@ -197,5 +201,14 @@ export function buildRomajiDiff(givenRaw, expectedRaw) {
   return {
     given: buildDiffSegments(givenMapped, given, givenMatches, expected),
     expected: buildDiffSegments(expectedMapped, expected, expectedMatches, given),
+  };
+}
+
+export function buildDirectRomajiDiff(givenRaw, expectedRaw) {
+  const type = areRomajiAnswersEqual(givenRaw, expectedRaw) ? 'plain' : 'diff';
+
+  return {
+    given: [{ type, text: givenRaw || '∅' }],
+    expected: [{ type, text: expectedRaw || '∅' }],
   };
 }

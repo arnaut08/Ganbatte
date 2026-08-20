@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { buildRomajiDiff, scoreRomajiAnswer } from '../../utils/romaji';
+import {
+  areRomajiAnswersEqual,
+  buildDirectRomajiDiff,
+  buildRomajiDiff,
+  scoreRomajiAnswer,
+} from '../../utils/romaji';
 
 function Assessment({
   room,
@@ -19,6 +24,7 @@ function Assessment({
 
   const cardIndex = room?.currentCardIndex ?? 0;
   const currentCard = kanaCards[cardIndex] || {};
+  const isLastCard = kanaCards.length > 0 && cardIndex === kanaCards.length - 1;
 
   // Safe player lookups
   const currentPlayer = room?.players?.find((p) => p.name === username);
@@ -39,10 +45,13 @@ function Assessment({
 
   const currentReady = Boolean(currentPlayer?.ready);
   const otherReady = Boolean(otherPlayer?.ready);
+  const isKanjiAssessment = room?.deckType === 'kanji';
 
   const otherCorrect =
     otherSubmitted &&
-    scoreRomajiAnswer(String(otherAnswer), currentCard?.romaji || '').percentage === 100;
+    (isKanjiAssessment
+      ? areRomajiAnswersEqual(otherAnswer, currentCard?.romaji || '')
+      : scoreRomajiAnswer(String(otherAnswer), currentCard?.romaji || '').percentage === 100);
 
   // Clear timers and reset submission locks on new card
   useEffect(() => {
@@ -75,7 +84,6 @@ function Assessment({
     };
   }, []);
 
-  const isKanjiAssessment = room?.deckType === 'kanji';
   const canUseHint = isKanjiAssessment && !submitted && totalHintsUsed < 2;
 
   const handleSubmit = (e) => {
@@ -104,9 +112,13 @@ function Assessment({
   // Evaluation Metrics
   const progress = kanaCards.length > 0 ? ((cardIndex + 1) / kanaCards.length) * 100 : 0;
   const answerScore = scoreRomajiAnswer(submittedAnswer || '', currentCard?.romaji || '');
-  const isCorrect = answerScore.percentage === 100;
+  const isCorrect = isKanjiAssessment
+    ? areRomajiAnswersEqual(submittedAnswer || '', currentCard?.romaji || '')
+    : answerScore.percentage === 100;
   const answerDiff = !isCorrect && submitted
-    ? buildRomajiDiff(submittedAnswer || '', currentCard?.romaji || '')
+    ? (isKanjiAssessment
+      ? buildDirectRomajiDiff(submittedAnswer || '', currentCard?.romaji || '')
+      : buildRomajiDiff(submittedAnswer || '', currentCard?.romaji || ''))
     : null;
 
   const renderDifference = (segments = [], tokenClass) =>
@@ -299,14 +311,14 @@ function Assessment({
                 <button
                   type="button"
                   onClick={() => onNextCard?.()}
-                  className="border-2 border-black bg-[#A3E636] px-5 py-2 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                  className="border-2 border-black bg-[#A3E636] px-5 py-2 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
                 >
                   Ready for Next →
                 </button>
               ) : (
                 <div className="inline-flex items-center gap-2 border-2 border-black bg-[#FFDE59] px-3.5 py-1.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000]">
                   <span className="h-2 w-2 animate-ping bg-black" />
-                  <span>Waiting for Next Card...</span>
+                  <span>{isLastCard && !otherSubmitted ? 'Waiting for Other Player...' : 'Waiting for Next Card...'}</span>
                 </div>
               )}
 
