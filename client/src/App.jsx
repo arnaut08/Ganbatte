@@ -27,7 +27,7 @@ import {
 } from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
-import { pushScreenHistory, shouldRedirectToCompletedRoomResults } from './utils/navigation';
+import { pushScreenHistory } from './utils/navigation';
 import { canStartAssessment, getPlayerPresenceStatus } from './utils/roomStatus';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
@@ -79,7 +79,7 @@ function App() {
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [screenHistory, setScreenHistory] = useState(['selector']);
+  const [_, setScreenHistory] = useState(['selector']);
   const [selectorScreen, setSelectorScreen] = useState('home');
   const [appHomeKey, setAppHomeKey] = useState(0);
   const [friends, setFriends] = useState([]);
