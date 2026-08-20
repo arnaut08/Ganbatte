@@ -131,11 +131,11 @@ function App() {
       return;
     }
 
-    if (room.status === 'completed' && status !== 'results') {
+    if (room.status === 'completed' && status !== 'results' && !results) {
       setIsPreparingAssessment(false);
       transitionToStatus('results');
     }
-  }, [room, status]);
+  }, [room, results, status]);
 
   const screenPriority = {
     selector: 0,
