@@ -865,7 +865,7 @@ function App() {
           });
           transitionToStatus('lobby');
         } else {
-          alert(response.message);
+          setToast({ message: response.message, type: 'error' });
         }
       });
     }
