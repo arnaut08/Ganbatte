@@ -27,7 +27,7 @@ import {
 } from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
-import { pushScreenHistory } from './utils/navigation';
+import { pushScreenHistory, shouldRedirectToCompletedRoomResults } from './utils/navigation';
 import { canStartAssessment, getPlayerPresenceStatus } from './utils/roomStatus';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';

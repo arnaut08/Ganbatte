@@ -5,6 +5,7 @@ import {
   pushScreenHistory,
   getPreviousStatus,
   getBackStatus,
+  shouldRedirectToCompletedRoomResults,
 } from './navigation.js';
 
 test('pushScreenHistory tracks the last non-duplicate screen before moving forward', () => {
@@ -28,4 +29,15 @@ test('getBackStatus uses the previous screen as the back target without forcing 
   assert.equal(getBackStatus(['selector', 'lobby', 'friends']), 'lobby');
   assert.equal(getBackStatus(['selector', 'friends']), 'selector');
   assert.equal(getBackStatus([]), 'selector');
+});
+
+test('completed room results only auto-redirect while the user remains on room flow screens', () => {
+  assert.equal(shouldRedirectToCompletedRoomResults('assessment', 'completed'), true);
+  assert.equal(shouldRedirectToCompletedRoomResults('results', 'completed'), false);
+  assert.equal(shouldRedirectToCompletedRoomResults('selector', 'completed'), false);
+  assert.equal(shouldRedirectToCompletedRoomResults('friends', 'completed'), false);
+  assert.equal(shouldRedirectToCompletedRoomResults('grammar-practice', 'completed'), false);
+  assert.equal(shouldRedirectToCompletedRoomResults('lobby', 'completed'), true);
+  assert.equal(shouldRedirectToCompletedRoomResults('history', 'completed'), false);
+  assert.equal(shouldRedirectToCompletedRoomResults('selector', 'active'), false);
 });
