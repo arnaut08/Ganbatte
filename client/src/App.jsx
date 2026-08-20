@@ -81,7 +81,6 @@ function App() {
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [roomResumeAvailable, setRoomResumeAvailable] = useState(false);
   const [screenHistory, setScreenHistory] = useState(['selector']);
   const [selectorScreen, setSelectorScreen] = useState('home');
   const [appHomeKey, setAppHomeKey] = useState(0);
@@ -100,12 +99,6 @@ function App() {
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
-
-  useEffect(() => {
-    const savedSession = readRoomSession();
-    const hasSavedRoom = Boolean(roomCode || savedSession?.roomCode);
-    setRoomResumeAvailable(Boolean(hasSavedRoom && !ROOM_VIEW_STATUSES.includes(status)));
-  }, [roomCode, room, status]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -1203,7 +1196,6 @@ function App() {
                 onDeclineRoomResume={handleDeclineRoomResume}
                 prefillRoomCode={prefillRoomCode}
                 isSocketReady={isSocketReady}
-                canReturnToRoom={roomResumeAvailable}
                 roomCode={roomCode || readRoomSession()?.roomCode || ''}
                 resumeUsername={readRoomSession()?.username || username}
                 user={user}

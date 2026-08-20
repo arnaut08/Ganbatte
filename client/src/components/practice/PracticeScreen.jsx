@@ -178,12 +178,9 @@ function CreateRoomCard({
 }
 
 function JoinRoomCard({
-  onBackToHome,
   joinCode,
   setJoinCode,
   joinCodeInputRef,
-  canReturnToRoom,
-  roomCode,
   onJoinRoom,
   isSocketReady,
 }) {
@@ -226,11 +223,6 @@ function JoinRoomCard({
             />
           </div>
 
-          {canReturnToRoom && !joinCode.trim() && (
-            <div className="border border-black bg-white/70 px-3 py-1.5 font-mono text-xs font-black text-black">
-              LAST ROOM: <span className="underline">{roomCode}</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -252,8 +244,6 @@ export default function PracticeScreen({
   onCreateRoom,
   onJoinRoom,
   isSocketReady,
-  canReturnToRoom,
-  roomCode,
   joinCode,
   setJoinCode,
   joinCodeInputRef,
@@ -304,12 +294,9 @@ export default function PracticeScreen({
         />
 
         <JoinRoomCard
-          onBackToHome={onBackToHome}
           joinCode={joinCode}
           setJoinCode={setJoinCode}
           joinCodeInputRef={joinCodeInputRef}
-          canReturnToRoom={canReturnToRoom}
-          roomCode={roomCode}
           onJoinRoom={onJoinRoom}
           isSocketReady={isSocketReady}
         />

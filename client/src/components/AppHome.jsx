@@ -12,7 +12,6 @@ function AppHome({
   screen: controlledScreen,
   prefillRoomCode = '',
   isSocketReady = false,
-  canReturnToRoom = false,
   roomCode = '',
 }) {
   const [internalScreen, setInternalScreen] = useState(controlledScreen || 'home');
@@ -226,8 +225,6 @@ function AppHome({
             onCreateRoom={handleCreate}
             onJoinRoom={handleJoin}
             isSocketReady={isSocketReady}
-            canReturnToRoom={canReturnToRoom}
-            roomCode={roomCode}
             joinCode={joinCode}
             setJoinCode={setJoinCode}
             joinCodeInputRef={joinCodeInputRef}
