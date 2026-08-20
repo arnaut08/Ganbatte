@@ -1,5 +1,3 @@
-import React from 'react';
-
 function AssessmentLoadingScreen({
   title = 'PREPARING GRAMMAR DECK',
   description = 'Generating randomized question sets and synchronizing operators...',

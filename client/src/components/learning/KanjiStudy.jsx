@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getKanjiCards } from '../../services/api';
-import { Button } from '@/components/ui/button';
-import BackButton from '../common/BackButton';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,8 +7,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 function KanjiStudy({ onBack }) {
   const [selectedGroups, setSelectedGroups] = useState([]);

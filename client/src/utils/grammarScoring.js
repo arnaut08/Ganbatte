@@ -111,7 +111,7 @@ function normalizeRomajiReference(value) {
   return normalized;
 }
 
-export function normalizeText(value, expectedValue = value) {
+function normalizeText(value, expectedValue = value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
 

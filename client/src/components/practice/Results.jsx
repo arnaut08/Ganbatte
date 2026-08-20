@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons';
+import { useEffect, useRef, useState } from 'react';
 import {
   areRomajiAnswersEqual,
   buildDirectRomajiDiff,
@@ -25,7 +24,6 @@ function renderDifference(answer, expected, side, isKanjiDeck) {
 }
 
 function Results({ results = [], roomCode, kanaCards = [], username, user, room, isHost, onReplaySet, onStartNewSession, onRequestHost }) {
-  const [showDetails, setShowDetails] = useState(true);
   const [requestedAction, setRequestedAction] = useState(null);
   const savedResult = useRef(false);
   const isKanjiDeck = kanaCards.some((card) => card?.groupId || card?.groupName);

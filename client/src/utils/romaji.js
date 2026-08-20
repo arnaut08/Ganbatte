@@ -14,7 +14,7 @@ const ROMAJI_SYLLABLES = [
   'a', 'i', 'u', 'e', 'o', 'n',
 ];
 
-export function normalizeRomaji(value) {
+function normalizeRomaji(value) {
   return (value || '')
     .toLowerCase()
     .trim()
@@ -23,7 +23,7 @@ export function normalizeRomaji(value) {
     .join('');
 }
 
-export function tokenizeNormalizedRomaji(normalized) {
+function tokenizeNormalizedRomaji(normalized) {
   const tokens = [];
   let index = 0;
 
@@ -41,7 +41,7 @@ export function tokenizeNormalizedRomaji(normalized) {
   return tokens;
 }
 
-export function tokenizeRomaji(value) {
+function tokenizeRomaji(value) {
   return tokenizeNormalizedRomaji(normalizeRomaji(value)).map((token) => token.value);
 }
 
