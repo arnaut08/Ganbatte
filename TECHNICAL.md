@@ -201,6 +201,32 @@ In Supabase Auth settings, configure the site URL and redirect URLs for the loca
 
 ## Deployment
 
+## Genki Grammar Content
+
+Grammar lesson content is generated once by a server-side CLI and stored in Supabase. Gemini is never called directly by the browser, and normal lesson API requests read persisted records only.
+
+Apply `server/database/migrations/006_create_grammar_lessons.sql`, then configure these server variables:
+
+```env
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-3.5-flash
+```
+
+Run the generator from the repository root:
+
+```bash
+npm run generate:genki-lessons
+npm run generate:genki-lessons -- --dry-run
+npm run generate:genki-lessons -- --lesson 5
+npm run generate:genki-lessons -- --lesson 5 --force
+```
+
+The generator processes lessons sequentially and persists each successful lesson immediately. It skips existing lessons by default, so interrupted runs can resume without regenerating completed lessons. `--dry-run` validates and prints content without writing to Supabase. Invalid Gemini JSON, out-of-scope content, provider failures, and database failures stop the process with a non-zero exit code.
+
+Generated records should be reviewed before production release. When content is corrected, increment the content version and rerun the relevant lesson with `--force`.
+
 ### Server on Render
 
 Configure a Render web service with:

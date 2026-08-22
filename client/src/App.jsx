@@ -6,6 +6,7 @@ import Assessment from './components/practice/Assessment';
 import Results from './components/practice/Results';
 import AuthPage from './components/auth/AuthPage';
 import KanjiStudy from './components/learning/KanjiStudy';
+import GrammarStudy from './components/learning/GrammarStudy';
 import AssessmentHistory from './components/learning/AssessmentHistory';
 import GrammarPractice from './components/practice/GrammarPractice';
 import AssessmentLoadingScreen from './components/learning/AssessmentLoadingScreen';
@@ -131,6 +132,7 @@ function App() {
     selector: 0,
     friends: 0,
     'kanji-study': 0,
+    'grammar-study': 0,
     'grammar-practice': 0,
     lobby: 0,
     assessment: 1,
@@ -1065,6 +1067,10 @@ function App() {
     navigateToScreen('kanji-study');
   };
 
+  const handleOpenGrammarStudy = () => {
+    navigateToScreen('grammar-study');
+  };
+
   const handleOpenGrammarPractice = async (maxLesson = 12, count = 10) => {
     try {
       const response = await generateGrammarAssessment(maxLesson, count);
@@ -1182,6 +1188,7 @@ function App() {
                 onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
                 onOpenKanjiStudy={handleOpenKanjiStudy}
+                onOpenGrammarStudy={handleOpenGrammarStudy}
                 onOpenGrammarPractice={handleOpenGrammarPractice}
                 onReturnToRoom={handleReturnToRoom}
                 onDeclineRoomResume={handleDeclineRoomResume}
@@ -1226,6 +1233,13 @@ function App() {
             )}
 
             {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}
+
+            {status === 'grammar-study' && (
+              <GrammarStudy
+                onBack={handleGoBack}
+                onPracticeLesson={(lessonNumber) => handleOpenGrammarPractice(lessonNumber, 10)}
+              />
+            )}
 
             {status === 'grammar-practice' && (
               <GrammarPractice
