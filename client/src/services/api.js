@@ -110,16 +110,16 @@ async function request(path, options = {}, retryCount = 0) {
   }
 }
 
+export function getKanjiCards() {
+  return request('/api/kanji-cards');
+}
+
 export function generateCards(count = 10) {
   return request(`/api/generate-cards?count=${count}`, { method: 'POST' });
 }
 
 export function getKanaCards() {
   return request('/api/kana-cards');
-}
-
-export function getKanjiCards() {
-  return request('/api/kanji-cards');
 }
 
 export function generateGrammarAssessment(maxLesson = 12, count = 10) {
