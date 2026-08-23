@@ -2,6 +2,73 @@ import { useEffect, useState } from 'react';
 import { getGrammarLessons } from '../../services/api';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
+const KANJI_CHARACTER = /\p{Script=Han}/u;
+const HIRAGANA_START = 0x3041;
+const KATAKANA_START = 0x30a1;
+const KATAKANA_END = 0x30f6;
+
+function normalizeKanaCharacter(character) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint >= KATAKANA_START && codePoint <= KATAKANA_END) {
+        return String.fromCodePoint(codePoint - KATAKANA_START + HIRAGANA_START);
+    }
+    return character;
+}
+
+function renderJapaneseWithReadings(japanese, furigana) {
+    const text = String(japanese || '');
+    const reading = String(furigana || '');
+    if (!reading || ![...text].some((character) => KANJI_CHARACTER.test(character))) return text;
+
+    const segments = [];
+    let plainText = '';
+    let kanjiText = '';
+    let readingStart = 0;
+
+    const flushPlainText = () => {
+        if (!plainText) return;
+        segments.push({ type: 'plain', text: plainText });
+        plainText = '';
+    };
+
+    const flushKanji = (readingEnd) => {
+        if (!kanjiText) return;
+        const kanjiReading = reading.slice(readingStart, readingEnd);
+        segments.push({ type: kanjiReading ? 'kanji' : 'plain', text: kanjiText, reading: kanjiReading });
+        kanjiText = '';
+    };
+
+    for (const character of text) {
+        if (KANJI_CHARACTER.test(character)) {
+            flushPlainText();
+            kanjiText += character;
+            continue;
+        }
+
+        const readingCharacter = normalizeKanaCharacter(character);
+        const remainingReading = [...reading.slice(readingStart)];
+        const readingIndex = remainingReading.findIndex(
+            (candidate) => normalizeKanaCharacter(candidate) === readingCharacter,
+        );
+        if (readingIndex >= 0) {
+            const readingEnd = readingStart + readingIndex;
+            flushKanji(readingEnd);
+            plainText += character;
+            readingStart = readingEnd + 1;
+        } else {
+            flushKanji(reading.length);
+            plainText += character;
+        }
+    }
+
+    flushKanji(reading.length);
+    flushPlainText();
+
+    return segments.map((segment, index) => segment.type === 'kanji'
+        ? <ruby key={`${segment.text}-${index}`} className="kanji-reading" tabIndex="0"><rb>{segment.text}</rb><rt>{segment.reading}</rt></ruby>
+        : <span key={`${segment.text}-${index}`}>{segment.text}</span>);
+}
+
 function GrammarStudy({ onBack, onPracticeLesson }) {
     const [lessons, setLessons] = useState([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -95,8 +162,8 @@ function GrammarStudy({ onBack, onPracticeLesson }) {
                     <article className="flex flex-col border-2 border-black bg-[#FFDE59] text-black shadow-[6px_6px_0px_0px_#000000]">
                         {/* Card Header */}
                         <div className="p-6 sm:p-8 pb-4">
-                            <div className="flex flex-wrap items-start justify-between gap-4">
-                                <div>
+                            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                                <div className="min-w-0">
                                     <span className="border-2 border-black bg-black px-2 py-0.5 font-mono text-[11px] font-black uppercase text-[#FFDE59]">
                                         Lesson {lesson.lessonNumber}
                                     </span>
@@ -108,7 +175,7 @@ function GrammarStudy({ onBack, onPracticeLesson }) {
                                     type="button"
                                     onClick={handlePractice}
                                     disabled={isPracticing}
-                                    className="border-2 border-black bg-white px-4 py-2.5 font-mono text-xs font-black uppercase shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-wait disabled:opacity-60"
+                                    className="w-full border-2 border-black bg-white px-4 py-2.5 font-mono text-xs font-black uppercase whitespace-nowrap shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:w-auto disabled:cursor-wait disabled:opacity-60"
                                 >
                                     {isPracticing ? 'Preparing...' : 'Practice this lesson ⚡'}
                                 </button>
@@ -176,8 +243,9 @@ function GrammarStudy({ onBack, onPracticeLesson }) {
                                                     <span className="font-mono text-xs font-black uppercase text-neutral-500">// Examples</span>
                                                     {point.examples.map((example) => (
                                                         <div key={`${point.pattern}-${example.japanese}`} className="border-2 border-black bg-[#A3E636]/20 p-3 text-sm">
-                                                            <p className="font-black text-base">{example.japanese}</p>
-                                                            {example.furigana && <p className="font-mono text-xs text-neutral-600">{example.furigana}</p>}
+                                                            <p className="jp-font text-base font-black" aria-label={`${example.japanese}${example.furigana ? ` (${example.furigana})` : ''}`}>
+                                                                {renderJapaneseWithReadings(example.japanese, example.furigana)}
+                                                            </p>
                                                             <p className="font-mono text-xs text-neutral-600">{example.romaji}</p>
                                                             <p className="font-semibold text-neutral-800">{example.english}</p>
                                                         </div>

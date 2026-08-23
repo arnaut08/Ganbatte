@@ -105,6 +105,47 @@
   font-weight: 700;
 }
 
+.kanji-reading {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  border-bottom: 2px solid #000;
+  background: #FFDE59;
+  line-height: 1.35;
+}
+
+.kanji-reading rt {
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 50%;
+  z-index: 10;
+  padding: 0.15rem 0.35rem;
+  border: 2px solid #000;
+  background: #000;
+  color: #FFDE59;
+  font-family: 'Zen Kaku Gothic New', 'BIZ UDPGothic', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.kanji-reading:hover rt,
+.kanji-reading:focus-visible rt {
+  visibility: visible;
+  opacity: 1;
+}
+
+.kanji-reading:focus-visible {
+  outline: 3px solid #70CFF8;
+  outline-offset: 2px;
+}
+
 .app-container {
   min-height: 100vh;
   background-color: var(--background);
