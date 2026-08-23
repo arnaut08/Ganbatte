@@ -1,5 +1,3 @@
-import { KANJI_GROUPS } from '../data/kanji.js';
-
 const KANA_TO_ROMAJI = {
   ぁ: 'a', ぃ: 'i', ぅ: 'u', ぇ: 'e', ぉ: 'o', っ: 'tsu',
   あ: 'a', い: 'i', う: 'u', え: 'e', お: 'o',
@@ -113,18 +111,16 @@ export function generateRandomCards(sentencePool, count = 10) {
   return cards;
 }
 
-export function generateRandomKanjiCards(groupIds = [], count = 10) {
-  const selectedGroups = groupIds.length === 0
-    ? KANJI_GROUPS
-    : KANJI_GROUPS.filter((group) => groupIds.includes(group.id));
-
-  const pool = selectedGroups.flatMap((group) => group.cards.map(([kanji, reading, meaning]) => ({
-    kana: kanji,
-    romaji: romanizeKana(reading.split('/')[0].trim()),
-    english: meaning,
-    groupId: group.id,
-    groupName: group.name,
-  })));
+export function generateRandomKanjiCards(kanjiCards, groupIds = [], count = 10) {
+  const pool = kanjiCards
+    .filter((card) => groupIds.length === 0 || groupIds.includes(card.groupId))
+    .map((card) => ({
+      kana: card.kanji,
+      romaji: card.romaji || romanizeKana(card.reading.split('/')[0].trim()),
+      english: card.meaning,
+      groupId: card.groupId,
+      groupName: card.groupName,
+    }));
 
   const cards = [];
   const workingPool = [...pool];
