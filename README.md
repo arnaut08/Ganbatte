@@ -9,7 +9,7 @@ Ganbatte is a real-time multiplayer Japanese kana reading assessment. Challenge 
 ✨ **Play Together**: Challenge a friend in a live two-player room  
 🎲 **Fresh Questions**: Get a new selection of kana sentences every time  
 🈁 **Learn Japanese**: Practice hiragana and katakana with English translations  
-漢 **Study Kanji**: Learn 100 beginner Kanji grouped by everyday themes<br>
+漢 **Study Kanji**: Learn the complete N5 Kanji set grouped by everyday themes<br>
 📚 **Study Grammar**: Browse structured Genki Volume 1 lesson summaries and practice each lesson<br>
 ✍️ **Flexible Answers**: Type romaji naturally without worrying about capitalization or spacing  
 📊 **Clear Results**: See your percentage score and correctly answered questions  

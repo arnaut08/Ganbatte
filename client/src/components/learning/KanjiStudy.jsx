@@ -178,6 +178,9 @@ function KanjiStudy({ onBack }) {
                   <p className="jp-font mt-1 text-2xl font-black text-black">
                     {card.reading}
                   </p>
+                  <p className="mt-1 font-mono text-sm font-bold uppercase text-neutral-600">
+                    {card.romaji}
+                  </p>
                 </div>
 
                 {/* Meaning Box */}

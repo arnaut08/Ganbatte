@@ -1,7 +1,7 @@
 import { SERVER_URL } from '../config';
 import { supabase } from '../config/supabase';
 
-const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search', '/api/assessments', '/api/grammar-lessons'];
+const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search', '/api/assessments', '/api/grammar-lessons', '/api/kana-cards', '/api/kanji-cards', '/api/rooms', '/api/generate-cards'];
 const pendingRequests = new Map();
 
 function isFutureJwtError(error) {
