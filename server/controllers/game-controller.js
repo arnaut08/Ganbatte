@@ -2,10 +2,11 @@ import { roomSocketData } from '../utils/socket-room-utils.js';
 import { generateRandomCards, generateRandomKanjiCards } from '../services/card-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
 import { KANJI_CARDS, KANJI_GROUPS } from '../data/kanji.js';
+import { KANA_CARDS, KANA_GROUPS, KANA_MATRICES } from '../data/kana.js';
 import { cardCountSchema, roomCodeSchema } from '../utils/validation.js';
 
 export function getKanaCards(_req, res) {
-  res.json(generateRandomCards(KANA_SENTENCES, 10));
+  res.json({ groups: KANA_GROUPS, cards: KANA_CARDS, matrices: KANA_MATRICES });
 }
 
 export function getKanjiCards(_req, res) {
