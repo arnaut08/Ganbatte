@@ -7,6 +7,7 @@ import PracticeScreen from './practice/PracticeScreen';
 function AppHome({
   onCreateRoom,
   onJoinRoom,
+  onOpenKanaStudy,
   onOpenKanjiStudy,
   onOpenGrammarStudy,
   onScreenChange,
@@ -218,6 +219,7 @@ function AppHome({
         ) : screen === 'learning' ? (
           <LearningScreen
             onBackToHome={() => setScreen('home')}
+            onOpenKanaStudy={onOpenKanaStudy}
             onOpenKanjiStudy={onOpenKanjiStudy}
             onOpenGrammarStudy={onOpenGrammarStudy}
           />

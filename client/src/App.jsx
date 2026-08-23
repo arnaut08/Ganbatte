@@ -6,6 +6,8 @@ import Assessment from './components/practice/Assessment';
 import Results from './components/practice/Results';
 import AuthPage from './components/auth/AuthPage';
 import KanjiStudy from './components/learning/KanjiStudy';
+import KanaStudy from './components/learning/KanaStudy';
+import KanaFilterScreen from './components/learning/KanaFilterScreen';
 import GrammarStudy from './components/learning/GrammarStudy';
 import AssessmentHistory from './components/learning/AssessmentHistory';
 import GrammarPractice from './components/practice/GrammarPractice';
@@ -87,6 +89,7 @@ function App() {
   const [friendRequests, setFriendRequests] = useState([]);
   const [isFriendSearchLoading, setIsFriendSearchLoading] = useState(false);
   const [grammarQuestions, setGrammarQuestions] = useState([]);
+  const [selectedKana, setSelectedKana] = useState(new Set());
   const [isPreparingAssessment, setIsPreparingAssessment] = useState(false);
   const [toast, setToast] = useState(null);
   const statusRef = useRef(status);
@@ -131,6 +134,8 @@ function App() {
   const screenPriority = {
     selector: 0,
     friends: 0,
+    'kana-filter': 0,
+    'kana-study': 0,
     'kanji-study': 0,
     'grammar-study': 0,
     'grammar-practice': 0,
@@ -1063,6 +1068,19 @@ function App() {
     });
   };
 
+  const handleOpenKanaStudy = () => {
+    navigateToScreen('kana-filter');
+  };
+
+  const handleOpenKanaFilter = () => {
+    navigateToScreen('kana-filter');
+  };
+
+  const handleApplyKanaFilters = (selectedKana) => {
+    setSelectedKana(selectedKana);
+    navigateToScreen('kana-study');
+  };
+
   const handleOpenKanjiStudy = () => {
     navigateToScreen('kanji-study');
   };
@@ -1187,6 +1205,7 @@ function App() {
                 onScreenChange={setSelectorScreen}
                 onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
                 onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
+                onOpenKanaStudy={handleOpenKanaStudy}
                 onOpenKanjiStudy={handleOpenKanjiStudy}
                 onOpenGrammarStudy={handleOpenGrammarStudy}
                 onOpenGrammarPractice={handleOpenGrammarPractice}
@@ -1230,6 +1249,22 @@ function App() {
                   onBack={handleGoBack}
                 />
               </div>
+            )}
+
+            {status === 'kana-filter' && (
+              <KanaFilterScreen
+                onBack={handleGoBack}
+                onApplyFilters={handleApplyKanaFilters}
+                initialSelectedKana={selectedKana}
+              />
+            )}
+
+            {status === 'kana-study' && (
+              <KanaStudy
+                onBack={handleGoBack}
+                onOpenFilter={handleOpenKanaFilter}
+                selectedKana={selectedKana}
+              />
             )}
 
             {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}
