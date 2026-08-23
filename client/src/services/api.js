@@ -1,7 +1,7 @@
 import { SERVER_URL } from '../config';
 import { supabase } from '../config/supabase';
 
-const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search'];
+const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search', '/api/assessments', '/api/grammar-lessons'];
 const pendingRequests = new Map();
 
 function isFutureJwtError(error) {
@@ -127,6 +127,10 @@ export function generateGrammarAssessment(maxLesson = 12, count = 10) {
   const safeCount = Number.isFinite(Number(count)) ? Number(count) : 10;
 
   return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}`);
+}
+
+export function getGrammarLessons() {
+  return request('/api/grammar-lessons');
 }
 
 export function getRoom(roomCode) {

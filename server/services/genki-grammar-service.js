@@ -9,18 +9,66 @@ export const QUESTION_TYPES = [
 ];
 
 export const GENKI_GRAMMAR_LESSONS = [
-  { number: 1, title: 'Greeting and self-introduction', grammar: ['は', 'です', 'が', 'も'] },
-  { number: 2, title: 'Time and daily life', grammar: ['に', 'で', 'を', 'ます'] },
-  { number: 3, title: 'Describing people and things', grammar: ['な', 'の', 'か', 'も'] },
-  { number: 4, title: 'Activities and time expressions', grammar: ['から', 'まで', 'と', 'たり'] },
-  { number: 5, title: 'Past tense and locations', grammar: ['かった', 'た', 'に', 'で'] },
-  { number: 6, title: 'Giving and receiving', grammar: ['にくれる', 'もらう', 'あげる', 'くれる'] },
-  { number: 7, title: 'Invitations and plans', grammar: ['〜てください', '〜てみます', '〜たり', '〜たい'] },
-  { number: 8, title: 'Seeking advice', grammar: ['〜てしまう', '〜てくる', '〜ておく', '〜ないで'] },
-  { number: 9, title: 'Expressing frequency', grammar: ['〜ことがある', '〜ほど', '〜くらい', '〜か'] },
-  { number: 10, title: 'Describing experiences', grammar: ['〜たことがある', '〜とき', '〜ながら', '〜か'] },
-  { number: 11, title: 'Giving reasons', grammar: ['〜ので', '〜から', '〜ために', '〜し'] },
-  { number: 12, title: 'Advanced expressions', grammar: ['〜ように', '〜つもり', '〜べき', '〜みたい'] },
+  {
+    number: 1,
+    title: 'New Friends (Greetings & Introductions)',
+    grammar: ['X は Y です', 'ですか (Questions)', 'の (Possession)', 'Time & Age']
+  },
+  {
+    number: 2,
+    title: 'Shopping (Things & Demonstratives)',
+    grammar: ['これ / それ / あれ / どれ', 'この / その / あの / どの', 'ここ / そこ / あそこ / どこ', 'だれの', 'も', 'じゃないです']
+  },
+  {
+    number: 3,
+    title: 'Making a Date (Basic Verbs & Time)',
+    grammar: ['る/う/Irregular Verb Conjugation', '〜ます / 〜ません', 'Particles (を, で, に, へ)', '〜ませんか (Invitations)', 'Frequency Adverbs']
+  },
+  {
+    number: 4,
+    title: 'The First Date (Existence & Past Tense)',
+    grammar: ['ある / いる (Existence)', 'Location Words (まえ, うしろ, etc.)', '〜ました / 〜ませんでした', 'と (Together with / And)', 'Duration & Quantity']
+  },
+  {
+    number: 5,
+    title: 'A Trip to Okinawa (Adjectives)',
+    grammar: ['い-Adjectives (Conjugations)', 'な-Adjectives (Conjugations)', 'すき / きらい', '〜ましょう / 〜ましょうか', 'Degree Adverbs (すごく, ちょっと)']
+  },
+  {
+    number: 6,
+    title: "A Day in Robert's Life (Te-form & Requests)",
+    grammar: ['Verb て-form Conjugation', '〜てください (Requests)', '〜てもいいですか (Permission)', '〜てはいけません (Prohibition)', '〜から (Reasons/Clauses)']
+  },
+  {
+    number: 7,
+    title: 'Family Picture (Ongoing States & Descriptions)',
+    grammar: ['〜ている (Action in progress vs. State)', 'Connecting sentences with て-form', 'Body/Appearance Descriptions (A は B が...)', 'Verb Stem + に行く']
+  },
+  {
+    number: 8,
+    title: 'Barbecue (Short Forms & Thoughts)',
+    grammar: ['Short Forms (Present Affirmative & Negative)', '〜と思います (Quoting Thoughts)', '〜と言っていました (Quoting Speech)', '〜ないでください (Please don\'t)', 'Verb のが好き/上手']
+  },
+  {
+    number: 9,
+    title: 'Kabuki (Past Short Forms & Explanations)',
+    grammar: ['Past Tense Short Forms', 'Qualifying Nouns with Verbs (Relative Clauses)', 'まだ〜ていません (Have not yet)', '〜から (Because - informal)']
+  },
+  {
+    number: 10,
+    title: 'Winter Vacations (Comparisons)',
+    grammar: ['A のほうが B より (Comparisons)', 'A と B と どちら (Which is more)', '〜の中で一番 (Superlatives)', 'Adjective + になる (To become)', 'どこかに / なにも']
+  },
+  {
+    number: 11,
+    title: 'After Vacation (Desires & Activities)',
+    grammar: ['〜たいです (Want to do)', '〜たり〜たりする (Listing activities)', '〜たことがある (Past Experience)', 'Noun や Noun (Non-exhaustive list)']
+  },
+  {
+    number: 12,
+    title: 'Feeling Sick (Advice & Obligations)',
+    grammar: ['〜んです (Explanatory mode)', '〜すぎる (Too much / Excess)', '〜ほうがいいです (Giving Advice)', '〜なければいけません (Must do)', '〜でしょう / 〜だろう']
+  },
 ];
 
 const TRANSLATION_PROMPTS = [
@@ -169,7 +217,9 @@ export function getGenkiGrammarLessonMeta(maxLesson = 12) {
 
 export function resolveGeminiModel(modelName) {
   const candidates = new Set([
+    'gemini-3.7-flash',
     'gemini-3.6-flash',
+    'gemini-3.5-flash',
     'gemini-2.5-flash',
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite',

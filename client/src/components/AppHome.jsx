@@ -8,6 +8,7 @@ function AppHome({
   onCreateRoom,
   onJoinRoom,
   onOpenKanjiStudy,
+  onOpenGrammarStudy,
   onScreenChange,
   screen: controlledScreen,
   prefillRoomCode = '',
@@ -218,6 +219,7 @@ function AppHome({
           <LearningScreen
             onBackToHome={() => setScreen('home')}
             onOpenKanjiStudy={onOpenKanjiStudy}
+            onOpenGrammarStudy={onOpenGrammarStudy}
           />
         ) : (
           <PracticeScreen
