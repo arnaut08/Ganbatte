@@ -1,17 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import RoomSelector from './components/RoomSelector';
-import RoomLobby from './components/RoomLobby';
-import Assessment from './components/Assessment';
-import Results from './components/Results';
-import AuthPage from './components/AuthPage';
-import KanjiStudy from './components/KanjiStudy';
-import AssessmentHistory from './components/AssessmentHistory';
+import AppHome from './components/AppHome';
+import RoomLobby from './components/practice/RoomLobby';
+import Assessment from './components/practice/Assessment';
+import Results from './components/practice/Results';
+import AuthPage from './components/auth/AuthPage';
+import KanjiStudy from './components/learning/KanjiStudy';
+import KanaStudy from './components/learning/KanaStudy';
+import KanaFilterScreen from './components/learning/KanaFilterScreen';
+import GrammarStudy from './components/learning/GrammarStudy';
+import AssessmentHistory from './components/learning/AssessmentHistory';
+import GrammarPractice from './components/practice/GrammarPractice';
+import AssessmentLoadingScreen from './components/learning/AssessmentLoadingScreen';
 import AppHeader from './components/layout/AppHeader';
+import FriendsPanel from './components/social/FriendsPanel';
 import './App.css';
-import { generateCards, getKanaCards, getRoom } from './services/api';
+import {
+  acceptFriendRequest,
+  generateCards,
+  generateGrammarAssessment,
+  getFriendRequests,
+  getFriends,
+  getRoom,
+  rejectFriendRequest,
+  removeFriend,
+  searchUsers,
+  sendFriendRequest,
+} from './services/api';
 import { SERVER_URL } from './config';
 import { supabase } from './config/supabase';
+import { pushScreenHistory } from './utils/navigation';
+import { canStartAssessment, getPlayerPresenceStatus } from './utils/roomStatus';
 
 const SESSION_KEY_STORAGE = 'ganbatte-session-key';
 const ROOM_SESSION_STORAGE = 'ganbatte-room-session';
@@ -28,9 +47,26 @@ function saveRoomSession(roomCode, username) {
   sessionStorage.setItem(ROOM_SESSION_STORAGE, JSON.stringify({ roomCode, username }));
 }
 
+function readRoomSession() {
+  const raw = sessionStorage.getItem(ROOM_SESSION_STORAGE);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearRoomQueryParam() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('room');
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
+
 function clearRoomSession() {
   sessionStorage.removeItem(ROOM_SESSION_STORAGE);
-  window.history.replaceState({}, document.title, window.location.pathname);
+  clearRoomQueryParam();
 }
 
 function App() {
@@ -45,6 +81,91 @@ function App() {
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [_, setScreenHistory] = useState(['selector']);
+  const [selectorScreen, setSelectorScreen] = useState('home');
+  const [appHomeKey, setAppHomeKey] = useState(0);
+  const [friends, setFriends] = useState([]);
+  const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [isFriendSearchLoading, setIsFriendSearchLoading] = useState(false);
+  const [grammarQuestions, setGrammarQuestions] = useState([]);
+  const [selectedKana, setSelectedKana] = useState(new Set());
+  const [isPreparingAssessment, setIsPreparingAssessment] = useState(false);
+  const [toast, setToast] = useState(null);
+  const statusRef = useRef(status);
+  const inviteJoinAttemptedRef = useRef(false);
+  const lastPresenceSyncRef = useRef(null);
+  const authRequired = Boolean(supabase);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    if (!room) return;
+
+    if (room.status === 'preparing' && status !== 'assessment-preparing') {
+      transitionToStatus('assessment-preparing');
+      return;
+    }
+
+    if (room.status === 'active' && status === 'assessment-preparing') {
+      setIsPreparingAssessment(false);
+      transitionToStatus('assessment');
+      return;
+    }
+
+    if (room.status === 'completed' && status !== 'results' && status !== 'lobby' && !results) {
+      setIsPreparingAssessment(false);
+      transitionToStatus('results');
+    }
+  }, [room, results, status]);
+
+  const screenPriority = {
+    selector: 0,
+    friends: 0,
+    'kana-filter': 0,
+    'kana-study': 0,
+    'kanji-study': 0,
+    'grammar-study': 0,
+    'grammar-practice': 0,
+    lobby: 0,
+    assessment: 1,
+    results: 1,
+    'assessment-preparing': 0,
+  };
+
+  const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results', 'assessment-preparing'];
+
+  const transitionToStatus = (nextStatus) => {
+    setStatus((current) => {
+      if (!nextStatus) return current;
+
+      const currentPriority = screenPriority[current] ?? 0;
+      const nextPriority = screenPriority[nextStatus] ?? 0;
+
+      if (nextPriority < currentPriority) return current;
+
+      const isRoomScreen = ROOM_VIEW_STATUSES.includes(current);
+      const isRoomTransition = ROOM_VIEW_STATUSES.includes(nextStatus);
+
+      if (!isRoomScreen && current !== 'selector' && isRoomTransition) {
+        return current;
+      }
+
+      return nextStatus;
+    });
+  };
 
   useEffect(() => {
     if (!supabase) {
@@ -65,47 +186,411 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  const socialDataCacheRef = useRef({
+    userId: null,
+    friendsLoaded: false,
+    requestsLoaded: false,
+  });
+
+  const clearSocialDataCache = useCallback(() => {
+    socialDataCacheRef.current = {
+      userId: null,
+      friendsLoaded: false,
+      requestsLoaded: false,
+    };
+  }, []);
+
+  const refreshFriends = useCallback((force = false) => {
+    if (!user) {
+      setFriends([]);
+      setFriendSearchResults([]);
+      return;
+    }
+
+    const cache = socialDataCacheRef.current;
+    if (!force && cache.userId === user.id && cache.friendsLoaded) {
+      return;
+    }
+
+    getFriends()
+      .then((data) => {
+        const nextFriends = Array.isArray(data) ? data : [];
+        setFriends(nextFriends);
+        socialDataCacheRef.current = {
+          ...socialDataCacheRef.current,
+          userId: user.id,
+          friendsLoaded: true,
+        };
+      })
+      .catch((error) => {
+        console.error('Failed to fetch friends:', error);
+      });
+  }, [user]);
+
+  const refreshFriendRequests = useCallback((force = false) => {
+    if (!user) {
+      setFriendRequests([]);
+      return;
+    }
+
+    const cache = socialDataCacheRef.current;
+    if (!force && cache.userId === user.id && cache.requestsLoaded) {
+      return;
+    }
+
+    getFriendRequests()
+      .then((data) => {
+        const nextRequests = Array.isArray(data) ? data : [];
+        setFriendRequests(nextRequests);
+        socialDataCacheRef.current = {
+          ...socialDataCacheRef.current,
+          userId: user.id,
+          requestsLoaded: true,
+        };
+      })
+      .catch((error) => {
+        console.error('Failed to fetch friend requests:', error);
+      });
+  }, [user]);
+
+  const refreshFriendData = useCallback((force = false) => {
+    if (!user) {
+      setFriends([]);
+      setFriendSearchResults([]);
+      setFriendRequests([]);
+      clearSocialDataCache();
+      return;
+    }
+
+    const cache = socialDataCacheRef.current;
+    if (!force && cache.userId === user.id && cache.friendsLoaded && cache.requestsLoaded) {
+      return;
+    }
+
+    Promise.all([
+      getFriends().then((data) => (Array.isArray(data) ? data : [])),
+      getFriendRequests().then((data) => (Array.isArray(data) ? data : [])),
+    ])
+      .then(([nextFriends, nextRequests]) => {
+        setFriends(nextFriends);
+        setFriendRequests(nextRequests);
+        socialDataCacheRef.current = {
+          userId: user.id,
+          friendsLoaded: true,
+          requestsLoaded: true,
+        };
+      })
+      .catch((error) => {
+        console.error('Failed to refresh friends and requests:', error);
+      });
+  }, [clearSocialDataCache, user]);
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roomFromUrl = (params.get('room') || '').trim().toUpperCase();
-    if (roomFromUrl) {
-      setPrefillRoomCode(roomFromUrl);
+    if (!user) {
+      setFriends([]);
+      setFriendSearchResults([]);
+      setFriendRequests([]);
+      clearSocialDataCache();
+      return undefined;
+    }
+
+    const needsInitialLoad = socialDataCacheRef.current.userId !== user.id
+      || !socialDataCacheRef.current.friendsLoaded
+      || !socialDataCacheRef.current.requestsLoaded;
+
+    if (needsInitialLoad) {
+      refreshFriendData(true);
+    }
+  }, [clearSocialDataCache, refreshFriendData, user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    if (status === 'friends') {
+      refreshFriendData(true);
+    }
+
+    return undefined;
+  }, [refreshFriendData, status, user]);
+
+  const handleSearchUsers = useCallback(async (query) => {
+    if (!user) {
+      setFriendSearchResults([]);
+      return;
+    }
+
+    const trimmed = String(query || '').trim();
+    setIsFriendSearchLoading(Boolean(trimmed));
+
+    try {
+      const results = trimmed ? await searchUsers(trimmed) : [];
+      setFriendSearchResults(Array.isArray(results) ? results : []);
+    } catch (error) {
+      console.error('Failed to search users:', error);
+      setFriendSearchResults([]);
+    } finally {
+      setIsFriendSearchLoading(false);
+    }
+  }, [user]);
+
+  const handleSendFriendRequest = async (userId) => {
+    if (!userId || !user) return;
+
+    try {
+      const response = await sendFriendRequest(userId);
+      const nextRequestId = response?.requestId || response?.id || null;
+      if (nextRequestId) {
+        setFriendRequests((current) => {
+          const alreadyExists = current.some((request) => request.id === nextRequestId);
+          if (alreadyExists) return current;
+          return [
+            {
+              id: nextRequestId,
+              sender_id: user.id,
+              receiver_id: userId,
+              status: 'pending',
+              direction: 'outgoing',
+              sender: {
+                id: user.id,
+                user_id: user.id,
+                display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'You',
+              },
+            },
+            ...current,
+          ];
+        });
+      }
+      setToast({ message: 'Friend request sent.', type: 'success' });
+      refreshFriendRequests(true);
+    } catch (error) {
+      console.error('Failed to send friend request:', error);
+      setToast({ message: error.message || 'Unable to send friend request.', type: 'error' });
+    }
+  };
+
+  const handleAcceptFriendRequest = async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      const response = await acceptFriendRequest(requestId);
+      const nextFriend = response?.friend;
+      if (nextFriend) {
+        setFriends((current) => {
+          if (!current.some((friend) => (friend.user_id || friend.id) === (nextFriend.user_id || nextFriend.id))) {
+            return [...current, nextFriend];
+          }
+          return current;
+        });
+      }
+      setToast({ message: 'Friend request accepted.', type: 'success' });
+      setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+      refreshFriendData(true);
+    } catch (error) {
+      console.error('Failed to accept friend request:', error);
+      setToast({ message: error.message || 'Unable to accept friend request.', type: 'error' });
+    }
+  };
+
+  const handleRejectFriendRequest = async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      await rejectFriendRequest(requestId);
+      setToast({ message: 'Friend request rejected.', type: 'warning' });
+      setFriendRequests((current) => current.filter((request) => request.id !== requestId));
+      refreshFriendRequests(true);
+    } catch (error) {
+      console.error('Failed to reject friend request:', error);
+      setToast({ message: error.message || 'Unable to reject friend request.', type: 'error' });
+    }
+  };
+
+  const handleRemoveFriend = async (userId) => {
+    if (!userId) return;
+
+    try {
+      await removeFriend(userId);
+      setFriends((current) => current.filter((friend) => (friend.user_id || friend.id) !== userId));
+      setToast({ message: 'Friend removed.', type: 'warning' });
+      refreshFriends(true);
+    } catch (error) {
+      console.error('Failed to remove friend:', error);
+      setToast({ message: error.message || 'Unable to remove friend.', type: 'error' });
+    }
+  };
+
+  useEffect(() => {
+    if (room?.status !== 'completed' || !room.players?.length || results) return;
+
+    setResults(room.players.map((player) => ({
+      name: player.name,
+      userId: player.userId,
+      answers: player.answers,
+      hintsUsed: player.hintsUsed || [],
+    })));
+    transitionToStatus('results');
+  }, [room, results]);
+
+  useEffect(() => {
+    const savedSession = readRoomSession();
+    const savedRoomCode = (savedSession?.roomCode || '').trim().toUpperCase();
+
+    if (savedRoomCode) {
+      setPrefillRoomCode(savedRoomCode);
     }
   }, []);
 
+  const handleSetAwayStatus = useCallback((nextStatus) => {
+    if (!socket || !roomCode) return;
+    const roomPresenceKey = `${roomCode}:${nextStatus}`;
+    if (lastPresenceSyncRef.current === roomPresenceKey) return;
+
+    const currentPlayer = room?.players?.find((player) => player.id === socket.id);
+    const currentStatus = getPlayerPresenceStatus(currentPlayer);
+
+    if (currentStatus === nextStatus) return;
+
+    lastPresenceSyncRef.current = roomPresenceKey;
+    socket.emit('set-player-presence', roomCode, nextStatus);
+  }, [room, roomCode, socket]);
+
+  const syncPresenceForView = useCallback((nextStatus) => {
+    if (!socket || !roomCode) return;
+    const currentStatus = status === 'lobby' ? 'in_lobby' : 'away';
+    const targetStatus = nextStatus === 'lobby' ? 'in_lobby' : 'away';
+
+    if (currentStatus === targetStatus) {
+      return;
+    }
+
+    lastPresenceSyncRef.current = null;
+    handleSetAwayStatus(targetStatus);
+  }, [handleSetAwayStatus, roomCode, socket, status]);
+
+  useEffect(() => {
+    lastPresenceSyncRef.current = null;
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (!socket || !roomCode) return undefined;
+
+    const nextStatus = status === 'lobby' ? 'in_lobby' : 'away';
+    handleSetAwayStatus(nextStatus);
+    return undefined;
+  }, [handleSetAwayStatus, roomCode, socket, status]);
+
+  useEffect(() => {
+    if (!socket || !roomCode || !room?.players?.some((player) => player.id === socket.id)) return undefined;
+
+    const targetStatus = status === 'lobby' ? 'in_lobby' : 'away';
+    const currentPlayer = room.players.find((player) => player.id === socket.id);
+    if (getPlayerPresenceStatus(currentPlayer) !== targetStatus) {
+      lastPresenceSyncRef.current = null;
+      handleSetAwayStatus(targetStatus);
+    }
+
+    return undefined;
+  }, [handleSetAwayStatus, room, roomCode, socket, status]);
+
+  useEffect(() => {
+    if (!socket || !roomCode) return undefined;
+
+    const handleVisibilityChange = () => {
+      const nextStatus = (!document.hidden && status === 'lobby') ? 'in_lobby' : 'away';
+      handleSetAwayStatus(nextStatus);
+    };
+
+    const handleWindowFocus = () => {
+      const nextStatus = status === 'lobby' ? 'in_lobby' : 'away';
+      handleSetAwayStatus(nextStatus);
+    };
+
+    const handleWindowBlur = () => handleSetAwayStatus('away');
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [handleSetAwayStatus, roomCode, socket, status]);
+
+  useEffect(() => {
+    if (!socket || !isSocketReady || inviteJoinAttemptedRef.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const roomFromUrl = (params.get('room') || '').trim().toUpperCase();
+
+    if (!roomFromUrl) return;
+
+    inviteJoinAttemptedRef.current = true;
+    handleJoinRoom(roomFromUrl, getDisplayName());
+  }, [socket, isSocketReady, user]);
+
   // Initialize socket connection
   useEffect(() => {
+    if (authRequired && authLoading) return undefined;
+    if (authRequired && !user) return undefined;
+
     const newSocket = io(SERVER_URL, {
       auth: async (callback) => {
         const { data } = await supabase?.auth.getSession() || { data: { session: null } };
         callback({ accessToken: data.session?.access_token || null });
       },
+      reconnection: !authRequired || Boolean(user),
+      reconnectionAttempts: authRequired ? 2 : 5,
     });
 
     newSocket.on('connect', () => {
       console.log('Connected to server');
       setSocket(newSocket);
       setIsSocketReady(true);
-      const savedSession = sessionStorage.getItem(ROOM_SESSION_STORAGE);
-      if (savedSession) {
-        try {
-          const { roomCode: savedRoomCode, username: savedUsername } = JSON.parse(savedSession);
-          if (savedRoomCode && savedUsername) {
-            newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), (response) => {
-              if (response?.success) {
-                setRoomCode(savedRoomCode);
-                setUsername(savedUsername);
-                setRoom(response.room);
-                setKanaCards(response.room.cards || []);
-                setStatus(response.room.status === 'active' ? 'assessment' : 'lobby');
-              } else {
-                sessionStorage.removeItem(ROOM_SESSION_STORAGE);
+
+      if (roomCode) {
+        const nextStatus = status === 'lobby' ? 'in_lobby' : 'away';
+        newSocket.emit('set-player-presence', roomCode, nextStatus);
+      }
+
+      const savedSession = readRoomSession();
+      const shouldRestoreRoomSession = ROOM_VIEW_STATUSES.includes(statusRef.current) && Boolean(savedSession?.roomCode && savedSession?.username);
+
+      if (!shouldRestoreRoomSession) {
+        return;
+      }
+
+      try {
+        const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
+        if (savedRoomCode && savedUsername) {
+          newSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response) => {
+            if (response?.success) {
+              const nextRoom = response.room;
+              setRoomCode(savedRoomCode);
+              setUsername(savedUsername);
+              setRoom(nextRoom);
+              setKanaCards(nextRoom.cards || []);
+
+              if (nextRoom.status === 'completed') {
+                setResults(normalizeRoomResults(nextRoom.players));
+                transitionToStatus('results');
+                return;
               }
-            });
-          }
-        } catch {
-          sessionStorage.removeItem(ROOM_SESSION_STORAGE);
+
+              if (nextRoom.status === 'preparing') {
+                transitionToStatus('assessment-preparing');
+                return;
+              }
+
+              transitionToStatus(nextRoom.status === 'active' ? 'assessment' : 'lobby');
+            } else {
+              clearRoomSession();
+            }
+          });
         }
+      } catch {
+        clearRoomSession();
       }
     });
 
@@ -116,6 +601,12 @@ function App() {
       }
     });
 
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      setSocket(null);
+      setIsSocketReady(false);
+    });
+
     newSocket.on('disconnect', () => {
       setSocket(null);
       setIsSocketReady(false);
@@ -123,7 +614,16 @@ function App() {
 
     newSocket.on('room-created', (code) => {
       setRoomCode(code);
-      setStatus('lobby');
+      transitionToStatus('lobby');
+    });
+
+    newSocket.on('assessment-preparing', (data) => {
+      setIsPreparingAssessment(true);
+      if (data && data.room) {
+        setRoom(data.room);
+        if (data.room.cards) setKanaCards(data.room.cards);
+      }
+      transitionToStatus('assessment-preparing');
     });
 
     newSocket.on('player-joined', (data) => {
@@ -134,20 +634,23 @@ function App() {
     });
 
     newSocket.on('assessment-started', (data) => {
+      setIsPreparingAssessment(false);
       if (data && data.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
       }
-      setStatus('assessment');
+      transitionToStatus('assessment');
     });
 
     newSocket.on('answer-submitted', (data) => {
-      // Server now sends the full room object on answer submission
+      if (data && data.room) setRoom(data.room);
+    });
+
+    newSocket.on('hint-used', (data) => {
       if (data && data.room) setRoom(data.room);
     });
 
     newSocket.on('both-submitted', (data) => {
-      // Enter review state where players can see feedback and mark ready
       if (data && data.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
@@ -176,46 +679,107 @@ function App() {
 
     newSocket.on('assessment-completed', (data) => {
       console.log('assessment-completed event:', data);
-      // Accept either `results` or fallback to `room.players` if the
-      // server sent only the room object. This makes the client more
-      // robust to different payload shapes and will ensure the
-      // Results component receives data.
       if (data && data.room) setRoom(data.room);
-      const resultsArr = (data && data.results)
+
+      const rawResults = (data && data.results)
         ? data.results
-        : data && data.room
-        ? data.room.players.map((p) => ({ name: p.name, userId: p.userId, answers: p.answers }))
-        : null;
+        : (data && data.room && Array.isArray(data.room.players))
+          ? data.room.players
+          : [];
+
+      const resultsArr = normalizeRoomResults(rawResults);
+      console.log("resultsArr", resultsArr, rawResults);
       setResults(resultsArr);
-      setStatus('results');
+      transitionToStatus('results');
+    });
+
+    newSocket.on('room-returned-to-lobby', (data) => {
+      if (!data?.room) return;
+      setRoom(data.room);
+      setKanaCards(data.room.cards || []);
+      setResults(null);
+      setIsPreparingAssessment(false);
+      setStatus('lobby');
+    });
+
+    newSocket.on('assessment-action-denied', (data) => {
+      setToast({ message: data?.message || 'Waiting for the host to choose an action.', type: 'warning' });
+    });
+
+    newSocket.on('assessment-action-requested', (data) => {
+      if (data?.hostSocketId && data.hostSocketId !== newSocket.id) return;
+
+      const actionLabel = data?.action === 'replay' ? 'Start a New Assessment' : 'Start New Session';
+      setToast({
+        message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`,
+        type: 'warning',
+      });
+    });
+
+    newSocket.on('player-exited-lobby', (data) => {
+      if (!data?.room) return;
+
+      setRoom(data.room);
+      setKanaCards(data.room.cards || []);
+      setResults(null);
+      setIsPreparingAssessment(false);
+      setStatus('lobby');
+      setToast({
+        message: data.exitedPlayerWasHost
+          ? 'The host exited the lobby. You are now the host.'
+          : 'The guest exited the lobby.',
+        type: 'warning',
+      });
     });
 
     newSocket.on('player-left', (data) => {
-      setRoom((prev) => ({
-        ...prev,
-        players: data.players,
-      }));
+      const roomData = data?.room ?? { players: data?.players ?? [] };
+      setRoom((prev) => {
+        const nextRoom = roomData && Array.isArray(roomData.players)
+          ? { ...(prev ?? {}), ...roomData, players: roomData.players }
+          : prev;
+
+        if (nextRoom && Array.isArray(roomData.players) && roomData.players.length <= 1) {
+          setToast({ message: 'Your opponent left the room.', type: 'warning' });
+        }
+
+        return nextRoom;
+      });
+    });
+
+    newSocket.on('player-presence-updated', (data) => {
+      if (!data?.room) return;
+      setRoom((prev) => ({ ...(prev ?? {}), ...data.room, players: data.room.players || prev?.players || [] }));
+    });
+
+    newSocket.on('friend-request-received', () => {
+      refreshFriendRequests(true);
+      setToast({ message: 'You received a new friend request.', type: 'success' });
+    });
+
+    newSocket.on('friend-request-accepted', (data) => {
+      refreshFriendData(true);
+      const friendName = data?.friend?.display_name || 'Your friend';
+      setToast({ message: `${friendName} accepted your friend request.`, type: 'success' });
+    });
+
+    newSocket.on('friend-request-rejected', (data) => {
+      refreshFriendRequests(true);
+      const receiverName = data?.receiver?.display_name || 'Your friend request';
+      setToast({ message: `${receiverName} declined your friend request.`, type: 'warning' });
     });
 
     return () => {
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  }, [user]);
-
-  // Fetch kana cards
-  useEffect(() => {
-    getKanaCards()
-      .then((data) => setKanaCards(data))
-      .catch((err) => console.error('Error fetching kana cards:', err));
-  }, []);
+  }, [authLoading, authRequired, refreshFriendData, user]);
 
   const handleGenerateCards = async (count = 10, startAfter = false) => {
     try {
       const json = await generateCards(count);
       if (json.cards) {
         setKanaCards(json.cards);
-        // If in a room, set the room's card set on the server
         if (socket && roomCode) {
           socket.emit('set-cards', roomCode, json.cards, (resp) => {
             if (resp && resp.success) setRoom(resp.room);
@@ -224,8 +788,7 @@ function App() {
             }
           });
         } else if (startAfter) {
-          // no room — just update local cards
-          setStatus('assessment');
+          transitionToStatus('assessment');
         }
       }
     } catch (e) {
@@ -234,61 +797,134 @@ function App() {
   };
 
   // Expose a simple global hook the lobby can call (avoids prop drilling)
-  // This is small and acceptable for this simple app; in a larger app
-  // we'd pass the handler through props or a context provider.
   useEffect(() => {
     window.generateCards = (c = 10, start = false) => handleGenerateCards(c, start);
+    window.generateGrammarAssessment = (maxLesson = 12, count = 10) => handleOpenGrammarPractice(maxLesson, count);
     return () => {
       try {
         delete window.generateCards;
       } catch (e) {}
+      try {
+        delete window.generateGrammarAssessment;
+      } catch (e) {}
     };
   }, [socket, roomCode]);
 
-  const handleCreateRoom = async (name) => {
+  const getDisplayName = () => {
+    const fullName = user?.user_metadata?.full_name?.trim();
+    if (fullName) return fullName;
+
+    const emailName = user?.email?.split('@')[0]?.trim();
+    if (emailName) return emailName;
+
+    return 'Player';
+  };
+
+  const handleCreateRoom = async (name, deckOptions = {}) => {
     if (socket) {
-      const hostName = (name || '').trim();
+      const hostName = (name || getDisplayName()).trim();
       if (!hostName) return;
+      const normalizedDeckOptions = {
+        type: deckOptions?.type === 'grammar' ? 'grammar' : deckOptions?.type === 'kanji' ? 'kanji' : 'kana',
+        groups: Array.isArray(deckOptions?.groups) ? deckOptions.groups : [],
+        maxLesson: deckOptions?.type === 'grammar' ? Number(deckOptions.maxLesson) || 3 : undefined,
+        count: deckOptions?.type === 'grammar' ? Number(deckOptions.count) || 5 : undefined,
+      };
       setUsername(hostName);
-      socket.emit('create-room', hostName, getSessionKey(), (code) => {
+      setPrefillRoomCode('');
+      clearRoomQueryParam();
+      socket.emit('create-room', hostName, getSessionKey(), user?.id, normalizedDeckOptions, (code) => {
         setRoomCode(code);
         saveRoomSession(code, hostName);
-        // Immediately request the full room from server so the host
-        // has the same room object structure as a joined player and
-        // the lobby can render correctly.
-          getRoom(code)
-            .then((room) => {
-              setRoom(room);
-              if (room.cards) setKanaCards(room.cards);
-              setStatus('lobby');
-              const me = room.players.find((p) => p.id === socket.id);
-              if (me) setUsername(me.name);
-            })
-            .catch((error) => console.error('Failed to load room:', error));
+        getRoom(code)
+          .then((room) => {
+            setRoom(room);
+            if (room.cards) setKanaCards(room.cards);
+            setScreenHistory((currentHistory) => {
+              const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
+              return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
+            });
+            transitionToStatus('lobby');
+            const me = room.players.find((p) => p.id === socket.id);
+            if (me) setUsername(me.name);
+          })
+          .catch((error) => console.error('Failed to load room:', error));
       });
     }
   };
 
   const handleJoinRoom = (code, name) => {
     if (socket) {
-      setUsername(name);
-      socket.emit('join-room', code, name, getSessionKey(), (response) => {
+      const playerName = (name || getDisplayName()).trim();
+      if (!playerName) return;
+
+      setUsername(playerName);
+      setPrefillRoomCode('');
+      clearRoomQueryParam();
+      socket.emit('join-room', code, playerName, getSessionKey(), user?.id, (response) => {
         if (response.success) {
           setRoomCode(code);
-          saveRoomSession(code, name);
+          saveRoomSession(code, playerName);
           setRoom(response.room);
-          setStatus('lobby');
+          setScreenHistory((currentHistory) => {
+            const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
+            return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
+          });
+          transitionToStatus('lobby');
         } else {
-          alert(response.message);
+          setToast({ message: response.message, type: 'error' });
         }
       });
     }
   };
 
   const handleStartAssessment = () => {
-    if (socket && roomCode) {
-      socket.emit('start-assessment', roomCode);
+    if (!socket || !roomCode) return;
+    if (!room || !isCurrentPlayerHost) return;
+    if (!canStartAssessment(room.players)) return;
+
+    if (room?.deckType === 'grammar') {
+      setIsPreparingAssessment(true);
+      transitionToStatus('assessment-preparing');
     }
+
+    socket.emit('start-assessment', roomCode);
+  };
+
+  const handleReplayAssessment = () => {
+    if (!socket || !roomCode || !room) return;
+    if (!isCurrentPlayerHost) {
+      setToast({ message: 'Waiting for the host to replay this assessment.', type: 'warning' });
+      return;
+    }
+
+    socket.emit('replay-assessment', roomCode);
+  };
+
+  const handleStartNewSession = () => {
+    if (!socket || !roomCode || !room) return;
+
+    socket.emit('exit-lobby', roomCode, (response) => {
+      if (!response?.success) return;
+
+      clearRoomSession();
+      setRoomCode(null);
+      setRoom(null);
+      setUsername('');
+      setResults(null);
+      setPrefillRoomCode('');
+      setStatus('selector');
+      setSelectorScreen('practice');
+    });
+  };
+
+  const isCurrentPlayerHost = room?.players?.[0]?.id === socket?.id
+    || (user?.id && room?.players?.[0]?.userId === user.id)
+    || room?.players?.[0]?.sessionKey === getSessionKey();
+
+  const handleRequestHost = (action) => {
+    if (!socket || !roomCode || !room) return;
+    socket.emit('request-assessment-action', roomCode, action);
   };
 
   const handleSubmitAnswer = (answer) => {
@@ -297,91 +933,427 @@ function App() {
     }
   };
 
+  const handleUseHint = (cardIndex) => {
+    if (socket && roomCode) {
+      socket.emit('use-hint', roomCode, cardIndex);
+    }
+  };
+
   const handleNextCard = () => {
     if (socket && roomCode) {
-      // When a player clicks "I'm ready", emit player-ready; the
-      // server will advance only when all players are ready.
       socket.emit('player-ready', roomCode);
     }
   };
 
+  const normalizeRoomResults = (rawResults = []) => rawResults.map((player) => ({
+    name: player.name,
+    userId: player.userId ?? player.user_id ?? null,
+    answers: Array.isArray(player.answers) ? player.answers : [],
+    hintsUsed: Array.isArray(player.hintsUsed) ? player.hintsUsed : [],
+  }));
+
   const handleLeaveRoom = () => {
     if (!socket || !roomCode) return;
     socket.emit('leave-room', roomCode, (response) => {
-      if (!response?.success) return;
-      clearRoomSession();
+      if (response?.success && roomCode && username) {
+        saveRoomSession(roomCode, username);
+      }
       setRoomCode(null);
       setRoom(null);
       setUsername('');
       setResults(null);
       setPrefillRoomCode('');
       setStatus('selector');
+      setSelectorScreen('practice');
     });
   };
 
   const handleLogout = async () => {
-    if (socket) socket.disconnect();
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+      setIsSocketReady(false);
+    }
+
     clearRoomSession();
+    clearSocialDataCache();
     sessionStorage.removeItem(SESSION_KEY_STORAGE);
+    setUser(null);
     setRoomCode(null);
     setRoom(null);
     setUsername('');
     setResults(null);
     setPrefillRoomCode('');
     setStatus('selector');
-    await supabase?.auth.signOut();
+      setSelectorScreen('home');
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error('Logout failed:', error);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
-  const handleOpenKanjiStudy = () => setStatus('kanji-study');
-  const handleOpenHistory = () => setStatus('history');
-  const handleBackToPractice = () => setStatus('selector');
+  const preserveRoomSessionForNavigation = (nextStatus) => {
+    const storedSession = readRoomSession();
+    const activeRoomCode = roomCode || storedSession?.roomCode;
+    const activeUsername = username || storedSession?.username || '';
+
+    if (socket && activeRoomCode) {
+      socket.emit('leave-room', activeRoomCode, (response) => {
+        if (response?.success && activeRoomCode && activeUsername) {
+          saveRoomSession(activeRoomCode, activeUsername);
+        }
+        setRoomCode(null);
+        setRoom(null);
+        setUsername('');
+        setResults(null);
+        setPrefillRoomCode('');
+        setStatus(nextStatus);
+      });
+      return;
+    }
+
+    if (activeRoomCode && activeUsername) {
+      saveRoomSession(activeRoomCode, activeUsername);
+    }
+
+    setRoomCode(activeRoomCode || null);
+    setRoom(null);
+    setUsername(activeUsername);
+    setResults(null);
+    setPrefillRoomCode('');
+    setStatus(nextStatus);
+  };
+
+  const handleDeclineRoomResume = () => {
+    clearRoomSession();
+    setRoomCode(null);
+    setRoom(null);
+    setUsername('');
+    setResults(null);
+    setPrefillRoomCode('');
+    setStatus('selector');
+  };
+
+  const navigateToScreen = (nextStatus) => {
+    if (!nextStatus) return;
+
+    const targetPresence = nextStatus === 'lobby' ? 'in_lobby' : 'away';
+    syncPresenceForView(nextStatus);
+
+    setScreenHistory((currentHistory) => {
+      const currentStatus = statusRef.current || currentHistory[currentHistory.length - 1] || 'selector';
+      return pushScreenHistory(currentHistory, currentStatus, nextStatus);
+    });
+    setStatus(nextStatus);
+    if (targetPresence === 'in_lobby' && socket && roomCode) {
+      socket.emit('set-player-presence', roomCode, 'in_lobby');
+    }
+  };
+
+  const handleGoBack = () => {
+    setScreenHistory((currentHistory) => {
+      const safeHistory = currentHistory.length > 0 ? [...currentHistory] : ['selector'];
+      const nextHistory = safeHistory.length > 1 ? safeHistory.slice(0, -1) : ['selector'];
+      const previousStatus = nextHistory[nextHistory.length - 1] || 'selector';
+      if (previousStatus === 'lobby' && socket && roomCode) {
+        socket.emit('set-player-presence', roomCode, 'in_lobby');
+      } else if (socket && roomCode) {
+        socket.emit('set-player-presence', roomCode, 'away');
+      }
+      setStatus(previousStatus);
+      return nextHistory;
+    });
+  };
+
+  const handleOpenKanaStudy = () => {
+    navigateToScreen('kana-filter');
+  };
+
+  const handleOpenKanaFilter = () => {
+    navigateToScreen('kana-filter');
+  };
+
+  const handleApplyKanaFilters = (selectedKana) => {
+    setSelectedKana(selectedKana);
+    navigateToScreen('kana-study');
+  };
+
+  const handleOpenKanjiStudy = () => {
+    navigateToScreen('kanji-study');
+  };
+
+  const handleOpenGrammarStudy = () => {
+    navigateToScreen('grammar-study');
+  };
+
+  const handleOpenGrammarPractice = async (maxLesson = 12, count = 10) => {
+    try {
+      const response = await generateGrammarAssessment(maxLesson, count);
+      const questions = Array.isArray(response?.questions) ? response.questions : [];
+
+      if (questions.length === 0) {
+        setToast({ message: 'No grammar questions were generated.', type: 'warning' });
+        return;
+      }
+
+      setGrammarQuestions(questions);
+      navigateToScreen('grammar-practice');
+    } catch (error) {
+      console.error('Failed to generate grammar assessment:', error);
+      setToast({ message: error.message || 'Unable to generate grammar assessment.', type: 'error' });
+    }
+  };
+
+  const handleOpenHistory = () => {
+    navigateToScreen('history');
+  };
+
+  const handleOpenFriends = () => {
+    navigateToScreen('friends');
+  };
+
+  const handleBackToPractice = () => {
+    setStatus('selector');
+    setSelectorScreen('home');
+    setScreenHistory(['selector']);
+    setAppHomeKey((value) => value + 1);
+  };
+
+  const handleReturnToRoom = () => {
+    const savedSession = readRoomSession();
+    if (room && roomCode) {
+      const nextStatus = room.status === 'active' ? 'assessment' : 'lobby';
+      if (socket && roomCode && nextStatus === 'lobby') {
+        socket.emit('set-player-presence', roomCode, 'in_lobby');
+      }
+      setStatus(nextStatus);
+      return;
+    }
+
+    if (!savedSession) {
+      setStatus('selector');
+      return;
+    }
+
+    try {
+      const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
+      if (!savedRoomCode || !savedUsername || !socket) {
+        setStatus('selector');
+        return;
+      }
+
+      setRoomCode(savedRoomCode);
+      setUsername(savedUsername);
+      socket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response) => {
+        if (!response?.success) {
+          clearRoomSession();
+          setRoomCode(null);
+          setRoom(null);
+          setUsername('');
+          setStatus('selector');
+          return;
+        }
+
+        setRoom(response.room);
+        setKanaCards(response.room.cards || []);
+        const nextStatus = response.room.status === 'active' ? 'assessment' : 'lobby';
+        if (nextStatus === 'lobby') {
+          socket.emit('set-player-presence', savedRoomCode, 'in_lobby');
+        }
+        setStatus(nextStatus);
+      });
+    } catch {
+      setStatus('selector');
+    }
+  };
+
+  const mainClassName = 'container mx-auto px-4 py-6';
 
   return (
-    <div className="app">
-      <AppHeader onLogout={handleLogout} onOpenHistory={handleOpenHistory} />
+    <div className="app-container min-h-screen">
+      {toast && (
+        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm border-2 border-black bg-white px-4 py-3 text-sm font-bold text-black shadow-[5px_5px_0px_0px_#000]">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-block h-3 w-3 shrink-0 border-2 border-black bg-[#FFDE59]" />
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
 
-      <main className="app-main">
-        {authLoading && <div className="auth-loading">Loading account...</div>}
-        {!authLoading && !user && <AuthPage />}
-        {!authLoading && user && (
+      <AppHeader
+        onHome={handleBackToPractice}
+        onOpenFriends={handleOpenFriends}
+        onLogout={handleLogout}
+        onOpenHistory={handleOpenHistory}
+        isAuthenticated={Boolean(user)}
+        user={user}
+        pendingFriendRequestCount={friendRequests.filter((request) => request?.direction !== 'outgoing').length}
+      />
+
+      <main className={mainClassName}>
+        {authLoading && <div className="py-12 text-center text-muted-foreground">Loading account...</div>}
+        {!authLoading && authRequired && !user && <AuthPage />}
+        {!authLoading && (!authRequired || user) && (
           <>
-        {status === 'selector' && (
-          <RoomSelector
-            onCreateRoom={handleCreateRoom}
-            onJoinRoom={handleJoinRoom}
-            onOpenKanjiStudy={handleOpenKanjiStudy}
-            prefillRoomCode={prefillRoomCode}
-            isSocketReady={isSocketReady}
-          />
-        )}
+            {status === 'selector' && (
+              <AppHome
+                key={appHomeKey}
+                screen={selectorScreen}
+                onScreenChange={setSelectorScreen}
+                onCreateRoom={(deckOptions) => handleCreateRoom(getDisplayName(), deckOptions)}
+                onJoinRoom={(code) => handleJoinRoom(code, getDisplayName())}
+                onOpenKanaStudy={handleOpenKanaStudy}
+                onOpenKanjiStudy={handleOpenKanjiStudy}
+                onOpenGrammarStudy={handleOpenGrammarStudy}
+                onOpenGrammarPractice={handleOpenGrammarPractice}
+                onReturnToRoom={handleReturnToRoom}
+                onDeclineRoomResume={handleDeclineRoomResume}
+                prefillRoomCode={prefillRoomCode}
+                isSocketReady={isSocketReady}
+                roomCode={roomCode || readRoomSession()?.roomCode || ''}
+                resumeUsername={readRoomSession()?.username || username}
+                user={user}
+                friends={friends}
+                friendSearchResults={friendSearchResults}
+                isFriendSearchLoading={isFriendSearchLoading}
+                onSearchUsers={handleSearchUsers}
+                onRemoveFriend={handleRemoveFriend}
+              />
+            )}
 
-        {status === 'kanji-study' && <KanjiStudy onBack={handleBackToPractice} />}
+            {status === 'friends' && (
+              <div className="space-y-4">
+                {/* <div className="flex items-center gap-3">
+                  <BackButton onClick={handleGoBack} label="Back to previous screen" />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-[#2563eb]">
+                      Social
+                    </p>
+                    <h2 className="text-xl font-bold">Friends</h2>
+                  </div>
+                </div> */}
 
-        {status === 'history' && <AssessmentHistory onBack={handleBackToPractice} />}
+                <FriendsPanel
+                  friends={friends}
+                  searchResults={friendSearchResults}
+                  friendRequests={friendRequests}
+                  onSearchUsers={handleSearchUsers}
+                  onSendFriendRequest={handleSendFriendRequest}
+                  onAcceptFriendRequest={handleAcceptFriendRequest}
+                  onRejectFriendRequest={handleRejectFriendRequest}
+                  onRemoveFriend={handleRemoveFriend}
+                  isSearching={isFriendSearchLoading}
+                  onBack={handleGoBack}
+                />
+              </div>
+            )}
 
-        {status === 'lobby' && room && (
-          <RoomLobby
-            roomCode={roomCode}
-            room={room}
-            onStartAssessment={handleStartAssessment}
-            onLeaveRoom={handleLeaveRoom}
-            currentSocketId={socket?.id || ''}
-          />
-        )}
+            {status === 'kana-filter' && (
+              <KanaFilterScreen
+                onBack={handleGoBack}
+                onApplyFilters={handleApplyKanaFilters}
+                initialSelectedKana={selectedKana}
+              />
+            )}
 
-        {status === 'assessment' && room && (
-          <Assessment
-            room={room}
-            kanaCards={kanaCards}
-            onSubmitAnswer={handleSubmitAnswer}
-            onNextCard={handleNextCard}
-            username={username}
-          />
-        )}
+            {status === 'kana-study' && (
+              <KanaStudy
+                onBack={handleGoBack}
+                onOpenFilter={handleOpenKanaFilter}
+                selectedKana={selectedKana}
+              />
+            )}
 
-        {status === 'results' && results && (
-          <Results results={results} roomCode={roomCode} kanaCards={kanaCards} username={username} user={user} />
-        )}
+            {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}
+
+            {status === 'grammar-study' && (
+              <GrammarStudy
+                onBack={handleGoBack}
+                onPracticeLesson={(lessonNumber) => handleOpenGrammarPractice(lessonNumber, 10)}
+              />
+            )}
+
+            {status === 'grammar-practice' && (
+              <GrammarPractice
+                questions={grammarQuestions}
+                onBack={handleGoBack}
+              />
+            )}
+
+            {status === 'history' && <AssessmentHistory onBack={handleGoBack} />}
+
+            {status === 'assessment-preparing' && room?.deckType === 'grammar' && (
+              <AssessmentLoadingScreen
+                title="Preparing the grammar deck"
+                description="Generating the question set and getting both players ready."
+                progress={12}
+              />
+            )}
+
+            {status === 'lobby' && room && (
+              <RoomLobby
+                roomCode={roomCode}
+                room={room}
+                onStartAssessment={handleStartAssessment}
+                onLeaveRoom={handleLeaveRoom}
+                currentSocketId={socket?.id || ''}
+                currentUserId={user?.id || null}
+                currentSessionKey={getSessionKey()}
+                isPreparingAssessment={isPreparingAssessment}
+              />
+            )}
+
+            {status === 'assessment' && room && (
+              room.deckType === 'grammar' ? (
+                <GrammarPractice
+                  questions={room.cards || grammarQuestions}
+                  room={room}
+                  username={username}
+                  onBack={handleGoBack}
+                  onNextCard={handleNextCard}
+                  onSubmitAnswer={handleSubmitAnswer}
+                />
+              ) : (
+                <Assessment
+                  room={room}
+                  kanaCards={kanaCards}
+                  onSubmitAnswer={handleSubmitAnswer}
+                  onUseHint={handleUseHint}
+                  onNextCard={handleNextCard}
+                  username={username}
+                />
+              )
+            )}
+
+            {status === 'results' && results && room?.deckType === 'grammar' && (
+              <GrammarPractice
+                questions={room.cards || grammarQuestions}
+                room={room}
+                username={username}
+                onBack={handleGoBack}
+                onNextCard={handleNextCard}
+                onSubmitAnswer={handleSubmitAnswer}
+                forceShowResults
+              />
+            )}
+
+            {status === 'results' && results && room?.deckType !== 'grammar' && (
+              <Results
+                results={results}
+                roomCode={roomCode}
+                kanaCards={kanaCards}
+                username={username}
+                user={user}
+                room={room}
+                isHost={isCurrentPlayerHost}
+                onReplaySet={handleReplayAssessment}
+                onStartNewSession={handleStartNewSession}
+                onRequestHost={handleRequestHost}
+              />
+            )}
           </>
         )}
       </main>

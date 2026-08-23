@@ -19,39 +19,114 @@ Ganbatte/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
+│   ├── .env.example
 │   └── src/
 │       ├── App.jsx
 │       ├── App.css
 │       ├── index.css
 │       ├── config.js
-│       ├── assets/logo.svg
+│       ├── assets/
+│       │   └── logo.svg
 │       ├── components/
-│       │   ├── layout/AppHeader.jsx
-│       │   ├── AuthPage.jsx
-│       │   ├── KanjiStudy.jsx
-│       │   ├── RoomSelector.jsx
-│       │   ├── RoomLobby.jsx
-│       │   ├── Assessment.jsx
-│       │   └── Results.jsx
-│       ├── services/api.js
-│       ├── config/supabase.js
-│       └── utils/romaji.js
+│       │   ├── AppHome.jsx
+│       │   ├── auth/
+│       │   │   ├── AuthPage.jsx
+│       │   │   └── AuthPage.css
+│       │   ├── common/
+│       │   │   └── BackButton.jsx
+│       │   ├── layout/
+│       │   │   └── AppHeader.jsx
+│       │   ├── learning/
+│       │   │   ├── LearningScreen.jsx
+│       │   │   ├── KanjiStudy.jsx
+│       │   │   ├── KanjiStudy.css
+│       │   │   ├── AssessmentHistory.jsx
+│       │   │   ├── AssessmentHistory.css
+│       │   │   └── AssessmentLoadingScreen.jsx
+│       │   ├── practice/
+│       │   │   ├── PracticeScreen.jsx
+│       │   │   ├── Assessment.jsx
+│       │   │   ├── Assessment.css
+│       │   │   ├── RoomLobby.jsx
+│       │   │   ├── RoomLobby.css
+│       │   │   ├── GrammarPractice.jsx
+│       │   │   ├── Results.jsx
+│       │   │   └── Results.css
+│       │   ├── social/
+│       │   │   └── FriendsPanel.jsx
+│       │   └── ui/
+│       │       ├── alert.jsx
+│       │       ├── badge.jsx
+│       │       ├── button.jsx
+│       │       ├── card.jsx
+│       │       ├── checkbox.jsx
+│       │       ├── dropdown-menu.jsx
+│       │       ├── input.jsx
+│       │       ├── label.jsx
+│       │       ├── progress.jsx
+│       │       ├── separator.jsx
+│       │       ├── skeleton.jsx
+│       │       ├── switch.jsx
+│       │       └── table.jsx
+│       ├── config/
+│       │   └── supabase.js
+│       ├── lib/
+│       │   └── utils.js
+│       ├── services/
+│       │   └── api.js
+│       └── utils/
+│           ├── friendRefresh.js
+│           ├── grammarRoomSync.js
+│           ├── grammarScoring.js
+│           ├── navigation.js
+│           ├── romaji.js
+│           ├── roomStatus.js
+│           └── statusTransitions.js
 ├── server/
 │   ├── index.js
 │   ├── app.js
 │   ├── package.json
-│   ├── config/env.js
-│   ├── config/supabase.js
-│   ├── config/redis.js
-│   ├── database/migrations/001_create_kana_sentences.sql
-│   ├── database/migrations/002_create_profiles.sql
-│   ├── database/migrations/003_create_assessment_results.sql
-│   ├── data/kana-sentences.js
-│   ├── data/kanji.js
-│   ├── repositories/kana-sentence-repository.js
-│   ├── services/card-service.js
-│   └── utils/validation.js
-├── .github/copilot-instructions.md
+│   ├── config/
+│   │   ├── env.js
+│   │   ├── redis.js
+│   │   └── supabase.js
+│   ├── controllers/
+│   │   ├── assessment-controller.js
+│   │   └── friend-controller.js
+│   ├── database/
+│   │   └── migrations/
+│   │       ├── 001_create_kana_sentences.sql
+│   │       ├── 002_create_profiles.sql
+│   │       ├── 003_create_assessment_results.sql
+│   │       ├── 004_create_friendships.sql
+│   │       └── 005_create_friend_requests.sql
+│   ├── data/
+│   │   ├── kana-sentences.js
+│   │   └── kanji.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── error-handler.js
+│   ├── repositories/
+│   │   └── kana-sentence-repository.js
+│   ├── routes/
+│   │   ├── assessment-routes.js
+│   │   ├── friend-routes.js
+│   │   └── game-routes.js
+│   ├── services/
+│   │   ├── card-service.js
+│   │   ├── friend-service.js
+│   │   └── genki-grammar-service.js
+│   ├── socket/
+│   │   └── socket-server.js
+│   └── utils/
+│       ├── romaji.js
+│       ├── socket-room-utils.js
+│       └── validation.js
+├── .github/
+│   └── copilot-instructions.md
+├── package.json
+├── README.md
+├── TECHNICAL.md
 └── package.json
 ```
 
@@ -125,6 +200,45 @@ Run `server/database/migrations/002_create_profiles.sql` after the sentence migr
 In Supabase Auth settings, configure the site URL and redirect URLs for the local client and deployed Vercel client. If email confirmation is enabled, users must confirm their email before entering the app.
 
 ## Deployment
+
+## N5 Kanji Content
+
+Kanji study content is generated server-side with Gemini and persisted as published records in Supabase. The browser and Socket.io rooms never call Gemini directly.
+
+Apply `server/database/migrations/007_create_kanji_lessons.sql` and `server/database/migrations/008_add_kanji_romaji.sql`, then configure the server variables shown in the Genki section above. Generate and persist the complete deck from the repository root:
+
+```bash
+npm run generate:kanji
+npm run generate:kanji -- --dry-run
+```
+
+The generator validates that Gemini returned a complete, grouped N5 deck with 50-150 unique Han characters before replacing the published N5 deck. Each example may use the current character only, so examples cannot silently teach unintroduced Kanji. Gemini chooses the appropriate character count and number of themes; the bounds only prevent malformed or impractically large responses. `--dry-run` prints the validated deck without writing to Supabase. Do not run the normal command until both migrations have been applied and the server has valid `SUPABASE_SERVICE_ROLE_KEY` and `GEMINI_API_KEY` values.
+
+## Genki Grammar Content
+
+Grammar lesson content is generated once by a server-side CLI and stored in Supabase. Gemini is never called directly by the browser, and normal lesson API requests read persisted records only.
+
+Apply `server/database/migrations/006_create_grammar_lessons.sql`, then configure these server variables:
+
+```env
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-3.5-flash
+```
+
+Run the generator from the repository root:
+
+```bash
+npm run generate:genki-lessons
+npm run generate:genki-lessons -- --dry-run
+npm run generate:genki-lessons -- --lesson 5
+npm run generate:genki-lessons -- --lesson 5 --force
+```
+
+The generator processes lessons sequentially and persists each successful lesson immediately. It skips existing lessons by default, so interrupted runs can resume without regenerating completed lessons. `--dry-run` validates and prints content without writing to Supabase. Invalid Gemini JSON, out-of-scope content, provider failures, and database failures stop the process with a non-zero exit code.
+
+Generated records should be reviewed before production release. When content is corrected, increment the content version and rerun the relevant lesson with `--force`.
 
 ### Server on Render
 
@@ -239,6 +353,7 @@ Server:
 ```bash
 npm run dev
 npm run build
+npm run generate:kanji
 npm start
 ```
 
@@ -253,7 +368,7 @@ npm run preview
 ## Customization
 
 - Add vocabulary dimensions or sentence templates in `server/data/kana-sentences.js`.
-- Add or update Kanji study records in `server/data/kanji.js`.
+- Generate and review Kanji study records with `npm run generate:kanji`.
 - Adjust random deck selection in `server/services/card-service.js`.
 - Adjust scoring and difference behavior in `client/src/utils/romaji.js`.
 - Update the logo in `client/src/assets/logo.svg`.

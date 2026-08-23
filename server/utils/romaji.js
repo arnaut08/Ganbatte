@@ -15,7 +15,34 @@ const ROMAJI_SYLLABLES = [
 ];
 
 function normalizeRomaji(value) {
-  return (value || '')
+  if (value === null || value === undefined) return '';
+
+  if (typeof value === 'string') {
+    return value
+      .toLowerCase()
+      .trim()
+      .split(/\s+/)
+      .map((part) => (part === 'wo' ? 'o' : part))
+      .join('');
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeRomaji(entry)).join('');
+  }
+
+  if (typeof value === 'object') {
+    if (Array.isArray(value.pairs)) {
+      return value.pairs.map((pair) => normalizeRomaji(`${pair?.left ?? ''} ${pair?.right ?? ''}`)).join('');
+    }
+
+    if (typeof value.left === 'string' || typeof value.right === 'string') {
+      return normalizeRomaji(`${value.left ?? ''} ${value.right ?? ''}`);
+    }
+
+    return '';
+  }
+
+  return String(value)
     .toLowerCase()
     .trim()
     .split(/\s+/)
