@@ -7,14 +7,7 @@ import {
   KANJI_PROMPT_MODES,
 } from '../../utils/kanjiRecall';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   CheckCircledIcon,
-  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ExclamationTriangleIcon,
@@ -22,27 +15,15 @@ import {
 } from '@radix-ui/react-icons';
 
 const CONFIDENCE_OPTIONS = [
-  { level: 'again', label: 'Again', icon: ExclamationTriangleIcon, color: '#FFDE59' },
-  { level: 'hard', label: 'Hard', icon: LightningBoltIcon, color: '#FF6B6B' },
-  { level: 'easy', label: 'Easy', icon: CheckCircledIcon, color: '#A3E636' },
-  { level: null, label: 'Unrated', icon: null, color: '#FFFFFF' },
-];
-
-const CONFIDENCE_FILTERS = [
-  { key: 'again', label: 'Review again characters', description: 'Practice characters marked Again.' },
-  { key: 'hard', label: 'Hard characters', description: 'Practice characters marked Hard.' },
-  { key: 'unrated', label: 'Unrated characters', description: 'Practice characters without a confidence rating.' },
-];
-
-const CONFIDENCE_SCOPES = [
-  { key: 'all', label: 'All Characters', description: 'Include every selected character.' },
-  { key: 'skip-easy', label: 'Skip Easy Characters', description: 'Exclude Easy characters from this session.' },
+  { level: 'again', label: 'Again', icon: ExclamationTriangleIcon, color: '#FFDE59', description: 'Review soon' },
+  { level: 'hard', label: 'Hard', icon: LightningBoltIcon, color: '#FF6B6B', description: 'Needs practice' },
+  { level: 'easy', label: 'Easy', icon: CheckCircledIcon, color: '#A3E636', description: 'Mastered / easy' },
+  { level: 'unrated', label: 'Unrated', icon: null, color: '#FFFFFF', description: 'No confidence rating' },
 ];
 
 function KanjiStudy({ onBack }) {
   const [selectedGroups, setSelectedGroups] = useState([]);
-  const [confidenceScope, setConfidenceScope] = useState('all');
-  const [confidenceLevelFilters, setConfidenceLevelFilters] = useState([]);
+  const [selectedConfidenceLevels, setSelectedConfidenceLevels] = useState(['unrated', 'again', 'hard', 'easy']);
   const [cardIndex, setCardIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [promptMode, setPromptMode] = useState(KANJI_PROMPT_MODES.READING);
@@ -60,7 +41,6 @@ function KanjiStudy({ onBack }) {
   const [reviewChanges, setReviewChanges] = useState({});
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [kanjiData, setKanjiData] = useState({ cards: [], groups: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -84,13 +64,12 @@ function KanjiStudy({ onBack }) {
   const groupFilteredCards = selectedGroups.length === 0
     ? kanjiData.cards
     : kanjiData.cards.filter((card) => selectedGroups.includes(card.groupId));
+
   const cards = groupFilteredCards.filter((kanjiCard) => {
-    const savedConfidence = confidenceByCharacter[kanjiCard.kanji] || null;
-    const matchesSelectedLevels = confidenceLevelFilters.length === 0 || confidenceLevelFilters.some((level) => (
-      level === 'unrated' ? savedConfidence === null : savedConfidence === level
-    ));
-    return matchesSelectedLevels && (confidenceScope !== 'skip-easy' || savedConfidence !== 'easy');
+    const savedConfidence = confidenceByCharacter[kanjiCard.kanji] || 'unrated';
+    return selectedConfidenceLevels.includes(savedConfidence);
   });
+
   const activeCards = isRetryMode ? retryCards : cards;
   const card = activeCards[cardIndex];
 
@@ -124,7 +103,7 @@ function KanjiStudy({ onBack }) {
     });
   }, [attempt, confidence]);
 
-  const selectGroup = (groupId) => {
+  const toggleGroup = (groupId) => {
     setSelectedGroups((current) => current.includes(groupId)
       ? current.filter((selected) => selected !== groupId)
       : [...current, groupId]);
@@ -134,19 +113,36 @@ function KanjiStudy({ onBack }) {
     setRetryCards([]);
   };
 
-  const selectConfidenceFilter = (filterKey) => {
-    if (filterKey === 'all' || filterKey === 'skip-easy') {
-      setConfidenceScope(filterKey);
-      if (filterKey === 'all') setConfidenceLevelFilters([]);
-    } else {
-      setConfidenceLevelFilters((current) => current.includes(filterKey)
-        ? current.filter((selected) => selected !== filterKey)
-        : [...current, filterKey]);
-    }
+  const selectAllGroups = () => {
+    setSelectedGroups([]);
     setCardIndex(0);
     setIsRevealed(false);
     setIsRetryMode(false);
     setRetryCards([]);
+  };
+
+  const toggleConfidenceLevel = (levelKey) => {
+    setSelectedConfidenceLevels((current) => {
+      if (current.includes(levelKey)) {
+        if (current.length === 1) return current; // keep at least one active
+        return current.filter((k) => k !== levelKey);
+      }
+      return [...current, levelKey];
+    });
+    setCardIndex(0);
+    setIsRevealed(false);
+    setIsRetryMode(false);
+    setRetryCards([]);
+  };
+
+  const setAllLevels = () => {
+    setSelectedConfidenceLevels(['unrated', 'again', 'hard', 'easy']);
+    setCardIndex(0);
+  };
+
+  const setSkipEasy = () => {
+    setSelectedConfidenceLevels(['unrated', 'again', 'hard']);
+    setCardIndex(0);
   };
 
   const moveCard = (direction) => {
@@ -196,10 +192,10 @@ function KanjiStudy({ onBack }) {
     if (!card || attempt) return;
     const nextAttempt = {
       ...buildKanjiAttempt({
-      card,
-      promptMode,
-      answer: 'skip',
-      usedHint,
+        card,
+        promptMode,
+        answer: 'skip',
+        usedHint,
       }),
       skipped: true,
     };
@@ -270,123 +266,36 @@ function KanjiStudy({ onBack }) {
     setAnswer('');
   };
 
-  const exitRetry = () => {
-    setIsRetryMode(false);
-    setRetryCards([]);
-    setCardIndex(0);
-  };
-
-  const filterSummary = selectedGroups.length === 0
-    ? 'All kanji'
-    : `${selectedGroups.length} groups selected`;
-
   const confidenceOptions = CONFIDENCE_OPTIONS.slice(0, 3);
-  const confidenceLevels = CONFIDENCE_OPTIONS;
+  const confidenceLevels = CONFIDENCE_OPTIONS.map((opt) => ({
+    ...opt,
+    level: opt.level === 'unrated' ? null : opt.level,
+  }));
 
   return (
     <main className="container mx-auto max-w-3xl space-y-6 px-4 py-6">
-      {/* 1. Unified Header Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-            title="Back to previous screen"
-          >
-            <span className="font-mono text-lg font-black">&lt;</span>
-          </button>
+      {/* 1. Cleaned-Up Header Bar */}
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          title="Back to previous screen"
+        >
+          <span className="font-mono text-lg font-black">&lt;</span>
+        </button>
 
-          <div>
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-          // PRACTICE: KANJI DECK
-            </span>
-            <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight sm:text-3xl">
-              Reading Foundation
-            </h1>
-          </div>
-        </div>
-
-        {/* Study & Filter Controls */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          {/* Segmented Mode Selector */}
-          <div className="flex border-2 border-black bg-black p-0.5 shadow-[3px_3px_0px_0px_#000000]">
-            {Object.entries(KANJI_PROMPT_MODES).map(([label, mode]) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setPromptMode(mode)}
-                className={`px-3 py-1.5 font-mono text-[10px] font-black uppercase transition-all ${promptMode === mode
-                    ? 'bg-[#FFDE59] text-black'
-                    : 'bg-transparent text-neutral-400 hover:text-white'
-                  }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Filter Dropdown */}
-          <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex h-9 items-center justify-between gap-2.5 border-2 border-black bg-white px-3 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-                aria-label="Filter Kanji groups"
-              >
-                <span className="truncate max-w-[130px]">{filterSummary}</span>
-                <ChevronDownIcon className="h-3.5 w-3.5 stroke-[2]" />
-              </button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              className="w-56 border-2 border-black bg-[#1a1f2c] p-1.5 shadow-[5px_5px_0px_0px_#000000]"
-              align="end"
-            >
-              <DropdownMenuItem
-                className={`cursor-pointer px-3 py-2 font-mono text-xs font-black uppercase transition-all ${selectedGroups.length === 0
-                    ? 'border border-black bg-[#FFDE59] text-black'
-                    : 'text-white hover:bg-[#252c3d]'
-                  }`}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setSelectedGroups([]);
-                  setCardIndex(0);
-                  setIsRevealed(false);
-                  setIsRetryMode(false);
-                  setRetryCards([]);
-                }}
-              >
-                <span className="mr-2 font-bold">{selectedGroups.length === 0 ? '✓' : ' '}</span>
-                All kanji
-              </DropdownMenuItem>
-
-              <div className="my-1 border-t-2 border-black/40" />
-
-              {kanjiData.groups.map((group) => {
-                const isSelected = selectedGroups.includes(group.id);
-                return (
-                  <DropdownMenuItem
-                    key={group.id}
-                    className={`cursor-pointer px-3 py-2 font-mono text-xs font-black uppercase transition-all ${isSelected
-                        ? 'border border-black bg-[#FFDE59] text-black'
-                        : 'text-white hover:bg-[#252c3d]'
-                      }`}
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      selectGroup(group.id);
-                    }}
-                  >
-                    <span className="mr-2 font-bold">{isSelected ? '✓' : ' '}</span>
-                    {group.name}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div>
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
+            // PRACTICE: KANJI DECK
+          </span>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight sm:text-3xl">
+            Reading Foundation
+          </h1>
         </div>
       </div>
 
+      {/* 2. Review Screen */}
       {!isLoading && !error && isReviewing && (
         <section className="space-y-5 border-2 border-black bg-[#FFDE59] p-5 text-black shadow-[6px_6px_0px_0px_#000000] sm:p-8">
           <div className="border-b-2 border-black pb-4">
@@ -397,7 +306,7 @@ function KanjiStudy({ onBack }) {
 
           {reviewError && <div className="border-2 border-black bg-[#FF6B6B] p-3 font-mono text-xs font-black uppercase">{reviewError}</div>}
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             {confidenceLevels.map(({ level, label, icon: Icon, color }) => {
               const levelKey = level || 'unrated';
               const items = reviewItems.filter((item) => item.confidence === level);
@@ -414,7 +323,7 @@ function KanjiStudy({ onBack }) {
                 >
                   <div className="flex items-center gap-2 border-b-2 border-black pb-2">
                     <span className="flex h-8 w-8 items-center justify-center border-2 border-black" style={{ backgroundColor: color }}>
-                      {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : <span className="font-black">?</span>}
+                      {Icon ? <Icon className="h-4 w-4 text-black" aria-hidden="true" /> : <span className="font-black text-black">?</span>}
                     </span>
                     <span className="font-mono text-xs font-black uppercase">{label}</span>
                     <span className="ml-auto font-mono text-xs font-black">{items.length}</span>
@@ -447,96 +356,156 @@ function KanjiStudy({ onBack }) {
         </section>
       )}
 
+      {/* 3. Streamlined Setup Screen */}
       {!isLoading && !error && !isLearning && !isReviewing && (
-        <section className="space-y-5 border-2 border-black bg-[#FFDE59] p-6 text-black shadow-[6px_6px_0px_0px_#000000] sm:p-8">
+        <section className="space-y-6 border-2 border-black bg-[#FFDE59] p-6 text-black shadow-[6px_6px_0px_0px_#000000] sm:p-8">
           <div className="border-b-2 border-black pb-4">
             <span className="font-mono text-xs font-black uppercase tracking-wider">// STUDY SETUP</span>
             <h2 className="mt-1 text-3xl font-black uppercase tracking-tight">Choose your Kanji mission</h2>
             <p className="mt-2 max-w-2xl text-sm font-bold">
-              Select the groups and recall mode, then start when you are ready. Your confidence ratings stay attached to each character.
+              Select your prompt mode, target groups, and confidence levels to shape your practice session.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            {Object.entries(KANJI_PROMPT_MODES).map(([label, mode]) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setPromptMode(mode)}
-                className={`border-2 border-black p-4 text-left font-mono shadow-[3px_3px_0px_0px_#000] ${promptMode === mode ? 'bg-[#A3E636] text-black' : 'bg-white hover:bg-neutral-100'}`}
-              >
-                <span className="block text-xs font-black uppercase">{label} mode</span>
-                <span className="mt-1 block text-xs font-bold">
-                  {mode === KANJI_PROMPT_MODES.READING ? 'Type the romaji reading for each Kanji.' : 'Type the English meaning for each Kanji.'}
-                </span>
-              </button>
-            ))}
-          </div>
-
+          {/* Prompt Mode Selector */}
           <div>
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="font-mono text-xs font-black uppercase">Session scope: choose one</h3>
-              <span className="font-mono text-[10px] font-bold uppercase text-black/60">Single select</span>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {CONFIDENCE_SCOPES.map(({ key, label, description }) => (
+            <h3 className="font-mono text-xs font-black uppercase text-black">1. Prompt Mode</h3>
+            <div className="mt-2.5 grid gap-3 sm:grid-cols-2">
+              {Object.entries(KANJI_PROMPT_MODES).map(([label, mode]) => (
                 <button
-                  key={key}
+                  key={mode}
                   type="button"
-                  onClick={() => selectConfidenceFilter(key)}
-                  aria-pressed={confidenceScope === key}
-                  className={`border-2 border-black p-3 text-left font-mono shadow-[3px_3px_0px_0px_#000] ${confidenceScope === key ? 'bg-[#70CFF8]' : 'bg-white hover:bg-neutral-100'}`}
+                  onClick={() => setPromptMode(mode)}
+                  className={`border-2 border-black p-4 text-left font-mono shadow-[3px_3px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+                    promptMode === mode ? 'bg-[#A3E636] text-black' : 'bg-white hover:bg-neutral-100'
+                  }`}
                 >
-                  <span className="block text-xs font-black uppercase">{label}</span>
-                  <span className="mt-1 block text-xs font-bold">{description}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-5 flex items-baseline justify-between gap-3">
-              <h3 className="font-mono text-xs font-black uppercase">Practice levels: choose any</h3>
-              <span className="font-mono text-[10px] font-bold uppercase text-black/60">Multi-select</span>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              {CONFIDENCE_FILTERS.map(({ key, label, description }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => selectConfidenceFilter(key)}
-                  aria-pressed={confidenceLevelFilters.includes(key)}
-                  className={`border-2 border-black p-3 text-left font-mono shadow-[3px_3px_0px_0px_#000] ${confidenceLevelFilters.includes(key) ? 'bg-[#70CFF8]' : 'bg-white hover:bg-neutral-100'}`}
-                >
-                  <span className="block text-xs font-black uppercase">{label}</span>
-                  <span className="mt-1 block text-xs font-bold">{description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-2 border-black bg-white p-4 shadow-[3px_3px_0px_0px_#000]">
-            <h3 className="font-mono text-xs font-black uppercase">Confidence icons</h3>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              {confidenceOptions.map(({ level, label, icon: Icon, color }) => (
-                <div key={level} className="flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center border-2 border-black" style={{ backgroundColor: color }}>
-                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  <span className="block text-xs font-black uppercase">{label} mode</span>
+                  <span className="mt-1 block text-xs font-bold text-black/80">
+                    {mode === KANJI_PROMPT_MODES.READING ? 'Type the romaji reading for each Kanji.' : 'Type the English meaning for each Kanji.'}
                   </span>
-                  <span className="font-mono text-xs font-bold">{label}: {level === 'again' ? 'review soon' : level === 'hard' ? 'needs practice' : 'felt easy'}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
 
+          {/* Group Filter Section */}
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-mono text-xs font-black uppercase text-black">2. Kanji Groups</h3>
+              <button
+                type="button"
+                onClick={selectAllGroups}
+                className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${
+                  selectedGroups.length === 0 ? 'bg-[#70CFF8] text-black' : 'bg-white text-black hover:bg-neutral-100'
+                }`}
+              >
+                {selectedGroups.length === 0 ? '✓ All Kanji Active' : 'Select All Groups'}
+              </button>
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {kanjiData.groups.map((group) => {
+                const isSelected = selectedGroups.includes(group.id);
+                return (
+                  <button
+                    key={group.id}
+                    type="button"
+                    onClick={() => toggleGroup(group.id)}
+                    className={`border-2 border-black px-3 py-1.5 font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+                      isSelected ? 'bg-[#70CFF8] text-black' : 'bg-white text-black hover:bg-neutral-100'
+                    }`}
+                  >
+                    {group.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Target Confidence Levels */}
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="font-mono text-xs font-black uppercase text-black">3. Target Confidence</h3>
+                <p className="font-mono text-[10px] text-black/70">Pick the ratings you want to include in this session</p>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={setAllLevels}
+                  className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${
+                    selectedConfidenceLevels.length === 4 ? 'bg-[#70CFF8]' : 'bg-white hover:bg-neutral-100'
+                  }`}
+                >
+                  All Cards
+                </button>
+                <button
+                  type="button"
+                  onClick={setSkipEasy}
+                  className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${
+                    selectedConfidenceLevels.length === 3 && !selectedConfidenceLevels.includes('easy')
+                      ? 'bg-[#70CFF8]'
+                      : 'bg-white hover:bg-neutral-100'
+                  }`}
+                >
+                  Skip Easy
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-2.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {CONFIDENCE_OPTIONS.map(({ level, label, icon: Icon, color, description }) => {
+                const isSelected = selectedConfidenceLevels.includes(level);
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => toggleConfidenceLevel(level)}
+                    aria-pressed={isSelected}
+                    className={`flex flex-col justify-between border-2 border-black p-3.5 text-left font-mono transition-all shadow-[3px_3px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+                      isSelected ? 'bg-white' : 'bg-neutral-200/80 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="flex h-7 w-7 items-center justify-center border-2 border-black shadow-[1px_1px_0px_0px_#000]"
+                          style={{ backgroundColor: color }}
+                        >
+                          {Icon ? <Icon className="h-4 w-4 text-black" aria-hidden="true" /> : <span className="font-black text-xs text-black">?</span>}
+                        </span>
+                        <span className={`border border-black px-1.5 py-0.5 text-[9px] font-black uppercase ${isSelected ? 'bg-[#A3E636]' : 'bg-white'}`}>
+                          {isSelected ? 'Included' : 'Excluded'}
+                        </span>
+                      </div>
+                      <span className="mt-2.5 block text-xs font-black uppercase text-black">{label}</span>
+                      <span className="mt-0.5 block text-[11px] font-bold text-neutral-600">{description}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom Action Section */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-black pt-4">
-            <span className="font-mono text-xs font-black uppercase">{cards.length} cards selected</span>
-            <button type="button" onClick={startLearning} disabled={cards.length === 0} className="border-2 border-black bg-black px-6 py-3 font-mono text-sm font-black uppercase text-[#FFDE59] shadow-[4px_4px_0px_0px_#000] disabled:cursor-not-allowed disabled:opacity-40">
-              Start learning
+            <span className="font-mono text-xs font-black uppercase">{cards.length} cards matched</span>
+            <button
+              type="button"
+              onClick={startLearning}
+              disabled={cards.length === 0}
+              className="border-2 border-black bg-black px-6 py-3 font-mono text-sm font-black uppercase text-[#FFDE59] shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Start learning →
             </button>
           </div>
         </section>
       )}
 
-      {/* 2. Loading State */}
+      {/* Loading State */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center border-2 border-black bg-[#1a1f2c] py-20 shadow-[6px_6px_0px_0px_#000000]">
           <div className="h-4 w-32 bg-[#252c3d] animate-pulse mb-6" />
@@ -545,17 +514,16 @@ function KanjiStudy({ onBack }) {
         </div>
       )}
 
-      {/* 3. Error Banner */}
+      {/* Error Banner */}
       {error && (
         <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-sm font-black uppercase text-black shadow-[4px_4px_0px_0px_#000000]">
           {error}
         </div>
       )}
 
-      {/* 4. Streamlined Main Kanji Flashcard */}
+      {/* Flashcard Active Mode */}
       {!isLoading && !error && isLearning && card && (
         <div className="relative border-2 border-black bg-[#FFDE59] p-6 sm:p-8 shadow-[6px_6px_0px_0px_#000000]">
-          {/* Top Meta Bar */}
           <div className="flex items-center justify-between border-b-2 border-black pb-3">
             <span className="border-2 border-black bg-black px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-[#FFDE59]">
               {card.groupName || 'N5 Kanji'}
@@ -575,7 +543,9 @@ function KanjiStudy({ onBack }) {
                 disabled={!attempt}
                 title={`${label}: ${level === 'again' ? 'review soon' : level === 'hard' ? 'needs practice' : 'felt easy'}`}
                 aria-label={`${label} confidence`}
-                className={`flex h-9 w-9 items-center justify-center border-2 border-black text-black shadow-[2px_2px_0px_0px_#000] transition-all disabled:cursor-not-allowed disabled:opacity-50 ${confidence === level ? 'translate-x-[1px] translate-y-[1px] shadow-none ring-2 ring-black' : 'hover:translate-x-[1px] hover:translate-y-[1px]'}`}
+                className={`flex h-9 w-9 items-center justify-center border-2 border-black text-black shadow-[2px_2px_0px_0px_#000] transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                  confidence === level ? 'translate-x-[1px] translate-y-[1px] shadow-none ring-2 ring-black' : 'hover:translate-x-[1px] hover:translate-y-[1px]'
+                }`}
                 style={{ backgroundColor: color }}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
@@ -583,7 +553,6 @@ function KanjiStudy({ onBack }) {
             ))}
           </div>
 
-          {/* Hero Kanji Visual Stage */}
           <div className="my-6 flex justify-center">
             <div className="flex h-36 w-36 items-center justify-center border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000000] sm:h-44 sm:w-44">
               <span className="kana-font select-none text-7xl sm:text-8xl font-black text-black leading-none">
@@ -592,11 +561,10 @@ function KanjiStudy({ onBack }) {
             </div>
           </div>
 
-          {/* Input / Quiz Section */}
           <div className="border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_#000000]">
             <div className="flex items-center justify-between pb-1.5">
               <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-500">
-            // {promptMode === KANJI_PROMPT_MODES.READING ? 'PROMPT: ROMAJI READING' : 'PROMPT: ENGLISH MEANING'}
+                // {promptMode === KANJI_PROMPT_MODES.READING ? 'PROMPT: ROMAJI READING' : 'PROMPT: ENGLISH MEANING'}
               </span>
               {usedHint && (
                 <span className="font-mono text-[10px] font-black uppercase text-[#d97706]">• Hint used</span>
@@ -636,8 +604,9 @@ function KanjiStudy({ onBack }) {
               </form>
             ) : (
               <div
-                className={`mt-2 border-2 border-black p-3 font-mono text-sm font-black shadow-[2px_2px_0px_0px_#000000] ${attempt.skipped ? 'bg-[#70CFF8] text-black' : attempt.correct ? 'bg-[#A3E636] text-black' : 'bg-[#FF6B6B] text-black'
-                  }`}
+                className={`mt-2 border-2 border-black p-3 font-mono text-sm font-black shadow-[2px_2px_0px_0px_#000000] ${
+                  attempt.skipped ? 'bg-[#70CFF8] text-black' : attempt.correct ? 'bg-[#A3E636] text-black' : 'bg-[#FF6B6B] text-black'
+                }`}
               >
                 {attempt.skipped ? `↷ Skipped. Expected: ${getKanjiPromptAnswer(card, promptMode)}` : attempt.correct ? '✓ Correct Answer!' : `✕ Incorrect. Expected: ${getKanjiPromptAnswer(card, promptMode)}`}
               </div>
@@ -660,14 +629,12 @@ function KanjiStudy({ onBack }) {
             )}
           </div>
 
-          {/* Solution & Info Cards (Revealed Automatically on Check or Skip) */}
           {(isRevealed || attempt) && (
             <div className="mt-5 space-y-3">
-              {/* Side-by-side Reading & Meaning */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
                   <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-                // Reading (Kana / Romaji)
+                    // Reading (Kana / Romaji)
                   </span>
                   <p className="jp-font mt-1 text-xl font-black text-black">
                     {card.reading}
@@ -679,7 +646,7 @@ function KanjiStudy({ onBack }) {
 
                 <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
                   <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-                // Meaning
+                    // Meaning
                   </span>
                   <p className="mt-1 text-xl font-black text-black capitalize">
                     {card.meaning}
@@ -687,11 +654,10 @@ function KanjiStudy({ onBack }) {
                 </div>
               </div>
 
-              {/* Example Usage */}
               {card.example && (
                 <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
                   <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-                // Example Usage
+                    // Example Usage
                   </span>
                   <p className="jp-font mt-1 text-base font-bold text-black">
                     {card.example[0]}
@@ -701,13 +667,12 @@ function KanjiStudy({ onBack }) {
                   </p>
                 </div>
               )}
-
             </div>
           )}
         </div>
       )}
 
-      {/* 5. Navigation Bar */}
+      {/* 4. Navigation Bar */}
       {!isLoading && !error && isLearning && card && (
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <button
@@ -732,7 +697,7 @@ function KanjiStudy({ onBack }) {
         </div>
       )}
 
-      {/* Retry Bar (If cards failed) */}
+      {/* 5. Retry Bar */}
       {!isLoading && !error && isLearning && retryCards.length > 0 && !isRetryMode && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black bg-[#FF6B6B] p-3.5 shadow-[4px_4px_0px_0px_#000000]">
           <p className="font-mono text-xs font-black uppercase text-black">
