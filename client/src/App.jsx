@@ -107,7 +107,7 @@ function App() {
 
     const timer = window.setTimeout(() => {
       setToast(null);
-    }, 5000);
+    }, toast.actions?.length ? 30000 : 5000);
 
     return () => window.clearTimeout(timer);
   }, [toast]);
@@ -539,16 +539,21 @@ function App() {
 
     const newSocket = io(SERVER_URL, {
       auth: async (callback) => {
-        const { data } = await supabase?.auth.getSession() || { data: { session: null } };
+        const { data } = (await supabase?.auth.getSession()) || { data: { session: null } };
         callback({ accessToken: data.session?.access_token || null });
       },
       reconnection: !authRequired || Boolean(user),
-      reconnectionAttempts: authRequired ? 2 : 5,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
+    // Always keep socket reference intact in React state
+    setSocket(newSocket);
+
+    // 1. Connection & Session Recovery Handler
     newSocket.on('connect', () => {
-      console.log('Connected to server');
-      setSocket(newSocket);
+      console.log(`Connected to server. ID: ${newSocket.id} (Recovered: ${newSocket.recovered})`);
       setIsSocketReady(true);
 
       if (roomCode) {
@@ -556,12 +561,18 @@ function App() {
         newSocket.emit('set-player-presence', roomCode, nextStatus);
       }
 
-      const savedSession = readRoomSession();
-      const shouldRestoreRoomSession = ROOM_VIEW_STATUSES.includes(statusRef.current) && Boolean(savedSession?.roomCode && savedSession?.username);
-
-      if (!shouldRestoreRoomSession) {
+      // If the socket recovered on the server, room and socket ID were preserved!
+      if (newSocket.recovered) {
         return;
       }
+
+      // Fallback manual room restoration for brand new sessions / hard expired connections
+      const savedSession = readRoomSession();
+      const shouldRestoreRoomSession =
+        ROOM_VIEW_STATUSES.includes(statusRef.current) &&
+        Boolean(savedSession?.roomCode && savedSession?.username);
+
+      if (!shouldRestoreRoomSession) return;
 
       try {
         const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
@@ -596,22 +607,39 @@ function App() {
       }
     });
 
-    newSocket.on('player-rejoined', (data) => {
-      if (data?.room) {
-        setRoom(data.room);
-        setKanaCards(data.room.cards || []);
+    // 2. Immediate Reconnect on Tab Focus
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (!newSocket.connected) {
+          console.log('Tab visible: Reconnecting socket immediately...');
+          newSocket.connect();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 3. Graceful Disconnect Handler (Do NOT setSocket(null))
+    newSocket.on('disconnect', (reason) => {
+      console.warn(`Socket transport dropped: ${reason}`);
+      setIsSocketReady(false);
+
+      // If server actively rejected socket, trigger reconnect
+      if (reason === 'io server disconnect') {
+        newSocket.connect();
       }
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
-      setSocket(null);
       setIsSocketReady(false);
     });
 
-    newSocket.on('disconnect', () => {
-      setSocket(null);
-      setIsSocketReady(false);
+    // 4. Room & Gameplay Events
+    newSocket.on('player-rejoined', (data) => {
+      if (data?.room) {
+        setRoom(data.room);
+        setKanaCards(data.room.cards || []);
+      }
     });
 
     newSocket.on('room-created', (code) => {
@@ -621,7 +649,7 @@ function App() {
 
     newSocket.on('assessment-preparing', (data) => {
       setIsPreparingAssessment(true);
-      if (data && data.room) {
+      if (data?.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
       }
@@ -629,7 +657,7 @@ function App() {
     });
 
     newSocket.on('player-joined', (data) => {
-      if (data && data.room) {
+      if (data?.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
       }
@@ -637,7 +665,7 @@ function App() {
 
     newSocket.on('assessment-started', (data) => {
       setIsPreparingAssessment(false);
-      if (data && data.room) {
+      if (data?.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
       }
@@ -645,33 +673,33 @@ function App() {
     });
 
     newSocket.on('answer-submitted', (data) => {
-      if (data && data.room) setRoom(data.room);
+      if (data?.room) setRoom(data.room);
     });
 
     newSocket.on('hint-used', (data) => {
-      if (data && data.room) setRoom(data.room);
+      if (data?.room) setRoom(data.room);
     });
 
     newSocket.on('both-submitted', (data) => {
-      if (data && data.room) {
+      if (data?.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
       }
     });
 
     newSocket.on('player-ready-updated', (data) => {
-      if (data && data.room) setRoom(data.room);
+      if (data?.room) setRoom(data.room);
     });
 
     newSocket.on('cards-updated', (data) => {
-      if (data && data.room) {
+      if (data?.room) {
         setRoom(data.room);
         if (data.room.cards) setKanaCards(data.room.cards);
       }
     });
 
     newSocket.on('card-updated', (data) => {
-      if (data && data.room) setRoom(data.room);
+      if (data?.room) setRoom(data.room);
       else
         setRoom((prev) => ({
           ...prev,
@@ -680,17 +708,15 @@ function App() {
     });
 
     newSocket.on('assessment-completed', (data) => {
-      console.log('assessment-completed event:', data);
-      if (data && data.room) setRoom(data.room);
+      if (data?.room) setRoom(data.room);
 
-      const rawResults = (data && data.results)
+      const rawResults = data?.results
         ? data.results
-        : (data && data.room && Array.isArray(data.room.players))
+        : data?.room && Array.isArray(data.room.players)
           ? data.room.players
           : [];
 
       const resultsArr = normalizeRoomResults(rawResults);
-      console.log("resultsArr", resultsArr, rawResults);
       setResults(resultsArr);
       transitionToStatus('results');
     });
@@ -754,6 +780,7 @@ function App() {
       setRoom((prev) => ({ ...(prev ?? {}), ...data.room, players: data.room.players || prev?.players || [] }));
     });
 
+    // 5. Social & Friends Events
     newSocket.on('friend-request-received', () => {
       refreshFriendRequests(true);
       setToast({ message: 'You received a new friend request.', type: 'success' });
@@ -771,11 +798,81 @@ function App() {
       setToast({ message: `${receiverName} declined your friend request.`, type: 'warning' });
     });
 
+    newSocket.on('friend-online', (data) => {
+      refreshFriends(true);
+      setToast({
+        message: `${data?.displayName || 'Your friend'} is online.`,
+        type: 'success',
+      });
+    });
+
+    newSocket.on('room-invite-received', (data) => {
+      const assessmentLabel = data?.deckType === 'kanji'
+        ? 'Kanji'
+        : data?.deckType === 'grammar'
+          ? 'Grammar'
+          : 'Kana';
+      setToast({
+        message: `${data?.inviterName || 'A friend'} invited you to a ${assessmentLabel} assessment.`,
+        type: 'warning',
+        actions: [
+          {
+            label: 'Join',
+            onClick: () => {
+              const playerName = getDisplayName().trim();
+              setUsername(playerName);
+              setPrefillRoomCode('');
+              clearRoomQueryParam();
+              newSocket.emit('join-room', data.roomCode, playerName, getSessionKey(), user?.id, (response) => {
+                newSocket.emit('room-invite-response', {
+                  roomCode: data.roomCode,
+                  inviterSocketId: data.inviterSocketId,
+                  accepted: response?.success === true,
+                });
+
+                if (response?.success) {
+                  setRoomCode(data.roomCode);
+                  saveRoomSession(data.roomCode, playerName);
+                  setRoom(response.room);
+                  setScreenHistory((currentHistory) => {
+                    const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
+                    return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
+                  });
+                  setStatus('lobby');
+                } else {
+                  setToast({ message: response?.message || 'Unable to join the room.', type: 'error' });
+                }
+              });
+            },
+          },
+          {
+            label: 'Reject',
+            onClick: () =>
+              newSocket.emit('room-invite-response', {
+                roomCode: data.roomCode,
+                inviterSocketId: data.inviterSocketId,
+                accepted: false,
+              }),
+          },
+        ],
+      });
+    });
+
+    newSocket.on('room-invite-responded', (data) => {
+      setToast({
+        message: data?.accepted
+          ? `${data?.inviteeName || 'Your friend'} joined room ${data?.roomCode || ''}.`
+          : `${data?.inviteeName || 'Your friend'} declined your room invite.`,
+        type: data?.accepted ? 'success' : 'warning',
+      });
+    });
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  }, [authLoading, authRequired, refreshFriendData, user]);
+  }, [authLoading, authRequired, user?.id]); // Depend on user?.id instead of whole object/callback refs
 
   const handleGenerateCards = async (count = 10, startAfter = false) => {
     try {
@@ -805,10 +902,10 @@ function App() {
     return () => {
       try {
         delete window.generateCards;
-      } catch (e) {}
+      } catch (e) { }
       try {
         delete window.generateGrammarAssessment;
-      } catch (e) {}
+      } catch (e) { }
     };
   }, [socket, roomCode]);
 
@@ -855,7 +952,7 @@ function App() {
     }
   };
 
-  const handleJoinRoom = (code, name) => {
+  const handleJoinRoom = (code, name, onResult = null) => {
     if (socket) {
       const playerName = (name || getDisplayName()).trim();
       if (!playerName) return;
@@ -864,6 +961,7 @@ function App() {
       setPrefillRoomCode('');
       clearRoomQueryParam();
       socket.emit('join-room', code, playerName, getSessionKey(), user?.id, (response) => {
+        onResult?.(response);
         if (response.success) {
           setRoomCode(code);
           saveRoomSession(code, playerName);
@@ -872,12 +970,23 @@ function App() {
             const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
             return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
           });
-          transitionToStatus('lobby');
+          setStatus('lobby');
         } else {
           setToast({ message: response.message, type: 'error' });
         }
       });
     }
+  };
+
+  const handleInviteFriend = (friendId) => {
+    if (!socket || !roomCode || !friendId) return;
+
+    socket.emit('invite-friend-to-room', roomCode, friendId, (response) => {
+      setToast({
+        message: response?.success ? 'Room invite sent.' : (response?.message || 'Unable to send room invite.'),
+        type: response?.success ? 'success' : 'error',
+      });
+    });
   };
 
   const handleStartAssessment = () => {
@@ -987,7 +1096,7 @@ function App() {
     setResults(null);
     setPrefillRoomCode('');
     setStatus('selector');
-      setSelectorScreen('home');
+    setSelectorScreen('home');
 
     try {
       const { error } = await supabase.auth.signOut();
@@ -1185,10 +1294,29 @@ function App() {
   return (
     <div className="app-container min-h-screen">
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm border-2 border-black bg-white px-4 py-3 text-sm font-bold text-black shadow-[5px_5px_0px_0px_#000]">
+        <div className="pointer-events-auto fixed bottom-6 right-6 z-50 max-w-sm border-2 border-black bg-white px-4 py-3 text-sm font-bold text-black shadow-[5px_5px_0px_0px_#000]">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 inline-block h-3 w-3 shrink-0 border-2 border-black bg-[#FFDE59]" />
-            <span>{toast.message}</span>
+            <div className="space-y-3">
+              <span className="block">{toast.message}</span>
+              {toast.actions?.length > 0 && (
+                <div className="flex gap-2">
+                  {toast.actions.map((action) => (
+                    <button
+                      key={action.label}
+                      type="button"
+                      onClick={() => {
+                        action.onClick();
+                        setToast(null);
+                      }}
+                      className="border-2 border-black bg-[#A3E636] px-3 py-1 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1318,6 +1446,8 @@ function App() {
                 currentUserId={user?.id || null}
                 currentSessionKey={getSessionKey()}
                 isPreparingAssessment={isPreparingAssessment}
+                friends={friends}
+                onInviteFriend={handleInviteFriend}
               />
             )}
 
