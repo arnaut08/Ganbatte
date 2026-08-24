@@ -29,6 +29,10 @@ import {
   roomState,
 } from '../utils/socket-room-utils.js';
 
+const CONNECTION_REPLACEMENT_GRACE_MS = 60 * 1000;
+const pendingSocketReplacements = new Map();
+const pendingDisconnects = new Map(); // Tracks graceful disconnect timeouts
+
 export async function configureSocketServer(server, app) {
   const io = new Server(server, {
     cors: {
@@ -37,6 +41,12 @@ export async function configureSocketServer(server, app) {
       },
       methods: ['GET', 'POST'],
       credentials: true,
+    },
+    pingInterval: 25000,
+    pingTimeout: 60000,
+    connectionStateRecovery: {
+      maxDisconnectionDuration: 2 * 60 * 1000, // Retain session for 2 minutes
+      skipMiddlewares: false,                  // Must be false to re-populate socket.data.user
     },
   });
 
@@ -63,9 +73,31 @@ export async function configureSocketServer(server, app) {
 
     socket.data.user = data.user;
 
+    // Clear any pending disconnect grace timer for this user
+    if (pendingDisconnects.has(data.user.id)) {
+      clearTimeout(pendingDisconnects.get(data.user.id));
+      pendingDisconnects.delete(data.user.id);
+    }
+
+    const pendingReplacement = pendingSocketReplacements.get(socket.id);
+    if (pendingReplacement) {
+      clearTimeout(pendingReplacement);
+      pendingSocketReplacements.delete(socket.id);
+    }
+
     const previousSocketId = await claimUserConnection(data.user.id, socket.id);
     if (previousSocketId && previousSocketId !== socket.id) {
-      io.in(previousSocketId).disconnectSockets(true);
+      const replacementTimer = setTimeout(() => {
+        pendingSocketReplacements.delete(previousSocketId);
+        getUserSocketId(data.user.id).then((activeSocketId) => {
+          if (activeSocketId === socket.id) {
+            io.in(previousSocketId).disconnectSockets(true);
+          }
+        }).catch((err) => {
+          console.error('Failed to verify socket replacement:', err);
+        });
+      }, CONNECTION_REPLACEMENT_GRACE_MS);
+      pendingSocketReplacements.set(previousSocketId, replacementTimer);
     }
 
     socket.data.connectionRefresh = setInterval(() => {
@@ -73,33 +105,81 @@ export async function configureSocketServer(server, app) {
         console.error('Redis user connection refresh error:', refreshError);
       });
     }, 30 * 1000);
+
     next();
   });
 
   io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log(`User connected: ${socket.id} (Recovered: ${socket.recovered})`);
+
+    const userRoom = socket.data.user?.id ? `user:${socket.data.user.id}` : null;
+    if (userRoom) socket.join(userRoom);
+
+    // Cancel pending disconnect timers for this user
+    if (socket.data.user?.id && pendingDisconnects.has(socket.data.user.id)) {
+      clearTimeout(pendingDisconnects.get(socket.data.user.id));
+      pendingDisconnects.delete(socket.data.user.id);
+    }
+
+    const notifyFriendsThatUserIsOnline = async () => {
+      const userId = socket.data.user?.id;
+      if (!userId || !isSupabaseConfigured() || socket.recovered) return;
+
+      const { data: friendshipRows, error } = await getSupabaseClient()
+        .from('friendships')
+        .select('user_id, friend_id')
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
+      if (error) {
+        console.error('Failed to load friendships for presence notification:', error);
+        return;
+      }
+
+      const displayName = socket.data.user.user_metadata?.full_name
+        || socket.data.user.email?.split('@')[0]
+        || 'Your friend';
+      const friendIds = (friendshipRows || [])
+        .map((row) => (row.user_id === userId ? row.friend_id : row.user_id))
+        .filter(Boolean);
+
+      await Promise.all(friendIds.map(async (friendId) => {
+        if (!(await getUserSocketId(friendId))) return;
+
+        io.to(`user:${friendId}`).emit('friend-online', {
+          userId,
+          displayName,
+        });
+      }));
+    };
+
+    notifyFriendsThatUserIsOnline().catch((error) => {
+      console.error('Failed to notify friends about online presence:', error);
+    });
 
     const restorePlayerPresenceFromReconnect = () => {
       const userId = socket.data.user?.id;
       if (!userId) return;
 
       for (const [roomCode, room] of roomState.rooms) {
-        const player = room.players.find((candidate) => candidate.userId === userId);
+        const player = room.players.find((candidate) => candidate.userId === userId || candidate.id === socket.id);
         if (!player) continue;
 
-        const wasDisconnected = player.connected === false || player.status === 'disconnected';
-        if (!wasDisconnected && player.status === 'in_lobby' && player.presence === 'online') continue;
-
+        player.id = socket.id;
         player.connected = true;
         player.status = player.status === 'ready' ? 'ready' : 'in_lobby';
         player.presence = 'online';
         delete player.disconnectedAt;
+
+        socket.join(roomCode);
         io.to(roomCode).emit('player-presence-updated', { room });
       }
     };
 
     restorePlayerPresenceFromReconnect();
 
+    // -------------------------------------------------------------
+    // ROOM EVENT HANDLERS
+    // -------------------------------------------------------------
     socket.on('create-room', async (hostName, sessionKey, maybeUserId, maybeDeckConfig, maybeCallback) => {
       const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
       const parsedHostName = usernameSchema.safeParse(hostName);
@@ -581,6 +661,65 @@ export async function configureSocketServer(server, app) {
       if (callback) callback({ success: true, room });
     });
 
+    socket.on('invite-friend-to-room', async (roomCode, targetUserId, callback) => {
+      const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+      const senderUserId = socket.data.user?.id;
+      const normalizedTargetUserId = String(targetUserId || '').trim();
+      const room = parsedRoomCode.success ? roomState.rooms.get(parsedRoomCode.data) : null;
+
+      if (!parsedRoomCode.success || !senderUserId || !normalizedTargetUserId || !room) {
+        if (callback) callback({ success: false, message: 'Unable to send room invite.' });
+        return;
+      }
+
+      if (room.players[0]?.id !== socket.id || room.players.length >= 2) {
+        if (callback) callback({ success: false, message: 'Only the host can invite an available friend.' });
+        return;
+      }
+
+      const { data: friendship, error } = await getSupabaseClient()
+        .from('friendships')
+        .select('user_id')
+        .or(`and(user_id.eq.${senderUserId},friend_id.eq.${normalizedTargetUserId}),and(user_id.eq.${normalizedTargetUserId},friend_id.eq.${senderUserId})`)
+        .maybeSingle();
+
+      if (error || !friendship) {
+        if (callback) callback({ success: false, message: 'You can only invite friends.' });
+        return;
+      }
+
+      if (!(await getUserSocketId(normalizedTargetUserId))) {
+        if (callback) callback({ success: false, message: 'That friend is no longer online.' });
+        return;
+      }
+
+      const inviterName = socket.data.user.user_metadata?.full_name
+        || socket.data.user.email?.split('@')[0]
+        || room.players[0].name
+        || 'Your friend';
+      io.to(`user:${normalizedTargetUserId}`).emit('room-invite-received', {
+        roomCode: parsedRoomCode.data,
+        deckType: room.deckType,
+        inviterName,
+        inviterSocketId: socket.id,
+      });
+
+      if (callback) callback({ success: true });
+    });
+
+    socket.on('room-invite-response', (data = {}) => {
+      const inviterSocketId = String(data.inviterSocketId || '');
+      if (!inviterSocketId || inviterSocketId === socket.id) return;
+
+      io.to(inviterSocketId).emit('room-invite-responded', {
+        roomCode: data.roomCode,
+        inviteeName: socket.data.user?.user_metadata?.full_name
+          || socket.data.user?.email?.split('@')[0]
+          || 'Your friend',
+        accepted: data.accepted === true,
+      });
+    });
+
     socket.on('use-hint', (roomCode, cardIndex) => {
       const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
       if (!parsedRoomCode.success) return;
@@ -668,40 +807,60 @@ export async function configureSocketServer(server, app) {
       if (callback) callback({ success: true });
     });
 
+    // -------------------------------------------------------------
+    // GRACEFUL DISCONNECT HANDLER
+    // -------------------------------------------------------------
     socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
+      console.log('Socket transport dropped:', socket.id);
+
       if (socket.data.connectionRefresh) {
         clearInterval(socket.data.connectionRefresh);
-      }
-      if (socket.data.user?.id) {
-        releaseUserConnection(socket.data.user.id, socket.id).catch((releaseError) => {
-          console.error('Redis user connection release error:', releaseError);
-        });
       }
 
       if (socket.data.intentionalLeave === true) {
         delete socket.data.intentionalLeave;
         delete socket.data.intentionalLeaveRoomCode;
+        if (socket.data.user?.id) {
+          releaseUserConnection(socket.data.user.id, socket.id).catch(console.error);
+        }
         return;
       }
 
-      for (const [roomCode, room] of roomState.rooms) {
-        const player = room.players.find((candidate) => candidate.id === socket.id);
-        if (!player) continue;
+      const userId = socket.data.user?.id;
+      const socketId = socket.id;
 
-        player.connected = false;
-        player.status = 'disconnected';
-        player.presence = 'offline';
-        player.disconnectedAt = Date.now();
-        io.to(roomCode).emit('player-left', { room, players: room.players });
+      // Wrap disconnect actions in a 60-second grace window to protect tab-switch reconnects
+      const disconnectTimer = setTimeout(() => {
+        pendingDisconnects.delete(userId);
 
-        if (!room.players.some((candidate) => candidate.connected)) {
-          const cleanupTimer = setTimeout(() => {
-            roomState.rooms.delete(roomCode);
-            roomState.roomCleanupTimers.delete(roomCode);
-          }, roomState.DISCONNECT_GRACE_PERIOD_MS);
-          roomState.roomCleanupTimers.set(roomCode, cleanupTimer);
+        if (userId) {
+          releaseUserConnection(userId, socketId).catch((err) => {
+            console.error('Redis user connection release error:', err);
+          });
         }
+
+        for (const [roomCode, room] of roomState.rooms) {
+          const player = room.players.find((candidate) => candidate.id === socketId);
+          if (!player) continue;
+
+          player.connected = false;
+          player.status = 'disconnected';
+          player.presence = 'offline';
+          player.disconnectedAt = Date.now();
+          io.to(roomCode).emit('player-left', { room, players: room.players });
+
+          if (!room.players.some((candidate) => candidate.connected)) {
+            const cleanupTimer = setTimeout(() => {
+              roomState.rooms.delete(roomCode);
+              roomState.roomCleanupTimers.delete(roomCode);
+            }, roomState.DISCONNECT_GRACE_PERIOD_MS);
+            roomState.roomCleanupTimers.set(roomCode, cleanupTimer);
+          }
+        }
+      }, 60000);
+
+      if (userId) {
+        pendingDisconnects.set(userId, disconnectTimer);
       }
     });
   });

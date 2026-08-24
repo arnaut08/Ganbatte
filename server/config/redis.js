@@ -4,11 +4,12 @@ import { REDIS_URL } from './env.js';
 
 let redisClient;
 let redisSubscriber;
-const USER_CONNECTION_TTL_SECONDS = 120;
+const USER_CONNECTION_TTL_SECONDS = 15 * 60;
 
 // In-memory fallback for presence tracking when Redis is not configured.
 // Maps userId -> { socketId, expiresAt }.
 const memoryConnections = new Map();
+const getUserConnectionKey = (userId) => `ganbatte:user-connection:${userId}`;
 
 export function isRedisConfigured() {
   return Boolean(REDIS_URL);
@@ -46,8 +47,8 @@ export async function claimUserConnection(userId, socketId) {
 
   if (!redisClient?.isReady) {
     // In-memory fallback
-    const previous = memoryConnections.get(userId)?.socketId || null;
-    memoryConnections.set(userId, {
+    const previous = memoryConnections.get(String(userId))?.socketId || null;
+    memoryConnections.set(String(userId), {
       socketId,
       expiresAt: Date.now() + USER_CONNECTION_TTL_SECONDS * 1000,
     });
@@ -59,7 +60,7 @@ export async function claimUserConnection(userId, socketId) {
      redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
      return previous`,
     {
-      keys: [`ganbatte:user-connection:${userId}`],
+      keys: [getUserConnectionKey(userId)],
       arguments: [socketId, String(USER_CONNECTION_TTL_SECONDS)],
     },
   );
@@ -70,8 +71,8 @@ export async function refreshUserConnection(userId, socketId) {
 
   if (!redisClient?.isReady) {
     // In-memory fallback
-    const connection = memoryConnections.get(userId);
-    if (connection && connection.socketId === socketId) {
+    const connection = memoryConnections.get(String(userId));
+    if (connection?.socketId === socketId) {
       connection.expiresAt = Date.now() + USER_CONNECTION_TTL_SECONDS * 1000;
     }
     return;
@@ -83,7 +84,7 @@ export async function refreshUserConnection(userId, socketId) {
      end
      return 0`,
     {
-      keys: [`ganbatte:user-connection:${userId}`],
+      keys: [getUserConnectionKey(userId)],
       arguments: [socketId, String(USER_CONNECTION_TTL_SECONDS)],
     },
   );
@@ -94,9 +95,9 @@ export async function releaseUserConnection(userId, socketId) {
 
   if (!redisClient?.isReady) {
     // In-memory fallback
-    const connection = memoryConnections.get(userId);
-    if (connection && connection.socketId === socketId) {
-      memoryConnections.delete(userId);
+    const connection = memoryConnections.get(String(userId));
+    if (connection?.socketId === socketId) {
+      memoryConnections.delete(String(userId));
     }
     return;
   }
@@ -107,7 +108,7 @@ export async function releaseUserConnection(userId, socketId) {
      end
      return 0`,
     {
-      keys: [`ganbatte:user-connection:${userId}`],
+      keys: [getUserConnectionKey(userId)],
       arguments: [socketId],
     },
   );
@@ -122,7 +123,7 @@ export async function getUserSocketId(userId) {
     return memoryConnections.get(String(userId))?.socketId || null;
   }
 
-  return redisClient.get(`ganbatte:user-connection:${userId}`);
+  return redisClient.get(getUserConnectionKey(userId));
 }
 
 export async function getUsersPresenceStatus(userIds = []) {
@@ -141,7 +142,7 @@ export async function getUsersPresenceStatus(userIds = []) {
     return uniqueUserIds.filter((userId) => memoryConnections.has(userId));
   }
 
-  const keys = uniqueUserIds.map((userId) => `ganbatte:user-connection:${userId}`);
+  const keys = uniqueUserIds.map(getUserConnectionKey);
   const values = await redisClient.mGet(keys);
 
   return uniqueUserIds.filter((userId, index) => Boolean(values[index]));
