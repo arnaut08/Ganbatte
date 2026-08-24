@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildGrammarAssessment,
+  createGeminiPrompt,
   GENKI_GRAMMAR_LESSONS,
   resolveGeminiModel,
 } from './genki-grammar-service.js';
@@ -13,6 +14,28 @@ test('buildGrammarAssessment respects the selected max lesson and returns valid 
   assert.ok(assessment.every((item) => item.lesson <= 2));
   assert.ok(assessment.every((item) => ['multiple-choice', 'fill-in-the-blank', 'matching', 'translation', 'comprehension'].includes(item.type)));
   assert.ok(assessment.every((item) => item.prompt && item.explanation));
+});
+
+test('assessment mode uses the fixed question distribution while practice honors count', () => {
+  const practice = buildGrammarAssessment({ maxLesson: 2, count: 5, mode: 'practice' });
+  const assessment = buildGrammarAssessment({ maxLesson: 2, count: 5, mode: 'assessment' });
+  const counts = assessment.reduce((result, item) => ({
+    ...result,
+    [item.type]: (result[item.type] || 0) + 1,
+  }), {});
+
+  assert.equal(practice.length, 5);
+  assert.deepEqual(counts, {
+    'multiple-choice': 4,
+    'fill-in-the-blank': 4,
+    matching: 2,
+    translation: 4,
+    comprehension: 4,
+  });
+
+  const prompt = createGeminiPrompt({ count: 5, mode: 'assessment' });
+  assert.match(prompt, /exactly 18 questions/);
+  assert.match(prompt, /4 multiple-choice, 4 fill-in-the-blank, 2 matching, 4 translation, and 4 comprehension/);
 });
 
 test('resolveGeminiModel falls back for unsupported model names', () => {

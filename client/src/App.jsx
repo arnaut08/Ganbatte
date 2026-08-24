@@ -801,7 +801,7 @@ function App() {
   // Expose a simple global hook the lobby can call (avoids prop drilling)
   useEffect(() => {
     window.generateCards = (c = 10, start = false) => handleGenerateCards(c, start);
-    window.generateGrammarAssessment = (maxLesson = 12, count = 10) => handleOpenGrammarPractice(maxLesson, count);
+    window.generateGrammarAssessment = (maxLesson = 12, count = 10) => handleOpenGrammarPractice(maxLesson, count, 'practice');
     return () => {
       try {
         delete window.generateCards;
@@ -1099,9 +1099,9 @@ function App() {
     navigateToScreen('grammar-study');
   };
 
-  const handleOpenGrammarPractice = async (maxLesson = 12, count = 10) => {
+  const handleOpenGrammarPractice = async (maxLesson = 12, count = 10, mode = 'practice') => {
     try {
-      const response = await generateGrammarAssessment(maxLesson, count);
+      const response = await generateGrammarAssessment(maxLesson, count, mode);
       const questions = Array.isArray(response?.questions) ? response.questions : [];
 
       if (questions.length === 0) {

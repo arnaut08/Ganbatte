@@ -101,6 +101,17 @@ function randomFrom(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+const ASSESSMENT_QUESTION_COUNTS = {
+  'multiple-choice': 4,
+  'fill-in-the-blank': 4,
+  matching: 2,
+  translation: 4,
+  comprehension: 4,
+};
+
+const ASSESSMENT_QUESTION_TOTAL = Object.values(ASSESSMENT_QUESTION_COUNTS)
+  .reduce((total, questionCount) => total + questionCount, 0);
+
 function buildMultipleChoiceQuestion(lesson) {
   const grammar = lesson.grammar[0];
   return {
@@ -146,7 +157,8 @@ function buildMatchingQuestion(lesson) {
 }
 
 function buildTranslationQuestion(lesson) {
-  const item = randomFrom(TRANSLATION_PROMPTS.filter((entry) => entry.lesson <= lesson.number));
+  const eligiblePrompts = TRANSLATION_PROMPTS.filter((entry) => entry.lesson <= lesson.number);
+  const item = randomFrom(eligiblePrompts.length > 0 ? eligiblePrompts : TRANSLATION_PROMPTS);
   return {
     id: `lesson-${lesson.number}-translation-${Math.random().toString(36).slice(2, 8)}`,
     lesson: lesson.number,
@@ -178,7 +190,7 @@ function buildComprehensionQuestion(lesson) {
   };
 }
 
-export function buildGrammarAssessment({ maxLesson = 1, count = 10 } = {}) {
+export function buildGrammarAssessment({ maxLesson = 1, count = 10, mode = 'practice' } = {}) {
   const safeMaxLesson = Math.min(Math.max(Number(maxLesson) || 1, 1), GENKI_GRAMMAR_LESSONS.length);
   const safeCount = clampCount(count);
   const availableLessons = GENKI_GRAMMAR_LESSONS.filter((lesson) => lesson.number <= safeMaxLesson);
@@ -187,24 +199,37 @@ export function buildGrammarAssessment({ maxLesson = 1, count = 10 } = {}) {
     return [];
   }
 
-  const builders = [
-    buildMultipleChoiceQuestion,
-    buildFillInBlankQuestion,
-    buildMatchingQuestion,
-    buildTranslationQuestion,
-    buildComprehensionQuestion,
-  ];
+  const builders = mode === 'assessment'
+    ? Object.entries(ASSESSMENT_QUESTION_COUNTS).flatMap(([type, questionCount]) => {
+      const builder = {
+        'multiple-choice': buildMultipleChoiceQuestion,
+        'fill-in-the-blank': buildFillInBlankQuestion,
+        matching: buildMatchingQuestion,
+        translation: buildTranslationQuestion,
+        comprehension: buildComprehensionQuestion,
+      }[type];
+      return Array.from({ length: questionCount }, () => builder);
+    })
+    : [
+      buildMultipleChoiceQuestion,
+      buildFillInBlankQuestion,
+      buildMatchingQuestion,
+      buildTranslationQuestion,
+      buildComprehensionQuestion,
+    ];
 
   const items = [];
 
-  for (let index = 0; index < safeCount; index += 1) {
+  const questionCount = mode === 'assessment' ? ASSESSMENT_QUESTION_TOTAL : safeCount;
+
+  for (let index = 0; index < questionCount; index += 1) {
     const lesson = availableLessons[index % availableLessons.length];
     const builder = builders[index % builders.length];
     const question = builder(lesson);
     if (question) items.push(question);
   }
 
-  return items.slice(0, safeCount).map((item) => ({
+  return items.slice(0, questionCount).map((item) => ({
     ...item,
     type: QUESTION_TYPES.includes(item.type) ? item.type : 'multiple-choice',
   }));
@@ -233,11 +258,16 @@ export function resolveGeminiModel(modelName) {
   return normalized && candidates.has(normalized) ? normalized : FALLBACK_GEMINI_MODEL;
 }
 
-export function createGeminiPrompt({ maxLesson = 12, count = 10 } = {}) {
+export function createGeminiPrompt({ maxLesson = 12, count = 10, mode = 'assessment' } = {}) {
+  const questionInstructions = mode === 'assessment'
+    ? `Generate exactly ${ASSESSMENT_QUESTION_TOTAL} questions total in valid JSON only: 4 multiple-choice, 4 fill-in-the-blank, 2 matching, 4 translation, and 4 comprehension questions.`
+    : `Generate exactly ${count} questions total in valid JSON only, using all five question types when the requested count allows it.`;
+
   return [
     'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1',
     `Only use grammar concepts from lessons 1 through ${maxLesson}.`,
-    `Generate 5 ${count} of questions for each type and 2 for matching type question in valid JSON only.`,
+    `Weight the distribution of questions strictly in descending order of recency: Lesson L must have strictly more questions than Lesson L-1 across the entire range from Lesson 1 up to ${maxLesson}.`,
+    questionInstructions,
     'Please do not use Kanji characters in any of the questions.',
     'If the correctAnswer is in Japanese, please provide correctAnswerRomaji for each question which contains the romaji representation of the correctAnswer.',
     'Use question types from: multiple-choice, fill-in-the-blank, matching, translation, comprehension.',
@@ -294,16 +324,29 @@ function parseGeminiAssessment(rawText) {
   }
 }
 
-export async function generateGrammarAssessment({ maxLesson = 1, count = 10 } = {}) {
+function hasAssessmentQuestionDistribution(questions) {
+  if (questions.length !== ASSESSMENT_QUESTION_TOTAL) return false;
+
+  const counts = questions.reduce((result, question) => ({
+    ...result,
+    [question.type]: (result[question.type] || 0) + 1,
+  }), {});
+
+  return Object.entries(ASSESSMENT_QUESTION_COUNTS)
+    .every(([type, questionCount]) => counts[type] === questionCount);
+}
+
+export async function generateGrammarAssessment({ maxLesson = 1, count = 10, mode = 'assessment' } = {}) {
   const safeMaxLesson = Math.min(Math.max(Number(maxLesson) || 1, 1), GENKI_GRAMMAR_LESSONS.length);
   const safeCount = clampCount(count);
+  const questionCount = mode === 'assessment' ? ASSESSMENT_QUESTION_TOTAL : safeCount;
 
   if (!GEMINI_API_KEY) {
-    return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: safeCount });
+    return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: questionCount, mode });
   }
 
   try {
-    const prompt = createGeminiPrompt({ maxLesson: safeMaxLesson, count: safeCount });
+    const prompt = createGeminiPrompt({ maxLesson: safeMaxLesson, count: questionCount, mode });
     const resolvedModel = resolveGeminiModel(GEMINI_MODEL);
     console.log("Using Gemini model:", resolvedModel);
     const response = await fetch(
@@ -332,13 +375,13 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10 } = 
     const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
     const questions = parseGeminiAssessment(text);
 
-    if (questions.length === 0) {
-      return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: safeCount });
+    if (questions.length === 0 || (mode === 'assessment' && !hasAssessmentQuestionDistribution(questions))) {
+      return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: questionCount, mode });
     }
 
     return questions;
   } catch (error) {
     console.error('Gemini generation failed; falling back to local template assessment:', error);
-    return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: safeCount });
+    return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: questionCount, mode });
   }
 }

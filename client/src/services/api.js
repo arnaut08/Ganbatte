@@ -122,11 +122,11 @@ export function getKanaCards() {
   return request('/api/kana-cards');
 }
 
-export function generateGrammarAssessment(maxLesson = 12, count = 10) {
+export function generateGrammarAssessment(maxLesson = 12, count = 10, mode = 'practice') {
   const safeMaxLesson = Number.isFinite(Number(maxLesson)) ? Number(maxLesson) : 12;
   const safeCount = Number.isFinite(Number(count)) ? Number(count) : 10;
 
-  return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}`);
+  return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}&mode=${mode}`);
 }
 
 export function recordKanjiAttempt(attempt) {

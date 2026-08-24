@@ -5,6 +5,7 @@ import { getSupabaseClient } from '../config/supabase.js';
 const assessmentQuerySchema = z.object({
   maxLesson: z.coerce.number().int().min(1).max(12).default(1),
   count: z.coerce.number().int().min(1).max(25).default(10),
+  mode: z.enum(['practice', 'assessment']).default('assessment'),
   type: z.enum(['grammar', 'kana', 'kanji']).default('grammar'),
 });
 
@@ -37,7 +38,7 @@ export async function generateAssessment(req, res) {
     return;
   }
 
-  const { maxLesson, count, type } = parsed.data;
+  const { maxLesson, count, mode, type } = parsed.data;
 
   if (type !== 'grammar') {
     res.status(400).json({ error: 'Only grammar assessment generation is currently supported' });
@@ -45,7 +46,7 @@ export async function generateAssessment(req, res) {
   }
 
   try {
-    const questions = await generateGrammarAssessment({ maxLesson, count });
+    const questions = await generateGrammarAssessment({ maxLesson, count, mode });
     res.json({
       type,
       maxLesson,
