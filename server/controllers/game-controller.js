@@ -1,12 +1,22 @@
 import { roomSocketData } from '../utils/socket-room-utils.js';
 import { generateRandomCards, generateRandomKanjiCards } from '../services/card-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
-import { KANA_CARDS, KANA_GROUPS, KANA_MATRICES } from '../data/kana.js';
+import { getPersistedKanaDeck } from '../repositories/kana-repository.js';
 import { getPersistedKanjiDeck } from '../repositories/kanji-repository.js';
 import { cardCountSchema, roomCodeSchema } from '../utils/validation.js';
 
-export function getKanaCards(_req, res) {
-  res.json({ groups: KANA_GROUPS, cards: KANA_CARDS, matrices: KANA_MATRICES });
+export async function getKanaCards(_req, res) {
+  try {
+    const deck = await getPersistedKanaDeck();
+    if (!deck) {
+      res.status(503).json({ error: 'Kana lessons are not available.' });
+      return;
+    }
+    res.json(deck);
+  } catch (error) {
+    console.error('Kana lesson lookup failed:', error);
+    res.status(503).json({ error: 'Kana lessons are not available.' });
+  }
 }
 
 export async function getKanjiCards(_req, res) {

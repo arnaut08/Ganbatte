@@ -6,7 +6,8 @@ import Assessment from './components/practice/Assessment';
 import Results from './components/practice/Results';
 import AuthPage from './components/auth/AuthPage';
 import KanjiStudy from './components/learning/KanjiStudy';
-import KanaStudy from './components/learning/KanaStudy';
+import KanaRecall from './components/learning/KanaRecall';
+import KanaIntro from './components/learning/KanaIntro';
 import KanaFilterScreen from './components/learning/KanaFilterScreen';
 import GrammarStudy from './components/learning/GrammarStudy';
 import AssessmentHistory from './components/learning/AssessmentHistory';
@@ -134,6 +135,7 @@ function App() {
   const screenPriority = {
     selector: 0,
     friends: 0,
+    'kana-intro': 0,
     'kana-filter': 0,
     'kana-study': 0,
     'kanji-study': 0,
@@ -1069,6 +1071,10 @@ function App() {
   };
 
   const handleOpenKanaStudy = () => {
+    navigateToScreen('kana-intro');
+  };
+
+  const handleContinueKanaIntro = () => {
     navigateToScreen('kana-filter');
   };
 
@@ -1079,6 +1085,10 @@ function App() {
   const handleApplyKanaFilters = (selectedKana) => {
     setSelectedKana(selectedKana);
     navigateToScreen('kana-study');
+  };
+
+  const handleKanaReviewComplete = () => {
+    navigateToScreen('kana-intro');
   };
 
   const handleOpenKanjiStudy = () => {
@@ -1251,6 +1261,10 @@ function App() {
               </div>
             )}
 
+            {status === 'kana-intro' && (
+              <KanaIntro onBack={handleGoBack} onContinue={handleContinueKanaIntro} />
+            )}
+
             {status === 'kana-filter' && (
               <KanaFilterScreen
                 onBack={handleGoBack}
@@ -1260,9 +1274,10 @@ function App() {
             )}
 
             {status === 'kana-study' && (
-              <KanaStudy
+              <KanaRecall
                 onBack={handleGoBack}
                 onOpenFilter={handleOpenKanaFilter}
+                onReviewComplete={handleKanaReviewComplete}
                 selectedKana={selectedKana}
               />
             )}

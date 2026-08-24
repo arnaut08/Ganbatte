@@ -153,6 +153,17 @@ export async function getUserPresenceStatus(userId) {
   return Boolean(online);
 }
 
+export async function getCachedJson(key) {
+  if (!redisClient?.isReady) return null;
+  const value = await redisClient.get(key);
+  return value ? JSON.parse(value) : null;
+}
+
+export async function setCachedJson(key, value, ttlSeconds) {
+  if (!redisClient?.isReady) return;
+  await redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });
+}
+
 export async function closeRedis() {
   if (redisClient?.isOpen) await redisClient.quit();
   if (redisSubscriber?.isOpen) await redisSubscriber.quit();
