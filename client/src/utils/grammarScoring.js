@@ -188,8 +188,8 @@ export function isQuestionCorrect(question, answer) {
     return getMatchingResultScore(question, answer).isCorrect;
   }
 
-  const accepted = Array.isArray(question.acceptedAnswers)
-    ? question.acceptedAnswers
+  const accepted = typeof question.acceptedAnswers !== 'undefined' && question.acceptedAnswers !== null
+    ? (Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : [question.acceptedAnswers])
     : typeof question.correctAnswer !== 'undefined'
       ? [question.correctAnswer]
       : [];

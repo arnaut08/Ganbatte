@@ -329,8 +329,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         return pairs.map((pair) => `${pair.left} → ${pair.right}`).join(', ');
       }
 
-      if (typeof question.correctAnswer !== 'undefined') return String(question.correctAnswer);
       if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) return question.acceptedAnswers.join(' / ');
+      if (typeof question.acceptedAnswers !== 'undefined' && question.acceptedAnswers !== null && question.acceptedAnswers !== '') return String(question.acceptedAnswers);
+      if (typeof question.correctAnswer !== 'undefined') return String(question.correctAnswer);
       if (question.englishText) return question.englishText;
       return 'No answer';
     };

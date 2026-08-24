@@ -298,7 +298,7 @@ function normalizeQuestion(item, index) {
     ...(typeof item?.choices !== 'undefined' ? { choices: Array.isArray(item.choices) ? item.choices.slice(0, 6) : [] } : {}),
     ...(typeof item?.correctAnswer !== 'undefined' ? { correctAnswer: item.correctAnswer } : {}),
     ...(typeof item?.correctAnswerRomaji !== 'undefined' ? { correctAnswerRomaji: item.correctAnswerRomaji } : {}),
-    ...(typeof item?.acceptedAnswers !== 'undefined' ? { acceptedAnswers: Array.isArray(item.acceptedAnswers) ? item.acceptedAnswers : [item.correctAnswer] } : {}),
+    ...(typeof item?.acceptedAnswers !== 'undefined' ? { acceptedAnswers: Array.isArray(item.acceptedAnswers) ? item.acceptedAnswers : [item.acceptedAnswers] } : {}),
     ...(typeof item?.leftItems !== 'undefined' ? { leftItems: item.leftItems } : {}),
     ...(typeof item?.rightItems !== 'undefined' ? { rightItems: item.rightItems } : {}),
     ...(typeof item?.correctPairs !== 'undefined' ? { correctPairs: item.correctPairs } : {}),

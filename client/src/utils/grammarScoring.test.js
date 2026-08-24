@@ -25,6 +25,17 @@ test('translation accepts alternate accepted answers', () => {
   assert.equal(isQuestionCorrect(question, 'これはあなたのかばんです'), false);
 });
 
+test('answers are compared with a single accepted answer value', () => {
+  const question = {
+    type: 'translation',
+    correctAnswer: 'これは私のかばんです',
+    acceptedAnswers: 'これは私の鞄です',
+  };
+
+  assert.equal(isQuestionCorrect(question, 'これは私の鞄です'), true);
+  assert.equal(isQuestionCorrect(question, 'これはあなたの鞄です'), false);
+});
+
 test('romaji answers are converted to kana before checking the canonical answer', () => {
   const question = {
     type: 'translation',
