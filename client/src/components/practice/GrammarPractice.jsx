@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import BackButton from '../common/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { getMatchingResultScore, isQuestionCorrect, summarizeResults } from '@/utils/grammarScoring';
+import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from '@/utils/grammarScoring';
 import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
 import { supabase } from '../../config/supabase';
 
 function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
   const [selectedLesson, setSelectedLesson] = useState(3);
-  const [count, setCount] = useState(5);
+  const [count, setCount] = useState(10);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(Boolean(forceShowResults));
@@ -329,9 +329,21 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         return pairs.map((pair) => `${pair.left} → ${pair.right}`).join(', ');
       }
 
-      if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) return question.acceptedAnswers.join(' / ');
-      if (typeof question.acceptedAnswers !== 'undefined' && question.acceptedAnswers !== null && question.acceptedAnswers !== '') return String(question.acceptedAnswers);
-      if (typeof question.correctAnswer !== 'undefined') return String(question.correctAnswer);
+      const answers = Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0
+        ? question.acceptedAnswers
+        : typeof question.acceptedAnswers !== 'undefined' && question.acceptedAnswers !== null && question.acceptedAnswers !== ''
+          ? [question.acceptedAnswers]
+          : typeof question.correctAnswer !== 'undefined' ? [question.correctAnswer] : [];
+      if (answers.length > 0) {
+        return answers.map((answer, index) => {
+          const answerText = String(answer);
+          if (!kanaToRomaji(answerText)) return answerText;
+          const romaji = index === 0 && question.correctAnswerRomaji
+            ? question.correctAnswerRomaji
+            : kanaToRomaji(answerText);
+          return `${answerText} (${romaji})`;
+        }).join(' / ');
+      }
       if (question.englishText) return question.englishText;
       return 'No answer';
     };
