@@ -17,6 +17,7 @@ import {
   usernameSchema,
 } from '../utils/validation.js';
 import { generateRandomCards, generateRandomKanjiCards } from '../services/card-service.js';
+import { getPersistedKanjiDeck } from '../repositories/kanji-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
@@ -99,7 +100,7 @@ export async function configureSocketServer(server, app) {
 
     restorePlayerPresenceFromReconnect();
 
-    socket.on('create-room', (hostName, sessionKey, maybeUserId, maybeDeckConfig, maybeCallback) => {
+    socket.on('create-room', async (hostName, sessionKey, maybeUserId, maybeDeckConfig, maybeCallback) => {
       const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
       const parsedHostName = usernameSchema.safeParse(hostName);
       const callback = typeof maybeDeckConfig === 'function' ? maybeDeckConfig : maybeCallback;
@@ -116,11 +117,24 @@ export async function configureSocketServer(server, app) {
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
       const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : 'kana';
-      const cards = deckType === 'grammar'
-        ? []
-        : deckType === 'kanji'
-          ? generateRandomKanjiCards(Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10)
-          : generateRandomCards(KANA_SENTENCES, 10);
+      let cards = [];
+      if (deckType === 'kanji') {
+        let deck;
+        try {
+          deck = await getPersistedKanjiDeck();
+        } catch (error) {
+          console.error('Kanji room deck lookup failed:', error);
+          if (callback) callback({ success: false, message: 'Kanji lessons are not available.' });
+          return;
+        }
+        if (!deck) {
+          if (callback) callback({ success: false, message: 'Kanji lessons are not available.' });
+          return;
+        }
+        cards = generateRandomKanjiCards(deck.cards, Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10);
+      } else if (deckType === 'kana') {
+        cards = generateRandomCards(KANA_SENTENCES, 10);
+      }
 
       roomState.rooms.set(roomCode, {
         code: roomCode,
@@ -314,6 +328,7 @@ export async function configureSocketServer(server, app) {
           const questions = await generateGrammarAssessment({
             maxLesson: room.grammarSettings?.maxLesson || 3,
             count: room.grammarSettings?.count || 5,
+            mode: 'assessment',
           });
           room.cards = questions;
           room.questions = questions;
@@ -323,9 +338,14 @@ export async function configureSocketServer(server, app) {
           room.questions = [];
         }
       } else if (refreshDeck) {
-        room.cards = room.deckType === 'kanji'
-          ? generateRandomKanjiCards(room.selectedGroups || [], 10)
-          : generateRandomCards(KANA_SENTENCES, 10);
+        if (room.deckType === 'kanji') {
+          const deck = await getPersistedKanjiDeck();
+          room.cards = deck
+            ? generateRandomKanjiCards(deck.cards, room.selectedGroups || [], 10)
+            : [];
+        } else {
+          room.cards = generateRandomCards(KANA_SENTENCES, 10);
+        }
       }
 
       room.status = 'active';

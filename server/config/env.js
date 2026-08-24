@@ -16,7 +16,7 @@ export const SUPABASE_URL = process.env.SUPABASE_URL || '';
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 export const REDIS_URL = process.env.REDIS_URL || '';
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 export const FALLBACK_GEMINI_MODEL = 'gemini-3.5-flash';
 

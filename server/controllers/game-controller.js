@@ -1,15 +1,36 @@
 import { roomSocketData } from '../utils/socket-room-utils.js';
 import { generateRandomCards, generateRandomKanjiCards } from '../services/card-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
-import { KANJI_CARDS, KANJI_GROUPS } from '../data/kanji.js';
+import { getPersistedKanaDeck } from '../repositories/kana-repository.js';
+import { getPersistedKanjiDeck } from '../repositories/kanji-repository.js';
 import { cardCountSchema, roomCodeSchema } from '../utils/validation.js';
 
-export function getKanaCards(_req, res) {
-  res.json(generateRandomCards(KANA_SENTENCES, 10));
+export async function getKanaCards(_req, res) {
+  try {
+    const deck = await getPersistedKanaDeck();
+    if (!deck) {
+      res.status(503).json({ error: 'Kana lessons are not available.' });
+      return;
+    }
+    res.json(deck);
+  } catch (error) {
+    console.error('Kana lesson lookup failed:', error);
+    res.status(503).json({ error: 'Kana lessons are not available.' });
+  }
 }
 
-export function getKanjiCards(_req, res) {
-  res.json({ groups: KANJI_GROUPS, cards: KANJI_CARDS });
+export async function getKanjiCards(_req, res) {
+  try {
+    const deck = await getPersistedKanjiDeck();
+    if (!deck) {
+      res.status(503).json({ error: 'Kanji lessons are not available.' });
+      return;
+    }
+    res.json(deck);
+  } catch (error) {
+    console.error('Kanji lesson lookup failed:', error);
+    res.status(503).json({ error: 'Kanji lessons are not available.' });
+  }
 }
 
 export function getRoomByCode(req, res) {
@@ -29,7 +50,7 @@ export function getRoomByCode(req, res) {
   res.json(room);
 }
 
-export function generateCards(req, res) {
+export async function generateCards(req, res) {
   const parsedCount = cardCountSchema.safeParse(req.query.count);
   if (!parsedCount.success) {
     res.status(400).json({ error: 'Count must be an integer between 1 and 25' });
@@ -44,9 +65,23 @@ export function generateCards(req, res) {
       ? [req.query.groups]
       : [];
 
-  const cards = deckType === 'kanji'
-    ? generateRandomKanjiCards(rawGroups, parsedCount.data)
-    : generateRandomCards(KANA_SENTENCES, parsedCount.data);
+  let cards;
+  if (deckType === 'kanji') {
+    try {
+      const deck = await getPersistedKanjiDeck();
+      if (!deck) {
+        res.status(503).json({ error: 'Kanji lessons are not available.' });
+        return;
+      }
+      cards = generateRandomKanjiCards(deck.cards, rawGroups, parsedCount.data);
+    } catch (error) {
+      console.error('Kanji card generation failed:', error);
+      res.status(503).json({ error: 'Kanji lessons are not available.' });
+      return;
+    }
+  } else {
+    cards = generateRandomCards(KANA_SENTENCES, parsedCount.data);
+  }
 
   res.json({ type: deckType, groups: rawGroups, cards });
 }

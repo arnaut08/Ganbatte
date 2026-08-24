@@ -3,11 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import LearningScreen from './learning/LearningScreen';
 import PracticeScreen from './practice/PracticeScreen';
+import { getKanjiCards } from '../services/api';
 
 function AppHome({
   onCreateRoom,
   onJoinRoom,
+  onOpenKanaStudy,
   onOpenKanjiStudy,
+  onOpenGrammarStudy,
   onScreenChange,
   screen: controlledScreen,
   prefillRoomCode = '',
@@ -28,6 +31,7 @@ function AppHome({
   const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
+  const [kanjiGroups, setKanjiGroups] = useState([]);
   const joinCodeInputRef = useRef(null);
 
   useEffect(() => {
@@ -47,6 +51,10 @@ function AppHome({
       setJoinCode(roomCode);
     }
   }, [prefillRoomCode, roomCode]);
+
+  useEffect(() => {
+    getKanjiCards().then((data) => setKanjiGroups(data.groups || [])).catch(() => {});
+  }, []);
 
   const handleGroupToggle = (groupId) => {
     setSelectedGroups((current) => current.includes(groupId)
@@ -217,7 +225,9 @@ function AppHome({
         ) : screen === 'learning' ? (
           <LearningScreen
             onBackToHome={() => setScreen('home')}
+            onOpenKanaStudy={onOpenKanaStudy}
             onOpenKanjiStudy={onOpenKanjiStudy}
+            onOpenGrammarStudy={onOpenGrammarStudy}
           />
         ) : (
           <PracticeScreen
@@ -237,6 +247,7 @@ function AppHome({
             onClearSelectedGroups={handleClearSelectedGroups}
             isGroupMenuOpen={isGroupMenuOpen}
             setIsGroupMenuOpen={setIsGroupMenuOpen}
+            kanjiGroups={kanjiGroups}
           />
         )}
       </div>

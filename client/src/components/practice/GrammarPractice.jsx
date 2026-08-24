@@ -16,6 +16,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
   const savedResult = useRef(false);
   const isRoomMode = Boolean(room && room.players?.length > 0);
+  const sessionLabel = isRoomMode ? 'Assessment' : 'Practice';
 
   useEffect(() => {
     setShowResults(Boolean(forceShowResults));
@@ -241,7 +242,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   if (showResults) {
     const roomPlayers = Array.isArray(room?.players) && room.players.length > 0
       ? room.players
-      : [{ name: username || 'Player 1', answers: Object.entries(answers).map(([index, value]) => ({ index: Number(index), value })) }];
+      : [{ name: username || 'Player 1', answers: questions.map((_, index) => answers[index]) }];
 
     const playerResults = roomPlayers.map((player) => {
       const playerAnswers = Array.isArray(player.answers) ? player.answers : [];
@@ -328,8 +329,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         return pairs.map((pair) => `${pair.left} → ${pair.right}`).join(', ');
       }
 
-      if (typeof question.correctAnswer !== 'undefined') return String(question.correctAnswer);
       if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) return question.acceptedAnswers.join(' / ');
+      if (typeof question.acceptedAnswers !== 'undefined' && question.acceptedAnswers !== null && question.acceptedAnswers !== '') return String(question.acceptedAnswers);
+      if (typeof question.correctAnswer !== 'undefined') return String(question.correctAnswer);
       if (question.englishText) return question.englishText;
       return 'No answer';
     };
@@ -375,16 +377,16 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
 
       <div className="flex flex-col justify-center">
         <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-          // SESSION COMPLETE
+          // {sessionLabel.toUpperCase()} COMPLETE
         </span>
         <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
-          Assessment Results
+          {sessionLabel} Results
         </h1>
       </div>
     </div>
 
     <div className="border-2 border-black bg-[#A3E636] px-3 py-1 font-mono text-xs font-black text-black shadow-[2px_2px_0px_0px_#000000]">
-      MATCH FINISHED
+      {sessionLabel.toUpperCase()} FINISHED
     </div>
   </div>
 
@@ -459,7 +461,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   <div className="space-y-4 pt-2">
     <div className="flex items-center justify-between border-b-2 border-neutral-700 pb-2">
       <span className="font-mono text-xs font-black uppercase tracking-wider text-[#70CFF8]">
-        // ROUND-BY-ROUND BREAKDOWN ({questions.length} QUESTIONS)
+        // QUESTION-BY-QUESTION BREAKDOWN ({questions.length} QUESTIONS)
       </span>
     </div>
 
@@ -498,7 +500,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
             const rawAnswer = player.answers[index];
             const answerText = formatAnswer(question, rawAnswer);
             const badge = getQuestionResultBadge(question, rawAnswer);
-            const isCorrect = badge.label.toLowerCase().includes('correct') && !badge.label.includes('/');
+            const isCorrect = question.type === 'matching'
+              ? badge.className === 'bg-[#A3E636] text-black'
+              : badge.label === 'Correct';
 
             return (
               <div
@@ -507,7 +511,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-black text-neutral-300">
-                    {player.name}
+                    {isRoomMode ? player.name : 'YOUR ANSWER'}
                   </span>
                   <span
                     className={`border border-black px-1.5 py-0.5 font-mono text-[10px] font-black uppercase ${
@@ -591,7 +595,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           <CardHeader>
             <CardTitle>Grammar practice</CardTitle>
             <CardDescription className="font-bold">
-              Choose a lesson range and generate a Genki grammar assessment.
+              Choose a lesson range and generate a Genki practice set.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -641,10 +645,10 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-        // BATTLE ARENA: LESSON {currentQuestion?.lesson ?? 1}
+        // {sessionLabel.toUpperCase()} SESSION: LESSON {currentQuestion?.lesson ?? 1}
           </span>
           <h1 className="text-xl font-black uppercase tracking-tight text-white sm:text-2xl">
-            Grammar Assessment
+            Grammar {sessionLabel}
           </h1>
         </div>
 
@@ -673,7 +677,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           <p className="jp-font mt-1 text-lg font-black text-black leading-snug sm:text-xl">
             {currentQuestion?.prompt}
           </p>
-          {currentQuestion?.englishText && currentQuestion?.type !== 'translation' && (
+          {currentQuestion?.englishText && (
             <p className="mt-2 font-mono text-xs font-bold text-black/80">
               EN: {currentQuestion.englishText}
             </p>

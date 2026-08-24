@@ -9,15 +9,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 
-const KANJI_GROUPS = [
-  { id: 'numbers', name: 'Numbers and Counters' },
-  { id: 'people-family', name: 'People and Family' },
-  { id: 'time-dates', name: 'Time and Dates' },
-  { id: 'places-directions', name: 'Places and Directions' },
-  { id: 'nature-weather', name: 'Nature and Weather' },
-  { id: 'school-actions', name: 'School and Everyday Actions' },
-];
-
 function CreateRoomCard({
   deckType,
   setDeckType,
@@ -30,6 +21,7 @@ function CreateRoomCard({
   setIsGroupMenuOpen,
   onCreateRoom,
   isSocketReady,
+  kanjiGroups,
 }) {
   return (
     <Card className="relative flex flex-col justify-between overflow-hidden border-2 border-black bg-[#FFDE59] p-6 shadow-[6px_6px_0px_0px_#000000]">
@@ -131,7 +123,7 @@ function CreateRoomCard({
                     <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ''}</span>
                     All Groups
                   </DropdownMenuItem>
-                  {KANJI_GROUPS.map((group) => (
+                  {kanjiGroups.map((group) => (
                     <DropdownMenuItem
                       key={group.id}
                       onSelect={(e) => {
@@ -154,7 +146,7 @@ function CreateRoomCard({
                       key={groupId}
                       className="inline-flex items-center gap-1 border-2 border-black bg-black px-2 py-0.5 text-xs font-black uppercase text-[#FFDE59]"
                     >
-                      {KANJI_GROUPS.find((g) => g.id === groupId)?.name || groupId}
+                      {kanjiGroups.find((g) => g.id === groupId)?.name || groupId}
                     </span>
                   ))}
                 </div>
@@ -256,6 +248,7 @@ export default function PracticeScreen({
   onClearSelectedGroups,
   isGroupMenuOpen,
   setIsGroupMenuOpen,
+  kanjiGroups = [],
 }) {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -291,6 +284,7 @@ export default function PracticeScreen({
           setIsGroupMenuOpen={setIsGroupMenuOpen}
           onCreateRoom={onCreateRoom}
           isSocketReady={isSocketReady}
+          kanjiGroups={kanjiGroups}
         />
 
         <JoinRoomCard

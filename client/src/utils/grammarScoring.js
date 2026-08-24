@@ -129,6 +129,10 @@ function normalizeText(value, expectedValue = value) {
 function normalizePairs(value) {
   if (!value) return {};
 
+  if (typeof value === 'object' && !Array.isArray(value) && Array.isArray(value.pairs)) {
+    return normalizePairs(value.pairs);
+  }
+
   if (Array.isArray(value)) {
     return value.reduce((accumulator, pair) => {
       if (!pair || typeof pair !== 'object') return accumulator;
@@ -184,8 +188,8 @@ export function isQuestionCorrect(question, answer) {
     return getMatchingResultScore(question, answer).isCorrect;
   }
 
-  const accepted = Array.isArray(question.acceptedAnswers)
-    ? question.acceptedAnswers
+  const accepted = typeof question.acceptedAnswers !== 'undefined' && question.acceptedAnswers !== null
+    ? (Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : [question.acceptedAnswers])
     : typeof question.correctAnswer !== 'undefined'
       ? [question.correctAnswer]
       : [];
