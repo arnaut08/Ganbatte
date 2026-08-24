@@ -275,7 +275,7 @@ export function createGeminiPrompt({ maxLesson = 12, count = 10, mode = 'assessm
     'Return a JSON object with a top-level "questions" array.',
     'Each question must include: id, lesson, type, prompt, explanation, difficulty.',
     'For multiple-choice: include choices and correctAnswer.',
-    'For fill-in-the-blank: include correctAnswer and acceptedAnswers if useful.',
+    'For fill-in-the-blank: include correctAnswer and acceptedAnswers if useful. Please ensure that the correctAnswer does not include any character from the prompt.',
     'For matching: include leftItems, rightItems, and correctPairs.',
     'For translation: include englishText, correctAnswer, and acceptedAnswers.',
     'For comprehension: include choices and correctAnswer.',
