@@ -7,11 +7,11 @@ import {
   resolveGeminiModel,
 } from './genki-grammar-service.js';
 
-test('buildGrammarAssessment respects the selected max lesson and returns valid item types', () => {
+test('buildGrammarAssessment keeps practice questions in the selected lesson', () => {
   const assessment = buildGrammarAssessment({ maxLesson: 2, count: 6 });
 
   assert.equal(assessment.length, 6);
-  assert.ok(assessment.every((item) => item.lesson <= 2));
+  assert.ok(assessment.every((item) => item.lesson === 2));
   assert.ok(assessment.every((item) => ['multiple-choice', 'fill-in-the-blank', 'matching', 'translation', 'comprehension'].includes(item.type)));
   assert.ok(assessment.every((item) => item.prompt && item.explanation));
 });
@@ -25,6 +25,7 @@ test('assessment mode uses the fixed question distribution while practice honors
   }), {});
 
   assert.equal(practice.length, 5);
+  assert.ok(practice.every((item) => item.lesson === 2));
   assert.deepEqual(counts, {
     'multiple-choice': 4,
     'fill-in-the-blank': 4,

@@ -142,7 +142,13 @@ function buildFillInBlankQuestion(lesson) {
 }
 
 function buildMatchingQuestion(lesson) {
-  const pairs = MATCHING_PAIRS.filter((item) => item.lesson <= lesson.number).slice(0, 4);
+  const lessonPairs = MATCHING_PAIRS.filter((item) => item.lesson === lesson.number).slice(0, 4);
+  const pairs = lessonPairs.length > 0
+    ? lessonPairs
+    : lesson.grammar.slice(0, 4).map((grammar) => ({
+      left: grammar,
+      right: 'grammar point',
+    }));
   return {
     id: `lesson-${lesson.number}-match-${Math.random().toString(36).slice(2, 8)}`,
     lesson: lesson.number,
@@ -157,7 +163,7 @@ function buildMatchingQuestion(lesson) {
 }
 
 function buildTranslationQuestion(lesson) {
-  const eligiblePrompts = TRANSLATION_PROMPTS.filter((entry) => entry.lesson <= lesson.number);
+  const eligiblePrompts = TRANSLATION_PROMPTS.filter((entry) => entry.lesson === lesson.number);
   const item = randomFrom(eligiblePrompts.length > 0 ? eligiblePrompts : TRANSLATION_PROMPTS);
   return {
     id: `lesson-${lesson.number}-translation-${Math.random().toString(36).slice(2, 8)}`,
@@ -193,7 +199,9 @@ function buildComprehensionQuestion(lesson) {
 export function buildGrammarAssessment({ maxLesson = 1, count = 10, mode = 'practice' } = {}) {
   const safeMaxLesson = Math.min(Math.max(Number(maxLesson) || 1, 1), GENKI_GRAMMAR_LESSONS.length);
   const safeCount = clampCount(count);
-  const availableLessons = GENKI_GRAMMAR_LESSONS.filter((lesson) => lesson.number <= safeMaxLesson);
+  const availableLessons = mode === 'practice'
+    ? GENKI_GRAMMAR_LESSONS.filter((lesson) => lesson.number === safeMaxLesson)
+    : GENKI_GRAMMAR_LESSONS.filter((lesson) => lesson.number <= safeMaxLesson);
 
   if (availableLessons.length === 0) {
     return [];
@@ -259,13 +267,16 @@ export function resolveGeminiModel(modelName) {
 }
 
 export function createGeminiPrompt({ maxLesson = 12, count = 10, mode = 'assessment' } = {}) {
+  const lessonScope = mode === 'practice'
+    ? `Only use grammar concepts from lesson ${maxLesson}.`
+    : `Only use grammar concepts from lessons 1 through ${maxLesson}.`;
   const questionInstructions = mode === 'assessment'
     ? `Generate exactly ${ASSESSMENT_QUESTION_TOTAL} questions total in valid JSON only: 4 multiple-choice, 4 fill-in-the-blank, 2 matching, 4 translation, and 4 comprehension questions.`
     : `Generate exactly ${count} questions total in valid JSON only, using all five question types when the requested count allows it.`;
 
   return [
     'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1',
-    `Only use grammar concepts from lessons 1 through ${maxLesson}.`,
+    lessonScope,
     `Weight the distribution of questions strictly in descending order of recency: Lesson L must have strictly more questions than Lesson L-1 across the entire range from Lesson 1 up to ${maxLesson}.`,
     questionInstructions,
     'Please do not use Kanji characters in any of the questions.',
@@ -374,12 +385,15 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10, mod
     const payload = await response.json();
     const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
     const questions = parseGeminiAssessment(text);
+    const scopedQuestions = mode === 'practice'
+      ? questions.filter((question) => question.lesson === safeMaxLesson)
+      : questions.filter((question) => question.lesson <= safeMaxLesson);
 
-    if (questions.length === 0 || (mode === 'assessment' && !hasAssessmentQuestionDistribution(questions))) {
+    if (scopedQuestions.length === 0 || (mode === 'assessment' && !hasAssessmentQuestionDistribution(scopedQuestions))) {
       return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: questionCount, mode });
     }
 
-    return questions;
+    return scopedQuestions;
   } catch (error) {
     console.error('Gemini generation failed; falling back to local template assessment:', error);
     return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: questionCount, mode });
