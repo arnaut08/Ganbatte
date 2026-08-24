@@ -7,6 +7,7 @@ import assessmentRoutes from './routes/assessment-routes.js';
 import grammarLessonRoutes from './routes/grammar-lesson-routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { configureSocketServer } from './socket/socket-server.js';
+import { warmKanaDeckCache } from './repositories/kana-repository.js';
 
 const server = createServer(app);
 
@@ -23,6 +24,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 await configureSocketServer(server, app);
+void warmKanaDeckCache();
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

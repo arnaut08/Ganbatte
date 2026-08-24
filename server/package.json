@@ -7,6 +7,7 @@
     "build": "node --check index.js",
     "generate:genki-lessons": "node scripts/generate-genki-lessons.js",
     "generate:kanji": "node scripts/generate-kanji.js",
+    "seed:kana": "node scripts/seed-kana.js",
     "start": "node index.js"
   },
   "dependencies": {

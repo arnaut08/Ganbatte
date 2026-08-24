@@ -328,6 +328,7 @@ export async function configureSocketServer(server, app) {
           const questions = await generateGrammarAssessment({
             maxLesson: room.grammarSettings?.maxLesson || 3,
             count: room.grammarSettings?.count || 5,
+            mode: 'assessment',
           });
           room.cards = questions;
           room.questions = questions;

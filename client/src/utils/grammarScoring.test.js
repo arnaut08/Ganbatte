@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getMatchingResultScore, isQuestionCorrect, summarizeResults } from './grammarScoring.js';
+import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from './grammarScoring.js';
+
+test('kana answers can be displayed with romaji', () => {
+  assert.equal(kanaToRomaji('これは わたしの かばんです'), 'koreha watashino kabandesu');
+  assert.equal(kanaToRomaji('食べます'), '');
+  assert.equal(kanaToRomaji('きょう'), 'kyou');
+});
 
 test('multiple choice accepts the canonical answer', () => {
   const question = {
@@ -23,6 +29,17 @@ test('translation accepts alternate accepted answers', () => {
 
   assert.equal(isQuestionCorrect(question, 'これは私のかばんです。'), true);
   assert.equal(isQuestionCorrect(question, 'これはあなたのかばんです'), false);
+});
+
+test('answers are compared with a single accepted answer value', () => {
+  const question = {
+    type: 'translation',
+    correctAnswer: 'これは私のかばんです',
+    acceptedAnswers: 'これは私の鞄です',
+  };
+
+  assert.equal(isQuestionCorrect(question, 'これは私の鞄です'), true);
+  assert.equal(isQuestionCorrect(question, 'これはあなたの鞄です'), false);
 });
 
 test('romaji answers are converted to kana before checking the canonical answer', () => {

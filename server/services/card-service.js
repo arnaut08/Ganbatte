@@ -115,6 +115,7 @@ export function generateRandomKanjiCards(kanjiCards, groupIds = [], count = 10) 
   const pool = kanjiCards
     .filter((card) => groupIds.length === 0 || groupIds.includes(card.groupId))
     .map((card) => ({
+      id: card.id,
       kana: card.kanji,
       romaji: card.romaji || romanizeKana(card.reading.split('/')[0].trim()),
       english: card.meaning,
@@ -129,6 +130,7 @@ export function generateRandomKanjiCards(kanjiCards, groupIds = [], count = 10) 
     const index = Math.floor(Math.random() * workingPool.length);
     const card = workingPool.splice(index, 1)[0];
     cards.push({
+      id: card.id,
       kana: card.kana,
       romaji: card.romaji,
       english: card.english,

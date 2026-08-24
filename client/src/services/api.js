@@ -1,7 +1,7 @@
 import { SERVER_URL } from '../config';
 import { supabase } from '../config/supabase';
 
-const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search', '/api/assessments', '/api/grammar-lessons', '/api/kana-cards', '/api/kanji-cards', '/api/kanji-attempts', '/api/rooms', '/api/generate-cards'];
+const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search', '/api/assessments', '/api/grammar-lessons', '/api/kana-cards', '/api/kanji-cards', '/api/character-attempts', '/api/kanji-attempts', '/api/rooms', '/api/generate-cards'];
 const pendingRequests = new Map();
 
 function isFutureJwtError(error) {
@@ -122,11 +122,11 @@ export function getKanaCards() {
   return request('/api/kana-cards');
 }
 
-export function generateGrammarAssessment(maxLesson = 12, count = 10) {
+export function generateGrammarAssessment(maxLesson = 12, count = 10, mode = 'practice') {
   const safeMaxLesson = Number.isFinite(Number(maxLesson)) ? Number(maxLesson) : 12;
   const safeCount = Number.isFinite(Number(count)) ? Number(count) : 10;
 
-  return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}`);
+  return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}&mode=${mode}`);
 }
 
 export function recordKanjiAttempt(attempt) {
@@ -142,6 +142,24 @@ export function getKanjiAttempts() {
 
 export function updateKanjiConfidenceBatch(updates) {
   return request('/api/kanji-attempts/confidence', {
+    method: 'PATCH',
+    body: JSON.stringify({ updates }),
+  });
+}
+
+export function recordCharacterAttempt(attempt) {
+  return request('/api/character-attempts', {
+    method: 'POST',
+    body: JSON.stringify(attempt),
+  });
+}
+
+export function getCharacterAttempts(characterType) {
+  return request(`/api/character-attempts?type=${encodeURIComponent(characterType)}`);
+}
+
+export function updateCharacterConfidenceBatch(updates) {
+  return request('/api/character-attempts/confidence', {
     method: 'PATCH',
     body: JSON.stringify({ updates }),
   });
