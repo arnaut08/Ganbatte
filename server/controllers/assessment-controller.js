@@ -8,8 +8,10 @@ const assessmentQuerySchema = z.object({
   type: z.enum(['grammar', 'kana', 'kanji']).default('grammar'),
 });
 
-const kanjiAttemptSchema = z.object({
-  character: z.string().trim().regex(/^\p{Script=Han}$/u),
+const characterAttemptSchema = z.object({
+  characterId: z.string().uuid().optional(),
+  character: z.string().trim().regex(/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+$/u),
+  characterType: z.enum(['kanji', 'kana']).default('kanji'),
   promptMode: z.enum(['reading', 'meaning']),
   answer: z.string().trim().min(1).max(160),
   correct: z.boolean(),
@@ -17,13 +19,15 @@ const kanjiAttemptSchema = z.object({
   usedHint: z.boolean().default(false),
 });
 
-const kanjiConfidenceUpdateSchema = z.object({
-  character: z.string().trim().regex(/^\p{Script=Han}$/u),
+const characterConfidenceUpdateSchema = z.object({
+  characterId: z.string().uuid().optional(),
+  character: z.string().trim().regex(/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+$/u),
+  characterType: z.enum(['kanji', 'kana']).default('kanji'),
   confidence: z.enum(['again', 'hard', 'easy']),
 });
 
 const kanjiConfidenceBatchSchema = z.object({
-  updates: z.array(kanjiConfidenceUpdateSchema).min(1).max(100),
+  updates: z.array(characterConfidenceUpdateSchema).min(1).max(300),
 });
 
 export async function generateAssessment(req, res) {
@@ -55,22 +59,32 @@ export async function generateAssessment(req, res) {
 }
 
 export async function recordKanjiAttempt(req, res) {
-  const parsed = kanjiAttemptSchema.safeParse(req.body);
+  const parsed = characterAttemptSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid Kanji attempt' });
     return;
   }
 
   try {
-    const { data, error } = await getSupabaseClient().from('kanji_attempts').upsert({
+    const supabase = getSupabaseClient();
+    let characterId = parsed.data.characterId;
+    if (!characterId) {
+      const table = parsed.data.characterType === 'kana' ? 'kana_characters' : 'kanji_characters';
+      const { data: character, error: lookupError } = await supabase.from(table).select('id').eq('character', parsed.data.character).single();
+      if (lookupError) throw lookupError;
+      characterId = character.id;
+    }
+    const { data, error } = await supabase.from('character_attempts').upsert({
       user_id: req.user.id,
+      character_id: characterId,
       character: parsed.data.character,
+      character_type: parsed.data.characterType,
       prompt_mode: parsed.data.promptMode,
       answer: parsed.data.answer,
       is_correct: parsed.data.correct,
       confidence: parsed.data.confidence ?? null,
       used_hint: parsed.data.usedHint,
-    }, { onConflict: 'user_id,character' }).select('character, confidence').single();
+    }, { onConflict: 'user_id,character_id,character_type' }).select('character, character_id, character_type, confidence').single();
 
     if (error) throw error;
     res.status(200).json({ recorded: true, attempt: data });
@@ -80,18 +94,37 @@ export async function recordKanjiAttempt(req, res) {
   }
 }
 
+export const recordCharacterAttempt = recordKanjiAttempt;
+
 export async function getKanjiAttempts(req, res) {
   try {
     const { data, error } = await getSupabaseClient()
-      .from('kanji_attempts')
-      .select('character, confidence, is_correct, prompt_mode, created_at')
-      .eq('user_id', req.user.id);
+      .from('character_attempts')
+      .select('character, character_id, character_type, confidence, is_correct, prompt_mode, created_at')
+      .eq('user_id', req.user.id)
+      .eq('character_type', 'kanji');
 
     if (error) throw error;
     res.json({ attempts: data || [] });
   } catch (error) {
     console.error('Kanji attempt lookup failed:', error);
     res.status(500).json({ error: 'Unable to load Kanji attempts' });
+  }
+}
+
+export async function getCharacterAttempts(req, res) {
+  if (req.query.type !== 'kana') return getKanjiAttempts(req, res);
+  try {
+    const { data, error } = await getSupabaseClient()
+      .from('character_attempts')
+      .select('character, character_id, character_type, confidence, is_correct, prompt_mode, created_at')
+      .eq('user_id', req.user.id)
+      .eq('character_type', 'kana');
+    if (error) throw error;
+    res.json({ attempts: data || [] });
+  } catch (error) {
+    console.error('Character attempt lookup failed:', error);
+    res.status(500).json({ error: 'Unable to load character attempts' });
   }
 }
 
@@ -104,15 +137,23 @@ export async function updateKanjiConfidenceBatch(req, res) {
 
   try {
     const supabase = getSupabaseClient();
-    const results = await Promise.all(parsed.data.updates.map(({ character, confidence }) => (
-      supabase
-        .from('kanji_attempts')
+    const results = await Promise.all(parsed.data.updates.map(async ({ character, characterId, characterType, confidence }) => {
+      let resolvedCharacterId = characterId;
+      if (!resolvedCharacterId) {
+        const table = characterType === 'kana' ? 'kana_characters' : 'kanji_characters';
+        const { data: record, error: lookupError } = await supabase.from(table).select('id').eq('character', character).single();
+        if (lookupError) return { error: lookupError };
+        resolvedCharacterId = record.id;
+      }
+      return supabase
+        .from('character_attempts')
         .update({ confidence })
         .eq('user_id', req.user.id)
-        .eq('character', character)
-        .select('character, confidence')
-        .single()
-    )));
+        .eq('character_id', resolvedCharacterId)
+        .eq('character_type', characterType)
+        .select('character, character_id, character_type, confidence')
+        .single();
+    }));
 
     const failedResult = results.find(({ error }) => error);
     if (failedResult?.error) throw failedResult.error;
@@ -123,3 +164,5 @@ export async function updateKanjiConfidenceBatch(req, res) {
     res.status(500).json({ error: 'Unable to update Kanji confidence' });
   }
 }
+
+export const updateCharacterConfidenceBatch = updateKanjiConfidenceBatch;

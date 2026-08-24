@@ -142,18 +142,6 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }) {
                 </p>
               </div>
 
-              {/* Sound / Reading Hint */}
-              {card.meaning && (
-                <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
-                  <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-                    // Sound
-                  </span>
-                  <p className="mt-0.5 text-base font-bold text-black capitalize">
-                    "{card.meaning}"
-                  </p>
-                </div>
-              )}
-
               {/* Mnemonic Text Box (If Provided) */}
               {card.mnemonic && (
                 <div className="border-2 border-black bg-[#A3E636] p-3 shadow-[3px_3px_0px_0px_#000000]">

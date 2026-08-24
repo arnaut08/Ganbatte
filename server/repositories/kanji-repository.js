@@ -5,7 +5,7 @@ export async function getPersistedKanjiDeck() {
   const client = getSupabaseClient();
   const [{ data: groups, error: groupsError }, { data: characters, error: charactersError }] = await Promise.all([
     client.from('kanji_groups').select('id, name, sort_order').eq('difficulty', 'n5').eq('status', 'published').order('sort_order'),
-    client.from('kanji_characters').select('group_id, character, readings, romaji, meaning, example_japanese, example_english, sort_order').eq('difficulty', 'n5').eq('status', 'published').order('sort_order'),
+    client.from('kanji_characters').select('id, group_id, character, readings, romaji, meaning, example_japanese, example_english, sort_order').eq('difficulty', 'n5').eq('status', 'published').order('sort_order'),
   ]);
   if (groupsError) throw groupsError;
   if (charactersError) throw charactersError;
@@ -16,6 +16,7 @@ export async function getPersistedKanjiDeck() {
     const group = groupMap.get(item.group_id);
     if (!group) return;
     group.cards.push({
+      id: item.id,
       kanji: item.character,
       reading: item.readings.join(' / '),
       romaji: item.romaji,
