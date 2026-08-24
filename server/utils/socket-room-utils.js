@@ -1,6 +1,5 @@
 import { generateRandomCards } from '../services/card-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
-import { KANJI_CARDS, KANJI_GROUPS } from '../data/kanji.js';
 
 export const roomState = {
   rooms: new Map(),
@@ -87,8 +86,6 @@ export const roomSocketData = {
   rooms: roomState.rooms,
   roomCleanupTimers: roomState.roomCleanupTimers,
   DISCONNECT_GRACE_PERIOD_MS: roomState.DISCONNECT_GRACE_PERIOD_MS,
-  KANJI_GROUPS,
-  KANJI_CARDS,
   KANA_SENTENCES,
   tryAdvanceIfAllSubmitted,
 };

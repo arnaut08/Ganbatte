@@ -1,0 +1,162 @@
+.history-page {
+  width: min(100% - 2rem, 800px);
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.history-header h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-family: 'Sora', sans-serif;
+}
+
+.history-header p:last-child {
+  margin: 0.5rem 0 0;
+  color: #a0aec0;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  background: #1a1f2e;
+}
+
+.history-type {
+  margin: 0;
+  color: #e8ecf1;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.history-date {
+  margin: 0.3rem 0 0;
+  color: #718096;
+  font-size: 0.8rem;
+}
+
+.history-companion {
+  margin: 0.3rem 0 0;
+  color: #93c5fd;
+  font-size: 0.85rem;
+}
+
+.history-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.history-score strong {
+  color: #6ee7b7;
+  font-size: 1.25rem;
+}
+
+.history-score span {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.history-state {
+  padding: 2rem;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  background: #1a1f2e;
+  color: #a0aec0;
+  text-align: center;
+}
+
+.history-error {
+  color: #fca5a5;
+}
+
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  background: #1a1f2e;
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #2d3748;
+  color: #f8fafc;
+  border-color: #4a5568;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn-active {
+  background: #6ee7b7;
+  border-color: #6ee7b7;
+  color: #1a1f2e;
+}
+
+.pagination-btn-active:hover:not(:disabled) {
+  background: #6ee7b7;
+  border-color: #6ee7b7;
+  color: #1a1f2e;
+}
+
+@media (max-width: 640px) {
+  .history-page {
+    padding: 1rem 0;
+  }
+
+  .history-header {
+    flex-direction: column;
+  }
+
+  .history-header .btn {
+    width: 100%;
+  }
+
+  .history-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .history-score {
+    align-items: flex-start;
+  }
+}

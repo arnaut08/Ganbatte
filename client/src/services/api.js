@@ -1,7 +1,7 @@
 import { SERVER_URL } from '../config';
 import { supabase } from '../config/supabase';
 
-const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search'];
+const PROTECTED_PATH_PREFIXES = ['/api/friends', '/api/friend-requests', '/api/users/search', '/api/assessments', '/api/grammar-lessons', '/api/kana-cards', '/api/kanji-cards', '/api/kanji-attempts', '/api/rooms', '/api/generate-cards'];
 const pendingRequests = new Map();
 
 function isFutureJwtError(error) {
@@ -110,6 +110,10 @@ async function request(path, options = {}, retryCount = 0) {
   }
 }
 
+export function getKanjiCards() {
+  return request('/api/kanji-cards');
+}
+
 export function generateCards(count = 10) {
   return request(`/api/generate-cards?count=${count}`, { method: 'POST' });
 }
@@ -118,15 +122,33 @@ export function getKanaCards() {
   return request('/api/kana-cards');
 }
 
-export function getKanjiCards() {
-  return request('/api/kanji-cards');
-}
-
 export function generateGrammarAssessment(maxLesson = 12, count = 10) {
   const safeMaxLesson = Number.isFinite(Number(maxLesson)) ? Number(maxLesson) : 12;
   const safeCount = Number.isFinite(Number(count)) ? Number(count) : 10;
 
   return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}`);
+}
+
+export function recordKanjiAttempt(attempt) {
+  return request('/api/kanji-attempts', {
+    method: 'POST',
+    body: JSON.stringify(attempt),
+  });
+}
+
+export function getKanjiAttempts() {
+  return request('/api/kanji-attempts');
+}
+
+export function updateKanjiConfidenceBatch(updates) {
+  return request('/api/kanji-attempts/confidence', {
+    method: 'PATCH',
+    body: JSON.stringify({ updates }),
+  });
+}
+
+export function getGrammarLessons() {
+  return request('/api/grammar-lessons');
 }
 
 export function getRoom(roomCode) {
@@ -157,10 +179,6 @@ export function acceptFriendRequest(requestId) {
 
 export function rejectFriendRequest(requestId) {
   return request(`/api/friend-requests/${encodeURIComponent(requestId)}/reject`, { method: 'POST' });
-}
-
-export function addFriend(userId) {
-  return request(`/api/friends/${encodeURIComponent(userId)}`, { method: 'POST' });
 }
 
 export function removeFriend(userId) {

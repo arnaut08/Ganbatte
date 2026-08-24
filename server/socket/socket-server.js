@@ -17,6 +17,7 @@ import {
   usernameSchema,
 } from '../utils/validation.js';
 import { generateRandomCards, generateRandomKanjiCards } from '../services/card-service.js';
+import { getPersistedKanjiDeck } from '../repositories/kanji-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
@@ -99,7 +100,7 @@ export async function configureSocketServer(server, app) {
 
     restorePlayerPresenceFromReconnect();
 
-    socket.on('create-room', (hostName, sessionKey, maybeUserId, maybeDeckConfig, maybeCallback) => {
+    socket.on('create-room', async (hostName, sessionKey, maybeUserId, maybeDeckConfig, maybeCallback) => {
       const parsedSessionKey = sessionKeySchema.safeParse(sessionKey);
       const parsedHostName = usernameSchema.safeParse(hostName);
       const callback = typeof maybeDeckConfig === 'function' ? maybeDeckConfig : maybeCallback;
@@ -116,11 +117,24 @@ export async function configureSocketServer(server, app) {
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
       const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : 'kana';
-      const cards = deckType === 'grammar'
-        ? []
-        : deckType === 'kanji'
-          ? generateRandomKanjiCards(Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10)
-          : generateRandomCards(KANA_SENTENCES, 10);
+      let cards = [];
+      if (deckType === 'kanji') {
+        let deck;
+        try {
+          deck = await getPersistedKanjiDeck();
+        } catch (error) {
+          console.error('Kanji room deck lookup failed:', error);
+          if (callback) callback({ success: false, message: 'Kanji lessons are not available.' });
+          return;
+        }
+        if (!deck) {
+          if (callback) callback({ success: false, message: 'Kanji lessons are not available.' });
+          return;
+        }
+        cards = generateRandomKanjiCards(deck.cards, Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10);
+      } else if (deckType === 'kana') {
+        cards = generateRandomCards(KANA_SENTENCES, 10);
+      }
 
       roomState.rooms.set(roomCode, {
         code: roomCode,
@@ -286,11 +300,16 @@ export async function configureSocketServer(server, app) {
       if (callback) callback({ success: true, room });
     });
 
-    socket.on('start-assessment', async (roomCode) => {
+    const startAssessment = async (roomCode, refreshDeck = false) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
-      if (room.players[0]?.id !== socket.id) return;
+      if (room.players[0]?.id !== socket.id) {
+        socket.emit('assessment-action-denied', { message: 'Waiting for the host to start the assessment.' });
+        return;
+      }
       if (!room.players.every((player) => {
+        if (room.status === 'completed') return player.connected !== false;
+
         const status = player.status ?? player.presence ?? 'in_lobby';
         return player.connected !== false && status !== 'away' && status !== 'disconnected' && status !== 'offline';
       })) return;
@@ -317,6 +336,15 @@ export async function configureSocketServer(server, app) {
           room.cards = [];
           room.questions = [];
         }
+      } else if (refreshDeck) {
+        if (room.deckType === 'kanji') {
+          const deck = await getPersistedKanjiDeck();
+          room.cards = deck
+            ? generateRandomKanjiCards(deck.cards, room.selectedGroups || [], 10)
+            : [];
+        } else {
+          room.cards = generateRandomCards(KANA_SENTENCES, 10);
+        }
       }
 
       room.status = 'active';
@@ -327,6 +355,111 @@ export async function configureSocketServer(server, app) {
         player.ready = false;
       });
       io.to(roomCode).emit('assessment-started', { room });
+    };
+
+    socket.on('start-assessment', startAssessment);
+
+    socket.on('replay-assessment', (roomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      if (!room) return;
+      if (room.players[0]?.id !== socket.id) {
+        socket.emit('assessment-action-denied', { message: 'Waiting for the host to replay this assessment.' });
+        return;
+      }
+
+      startAssessment(roomCode, true);
+    });
+
+    socket.on('return-to-lobby', (roomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      if (!room) return;
+      if (room.players[0]?.id !== socket.id) {
+        socket.emit('assessment-action-denied', { message: 'Waiting for the host to return the room to the lobby.' });
+        return;
+      }
+
+      room.status = 'waiting';
+      room.currentCardIndex = 0;
+      room.players.forEach((player) => {
+        player.answers = [];
+        player.hintsUsed = [];
+        player.ready = false;
+        player.status = 'in_lobby';
+        player.presence = 'online';
+      });
+      io.to(roomCode).emit('room-returned-to-lobby', { room });
+    });
+
+    socket.on('exit-lobby', (roomCode, callback) => {
+      const parsedRoomCode = roomCodeSchema.safeParse(roomCode);
+      if (!parsedRoomCode.success) {
+        if (callback) callback({ success: false, message: 'Invalid room code' });
+        return;
+      }
+
+      const normalizedRoomCode = parsedRoomCode.data;
+      const room = roomState.rooms.get(normalizedRoomCode);
+      if (!room) {
+        if (callback) callback({ success: false, message: 'Room not found' });
+        return;
+      }
+
+      const leavingPlayer = room.players.find((player) => player.id === socket.id);
+      if (!leavingPlayer) {
+        if (callback) callback({ success: false, message: 'Player not found in room' });
+        return;
+      }
+
+      socket.data.intentionalLeaveRoomCode = normalizedRoomCode;
+      socket.data.intentionalLeave = true;
+      const exitedPlayerWasHost = room.players[0]?.id === socket.id;
+
+      room.leftPlayers = room.leftPlayers.filter(
+        (player) => !(player.sessionKey === leavingPlayer.sessionKey && player.name === leavingPlayer.name),
+      );
+      room.leftPlayers.push({
+        sessionKey: leavingPlayer.sessionKey,
+        name: leavingPlayer.name,
+        userId: leavingPlayer.userId,
+        answers: leavingPlayer.answers,
+        hintsUsed: leavingPlayer.hintsUsed,
+      });
+      room.players = room.players.filter((player) => player.id !== socket.id);
+      room.status = 'waiting';
+      room.currentCardIndex = 0;
+      room.players.forEach((player) => {
+        player.answers = [];
+        player.hintsUsed = [];
+        player.ready = false;
+        player.status = 'in_lobby';
+        player.presence = 'online';
+      });
+      socket.leave(normalizedRoomCode);
+
+      if (room.players.length > 0) {
+        io.to(normalizedRoomCode).emit('player-exited-lobby', {
+          room,
+          exitedPlayerWasHost,
+        });
+      } else {
+        roomState.rooms.delete(normalizedRoomCode);
+      }
+
+      if (callback) callback({ success: true });
+    });
+
+    socket.on('request-assessment-action', (roomCode, action) => {
+      const room = roomState.rooms.get(roomCode);
+      const player = room?.players.find((entry) => entry.id === socket.id);
+      const host = room?.players[0];
+      if (!room || !player || !host || player.id === host.id) return;
+      if (action !== 'replay' && action !== 'new-session') return;
+
+      io.to(roomCode).emit('assessment-action-requested', {
+        action,
+        guestName: player.name,
+        hostSocketId: host.id,
+      });
     });
 
     socket.on('submit-answer', (roomCode, answer) => {

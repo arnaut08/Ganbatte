@@ -16,13 +16,21 @@ test('buildGrammarAssessment respects the selected max lesson and returns valid 
 });
 
 test('resolveGeminiModel falls back for unsupported model names', () => {
-  assert.equal(resolveGeminiModel('gemini-2.5-flash-lite'), 'gemini-3.6-flash');
-  assert.equal(resolveGeminiModel('gemini-3.6-flash'), 'gemini-3.6-flash');
-  assert.equal(resolveGeminiModel(''), 'gemini-3.6-flash');
+  assert.equal(resolveGeminiModel('gemini-2.5-flash-lite'), 'gemini-3.5-flash');
+  assert.equal(resolveGeminiModel('gemini-3.6-flash'), 'gemini-3.5-flash');
+  assert.equal(resolveGeminiModel(''), 'gemini-3.5-flash');
 });
 
 test('GENKI_GRAMMAR_LESSONS includes a lesson 1 to 12 curriculum map', () => {
   assert.ok(Array.isArray(GENKI_GRAMMAR_LESSONS));
   assert.ok(GENKI_GRAMMAR_LESSONS.some((lesson) => lesson.number === 1));
   assert.ok(GENKI_GRAMMAR_LESSONS.some((lesson) => lesson.number === 12));
+});
+
+test('Lesson 2 and Lesson 3 use their intended grammar scopes', () => {
+  const lessonTwo = GENKI_GRAMMAR_LESSONS.find((lesson) => lesson.number === 2);
+  const lessonThree = GENKI_GRAMMAR_LESSONS.find((lesson) => lesson.number === 3);
+
+  assert.deepEqual(lessonTwo.grammar, ['の', 'も', 'か']);
+  assert.deepEqual(lessonThree.grammar, ['ます', 'ません', 'を', 'に', 'で']);
 });

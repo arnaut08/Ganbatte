@@ -7,6 +7,8 @@
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
     "server:dev": "cd server && npm run dev",
     "client:dev": "cd client && npm run dev",
+    "generate:genki-lessons": "cd server && node scripts/generate-genki-lessons.js",
+    "generate:kanji": "cd server && node scripts/generate-kanji.js",
     "build": "cd client && npm run build",
     "start": "cd server && npm start"
   },

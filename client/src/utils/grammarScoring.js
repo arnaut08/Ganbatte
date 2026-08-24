@@ -111,7 +111,7 @@ function normalizeRomajiReference(value) {
   return normalized;
 }
 
-export function normalizeText(value, expectedValue = value) {
+function normalizeText(value, expectedValue = value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
 
@@ -128,6 +128,10 @@ export function normalizeText(value, expectedValue = value) {
 
 function normalizePairs(value) {
   if (!value) return {};
+
+  if (typeof value === 'object' && !Array.isArray(value) && Array.isArray(value.pairs)) {
+    return normalizePairs(value.pairs);
+  }
 
   if (Array.isArray(value)) {
     return value.reduce((accumulator, pair) => {
