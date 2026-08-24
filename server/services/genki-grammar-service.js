@@ -276,7 +276,7 @@ export function createGeminiPrompt({ maxLesson = 12, count = 10, mode = 'assessm
     'Each question must include: id, lesson, type, prompt, explanation, difficulty.',
     'For multiple-choice: include choices and correctAnswer.',
     'For fill-in-the-blank: include correctAnswer and acceptedAnswers if useful. Please ensure that the correctAnswer does not include any character from the prompt.',
-    'For matching: include leftItems, rightItems, and correctPairs.',
+    'For matching: include leftItems, rightItems, and correctPairs. Make sure that the leftItems and rightItems are shuffled and not in the same order as correctPairs.',
     'For translation: include englishText, correctAnswer, and acceptedAnswers.',
     'For comprehension: include choices and correctAnswer.',
     'Keep all content aligned to Genki Volume 1 only.',
