@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { getKanjiAttempts, getKanjiCards, recordKanjiAttempt, updateKanjiConfidenceBatch } from '../../services/api';
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
+import { getKanjiAttempts, getKanjiCards, recordKanjiAttempt, updateKanjiConfidenceBatch, type KanjiCard } from '../../services/api';
 import {
   buildKanjiAttempt,
   getKanjiHint,
@@ -21,41 +21,81 @@ const CONFIDENCE_OPTIONS = [
   { level: 'unrated', label: 'Unrated', icon: null, color: '#FFFFFF', description: 'No confidence rating' },
 ];
 
-function KanjiStudy({ onBack }) {
-  const [selectedGroups, setSelectedGroups] = useState([]);
-  const [selectedConfidenceLevels, setSelectedConfidenceLevels] = useState(['unrated', 'again', 'hard', 'easy']);
+type ConfidenceLevel = 'again' | 'hard' | 'easy' | 'unrated';
+
+type KanjiStudyCard = KanjiCard & {
+  reading?: string;
+  meaning?: string;
+  example?: [string, string, string];
+};
+
+type KanjiGroup = {
+  id: string;
+  name: string;
+};
+
+type ReviewItem = KanjiStudyCard & {
+  confidence: ConfidenceLevel | null;
+  originalConfidence: ConfidenceLevel | null;
+};
+
+type KanjiData = {
+  cards: KanjiStudyCard[];
+  groups: KanjiGroup[];
+};
+
+type KanjiStudyProps = {
+  onBack: () => void;
+};
+
+type KanjiAttempt = {
+  character: string;
+  promptMode: string;
+  answer: string;
+  correct: boolean;
+  confidence: ConfidenceLevel | null;
+  usedHint: boolean;
+  skipped?: boolean;
+};
+
+function KanjiStudy({ onBack }: KanjiStudyProps) {
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [selectedConfidenceLevels, setSelectedConfidenceLevels] = useState<ConfidenceLevel[]>(['unrated', 'again', 'hard', 'easy']);
   const [cardIndex, setCardIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
-  const [promptMode, setPromptMode] = useState(KANJI_PROMPT_MODES.READING);
+  const [promptMode, setPromptMode] = useState<string>(KANJI_PROMPT_MODES.READING);
   const [answer, setAnswer] = useState('');
-  const [attempt, setAttempt] = useState(null);
-  const [confidence, setConfidence] = useState(null);
+  const [attempt, setAttempt] = useState<KanjiAttempt | null>(null);
+  const [confidence, setConfidence] = useState<ConfidenceLevel | null>(null);
   const [usedHint, setUsedHint] = useState(false);
-  const [retryCards, setRetryCards] = useState([]);
+  const [retryCards, setRetryCards] = useState<KanjiStudyCard[]>([]);
   const [isRetryMode, setIsRetryMode] = useState(false);
   const [persistenceError, setPersistenceError] = useState('');
-  const [confidenceByCharacter, setConfidenceByCharacter] = useState({});
+  const [confidenceByCharacter, setConfidenceByCharacter] = useState<Record<string, ConfidenceLevel>>({});
   const [isLearning, setIsLearning] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
-  const [reviewItems, setReviewItems] = useState([]);
-  const [reviewChanges, setReviewChanges] = useState({});
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
+  const [reviewChanges, setReviewChanges] = useState<Record<string, ConfidenceLevel | null>>({});
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
-  const [kanjiData, setKanjiData] = useState({ cards: [], groups: [] });
+  const [kanjiData, setKanjiData] = useState<KanjiData>({ cards: [], groups: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     Promise.all([getKanjiCards(), getKanjiAttempts()])
       .then(([cardsData, attemptsData]) => {
-        setKanjiData(cardsData);
+        setKanjiData({
+          cards: cardsData.cards as KanjiStudyCard[],
+          groups: (cardsData.groups || []) as KanjiGroup[],
+        });
         const savedConfidence = (attemptsData?.attempts || []).reduce((current, savedAttempt) => {
           if (savedAttempt.character && savedAttempt.confidence) {
             current[savedAttempt.character] = savedAttempt.confidence;
           }
           return current;
         }, {});
-        setConfidenceByCharacter(savedConfidence);
+        setConfidenceByCharacter(savedConfidence as Record<string, ConfidenceLevel>);
       })
       .catch(() => setError('Unable to load Kanji cards. Please try again.'))
       .finally(() => setIsLoading(false));
@@ -63,7 +103,7 @@ function KanjiStudy({ onBack }) {
 
   const groupFilteredCards = selectedGroups.length === 0
     ? kanjiData.cards
-    : kanjiData.cards.filter((card) => selectedGroups.includes(card.groupId));
+    : kanjiData.cards.filter((card) => card.groupId !== undefined && selectedGroups.includes(card.groupId));
 
   const cards = groupFilteredCards.filter((kanjiCard) => {
     const savedConfidence = confidenceByCharacter[kanjiCard.kanji] || 'unrated';
@@ -73,8 +113,8 @@ function KanjiStudy({ onBack }) {
   const activeCards = isRetryMode ? retryCards : cards;
   const card = activeCards[cardIndex];
 
-  const answerRef = useRef(null);
-  const confidenceRef = useRef(null);
+  const answerRef = useRef<HTMLInputElement>(null);
+  const confidenceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setAnswer('');
@@ -103,7 +143,7 @@ function KanjiStudy({ onBack }) {
     });
   }, [attempt, confidence]);
 
-  const toggleGroup = (groupId) => {
+  const toggleGroup = (groupId: string) => {
     setSelectedGroups((current) => current.includes(groupId)
       ? current.filter((selected) => selected !== groupId)
       : [...current, groupId]);
@@ -121,7 +161,7 @@ function KanjiStudy({ onBack }) {
     setRetryCards([]);
   };
 
-  const toggleConfidenceLevel = (levelKey) => {
+  const toggleConfidenceLevel = (levelKey: ConfidenceLevel) => {
     setSelectedConfidenceLevels((current) => {
       if (current.includes(levelKey)) {
         if (current.length === 1) return current; // keep at least one active
@@ -145,7 +185,7 @@ function KanjiStudy({ onBack }) {
     setCardIndex(0);
   };
 
-  const moveCard = (direction) => {
+  const moveCard = (direction: number) => {
     setCardIndex((current) => (current + direction + activeCards.length) % activeCards.length);
     setIsRevealed(false);
   };
@@ -166,7 +206,7 @@ function KanjiStudy({ onBack }) {
     moveCard(1);
   };
 
-  const submitAnswer = (event) => {
+  const submitAnswer = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!card || attempt || !answer.trim()) return;
 
@@ -174,6 +214,7 @@ function KanjiStudy({ onBack }) {
       card,
       promptMode,
       answer,
+      confidence,
       usedHint,
     });
     setAttempt(nextAttempt);
@@ -195,6 +236,7 @@ function KanjiStudy({ onBack }) {
         card,
         promptMode,
         answer: 'skip',
+        confidence,
         usedHint,
       }),
       skipped: true,
@@ -206,7 +248,7 @@ function KanjiStudy({ onBack }) {
     }
   };
 
-  const rateConfidence = (level) => {
+  const rateConfidence = (level: ConfidenceLevel) => {
     if (!attempt) return;
     setConfidence(level);
     setConfidenceByCharacter((current) => ({ ...current, [card.kanji]: level }));
@@ -219,7 +261,7 @@ function KanjiStudy({ onBack }) {
     setIsLearning(true);
   };
 
-  const moveReviewCard = (character, nextConfidence) => {
+  const moveReviewCard = (character: string, nextConfidence: ConfidenceLevel | null) => {
     const reviewCard = reviewItems.find((item) => item.kanji === character);
     if (!reviewCard) return;
 
@@ -244,10 +286,13 @@ function KanjiStudy({ onBack }) {
     try {
       if (updates.length > 0) {
         await updateKanjiConfidenceBatch(updates);
-        setConfidenceByCharacter((current) => updates.reduce(
-          (next, update) => ({ ...next, [update.character]: update.confidence }),
-          current,
-        ));
+        setConfidenceByCharacter((current) => {
+          const next = { ...current };
+          updates.forEach((update) => {
+            if (update.confidence) next[update.character] = update.confidence;
+          });
+          return next;
+        });
       }
       setIsReviewing(false);
     } catch {
@@ -317,7 +362,7 @@ function KanjiStudy({ onBack }) {
                   onDrop={(event) => {
                     event.preventDefault();
                     const character = event.dataTransfer.getData('text/plain');
-                    if (character) moveReviewCard(character, level);
+                    if (character) moveReviewCard(character, level as ConfidenceLevel | null);
                   }}
                   className="min-h-40 border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000]"
                 >
@@ -458,12 +503,12 @@ function KanjiStudy({ onBack }) {
 
             <div className="mt-2.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {CONFIDENCE_OPTIONS.map(({ level, label, icon: Icon, color, description }) => {
-                const isSelected = selectedConfidenceLevels.includes(level);
+                const isSelected = selectedConfidenceLevels.includes(level as ConfidenceLevel);
                 return (
                   <button
                     key={level}
                     type="button"
-                    onClick={() => toggleConfidenceLevel(level)}
+                    onClick={() => toggleConfidenceLevel(level as ConfidenceLevel)}
                     aria-pressed={isSelected}
                     className={`flex flex-col justify-between border-2 border-black p-3.5 text-left font-mono transition-all shadow-[3px_3px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
                       isSelected ? 'bg-white' : 'bg-neutral-200/80 opacity-60 hover:opacity-100'
@@ -533,13 +578,13 @@ function KanjiStudy({ onBack }) {
             </span>
           </div>
 
-          <div ref={confidenceRef} tabIndex="-1" className="mt-3 flex items-center justify-end gap-2 outline-none" aria-label="Confidence rating">
+          <div ref={confidenceRef} tabIndex={-1} className="mt-3 flex items-center justify-end gap-2 outline-none" aria-label="Confidence rating">
             <span className="mr-1 font-mono text-[10px] font-black uppercase text-black/70">Confidence</span>
             {confidenceOptions.map(({ level, label, icon: Icon, color }) => (
               <button
                 key={level}
                 type="button"
-                onClick={() => rateConfidence(level)}
+                onClick={() => rateConfidence(level as ConfidenceLevel)}
                 disabled={!attempt}
                 title={`${label}: ${level === 'again' ? 'review soon' : level === 'hard' ? 'needs practice' : 'felt easy'}`}
                 aria-label={`${label} confidence`}
@@ -548,7 +593,7 @@ function KanjiStudy({ onBack }) {
                 }`}
                 style={{ backgroundColor: color }}
               >
-                <Icon className="h-5 w-5" aria-hidden="true" />
+                {Icon && <Icon className="h-5 w-5" aria-hidden="true" />}
               </button>
             ))}
           </div>
@@ -688,7 +733,7 @@ function KanjiStudy({ onBack }) {
           <button
             type="button"
             onClick={advanceCard}
-            disabled={attempt && !confidence}
+            disabled={Boolean(attempt && !confidence)}
             className="flex h-11 items-center gap-1.5 border-2 border-black bg-[#A3E636] px-8 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span>{cardIndex === activeCards.length - 1 ? 'Review' : 'Next'}</span>

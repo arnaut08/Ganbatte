@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { getGrammarLessons } from '../../services/api';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
@@ -7,20 +7,56 @@ const HIRAGANA_START = 0x3041;
 const KATAKANA_START = 0x30a1;
 const KATAKANA_END = 0x30f6;
 
-function normalizeKanaCharacter(character) {
+type GrammarExample = {
+    japanese: string;
+    furigana?: string;
+    romaji: string;
+    english: string;
+};
+
+type GrammarPoint = {
+    pattern: string;
+    meaning: string;
+    formation: string;
+    usageNotes?: string[];
+    examples: GrammarExample[];
+};
+
+type GrammarLessonContent = {
+    lessonNumber: number;
+    title: string;
+    overview: string;
+    objectives: string[];
+    grammarPoints: GrammarPoint[];
+    commonMistakes: string[];
+    reviewChecklist: string[];
+    guidedPractice?: Array<{ prompt: string; answer: string; explanation: string }>;
+};
+
+type GrammarLesson = {
+    lessonNumber: number;
+    content: GrammarLessonContent;
+};
+
+type GrammarStudyProps = {
+    onBack: () => void;
+    onPracticeLesson: (lessonNumber: number) => Promise<void> | void;
+};
+
+function normalizeKanaCharacter(character: string) {
     const codePoint = character.codePointAt(0);
-    if (codePoint >= KATAKANA_START && codePoint <= KATAKANA_END) {
+    if (codePoint !== undefined && codePoint >= KATAKANA_START && codePoint <= KATAKANA_END) {
         return String.fromCodePoint(codePoint - KATAKANA_START + HIRAGANA_START);
     }
     return character;
 }
 
-function renderJapaneseWithReadings(japanese, furigana) {
+function renderJapaneseWithReadings(japanese: string, furigana?: string): ReactNode {
     const text = String(japanese || '');
     const reading = String(furigana || '');
     if (!reading || ![...text].some((character) => KANJI_CHARACTER.test(character))) return text;
 
-    const segments = [];
+    const segments: Array<{ type: 'plain' | 'kanji'; text: string; reading?: string }> = [];
     let plainText = '';
     let kanjiText = '';
     let readingStart = 0;
@@ -31,7 +67,7 @@ function renderJapaneseWithReadings(japanese, furigana) {
         plainText = '';
     };
 
-    const flushKanji = (readingEnd) => {
+    const flushKanji = (readingEnd: number) => {
         if (!kanjiText) return;
         const kanjiReading = reading.slice(readingStart, readingEnd);
         segments.push({ type: kanjiReading ? 'kanji' : 'plain', text: kanjiText, reading: kanjiReading });
@@ -65,12 +101,12 @@ function renderJapaneseWithReadings(japanese, furigana) {
     flushPlainText();
 
     return segments.map((segment, index) => segment.type === 'kanji'
-        ? <ruby key={`${segment.text}-${index}`} className="kanji-reading" tabIndex="0"><rb>{segment.text}</rb><rt>{segment.reading}</rt></ruby>
+        ? <ruby key={`${segment.text}-${index}`} className="kanji-reading" tabIndex={0}><span>{segment.text}</span><rt>{segment.reading}</rt></ruby>
         : <span key={`${segment.text}-${index}`}>{segment.text}</span>);
 }
 
-function GrammarStudy({ onBack, onPracticeLesson }) {
-    const [lessons, setLessons] = useState([]);
+function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
+    const [lessons, setLessons] = useState<GrammarLesson[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [slideIndex, setSlideIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +115,7 @@ function GrammarStudy({ onBack, onPracticeLesson }) {
 
     useEffect(() => {
         getGrammarLessons()
-            .then((data) => setLessons(Array.isArray(data) ? data : []))
+            .then((data) => setLessons(Array.isArray(data) ? data as GrammarLesson[] : []))
             .catch(() => setError('Unable to load grammar lessons. Please try again.'))
             .finally(() => setIsLoading(false));
     }, []);
@@ -93,11 +129,11 @@ function GrammarStudy({ onBack, onPracticeLesson }) {
         setSlideIndex(0);
     }, [selectedIndex]);
 
-    const moveLesson = (direction) => {
+    const moveLesson = (direction: number) => {
         setSelectedIndex((current) => Math.min(Math.max(current + direction, 0), lessons.length - 1));
     };
 
-    const moveSlide = (direction) => {
+    const moveSlide = (direction: number) => {
         setSlideIndex((current) => Math.min(Math.max(current + direction, 0), slideLabels.length - 1));
     };
 
@@ -228,11 +264,11 @@ function GrammarStudy({ onBack, onPracticeLesson }) {
                                                     <p className="mt-1 font-mono text-sm font-bold bg-neutral-100 p-2 border border-black/20">{point.formation}</p>
                                                 </div>
 
-                                                {point.usageNotes?.length > 0 && (
+                                                {(point.usageNotes || []).length > 0 && (
                                                     <div className="mt-4 border-l-4 border-[#70CFF8] pl-3">
                                                         <h5 className="font-mono text-xs font-black uppercase">// When to use it</h5>
                                                         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm font-semibold">
-                                                            {point.usageNotes.map((note) => (
+                                                            {(point.usageNotes || []).map((note) => (
                                                                 <li key={note}>{note}</li>
                                                             ))}
                                                         </ul>
@@ -281,10 +317,10 @@ function GrammarStudy({ onBack, onPracticeLesson }) {
                                             ))}
                                         </ul>
                                     </div>
-                                    {lesson.guidedPractice?.length > 0 && (
+                                    {(lesson.guidedPractice || []).length > 0 && (
                                         <div className="space-y-3">
                                             <h3 className="font-mono text-xs font-black uppercase tracking-wider">// Guided practice</h3>
-                                            {lesson.guidedPractice.map((item, index) => (
+                                            {(lesson.guidedPractice || []).map((item, index) => (
                                                 <div key={`${item.prompt}-${index}`} className="border-2 border-black bg-white p-4 shadow-[3px_3px_0px_0px_#000000]">
                                                     <p className="font-black">{index + 1}. {item.prompt}</p>
                                                     <p className="mt-2 text-sm font-bold"><span className="font-mono text-xs uppercase bg-black text-white px-1 py-0.5">Answer</span> {item.answer}</p>
