@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react';
 import {
   CheckCircledIcon,
   ChevronLeftIcon,
@@ -13,6 +13,36 @@ import {
 } from '../../services/api';
 import { buildKanaAttempt } from '../../utils/kanaRecall';
 
+type Confidence = 'again' | 'hard' | 'easy' | null;
+
+type KanaRecallCard = {
+  id: string;
+  kana: string;
+  romaji: string;
+  script?: string;
+  groupName?: string;
+  mnemonic?: string;
+  example?: [string, string, string];
+};
+
+type KanaAttempt = {
+  correct: boolean;
+  confidence: Confidence;
+  [key: string]: unknown;
+};
+
+type ReviewItem = KanaRecallCard & {
+  confidence: Confidence;
+  originalConfidence: Confidence;
+};
+
+type KanaRecallProps = {
+  onBack: () => void;
+  onOpenFilter: () => void;
+  onReviewComplete: () => void;
+  selectedKana?: Set<string>;
+};
+
 const CONFIDENCE_OPTIONS = [
   { value: 'again', label: 'Again', icon: ExclamationTriangleIcon, color: '#FFDE59' },
   { value: 'hard', label: 'Hard', icon: LightningBoltIcon, color: '#FF6B6B' },
@@ -20,29 +50,30 @@ const CONFIDENCE_OPTIONS = [
   { value: null, label: 'Unrated', icon: null, color: '#FFFFFF' },
 ];
 
-function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }) {
-  const [cards, setCards] = useState([]);
-  const [confidenceById, setConfidenceById] = useState({});
-  const [sessionConfidenceById, setSessionConfidenceById] = useState({});
+function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }: KanaRecallProps) {
+  const [cards, setCards] = useState<KanaRecallCard[]>([]);
+  const [confidenceById, setConfidenceById] = useState<Record<string, Confidence>>({});
+  const [sessionConfidenceById, setSessionConfidenceById] = useState<Record<string, Confidence>>({});
   const [cardIndex, setCardIndex] = useState(0);
   const [answer, setAnswer] = useState('');
-  const [attempt, setAttempt] = useState(null);
-  const [confidence, setConfidence] = useState(null);
+  const [attempt, setAttempt] = useState<KanaAttempt | null>(null);
+  const [confidence, setConfidence] = useState<Confidence>(null);
   const [isHintUsed, setIsHintUsed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [isReviewing, setIsReviewing] = useState(false);
-  const [reviewItems, setReviewItems] = useState([]);
-  const [reviewChanges, setReviewChanges] = useState({});
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
+  const [reviewChanges, setReviewChanges] = useState<Record<string, Confidence>>({});
   const [isSavingReview, setIsSavingReview] = useState(false);
 
   useEffect(() => {
     Promise.all([getKanaCards(), getCharacterAttempts('kana')])
       .then(([cardsData, attemptsData]) => {
-        setCards(Array.isArray(cardsData?.cards) ? cardsData.cards : []);
-        setConfidenceById((attemptsData?.attempts || []).reduce((result, item) => {
-          if (item.character_id && item.confidence) result[item.character_id] = item.confidence;
+        setCards(Array.isArray(cardsData?.cards) ? cardsData.cards as KanaRecallCard[] : []);
+        setConfidenceById((attemptsData?.attempts as unknown[] || []).reduce<Record<string, Confidence>>((result, item) => {
+          const savedItem = item as { character_id?: string; confidence?: Confidence };
+          if (savedItem.character_id && savedItem.confidence) result[savedItem.character_id] = savedItem.confidence;
           return result;
         }, {}));
       })
@@ -101,14 +132,15 @@ function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }) {
     resetCard();
   };
 
-  const submitAnswer = async (event) => {
+  const submitAnswer = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!card || attempt || !answer.trim()) return;
     const nextAttempt = buildKanaAttempt({ card, answer, usedHint: isHintUsed });
     setAttempt({ ...nextAttempt, confidence });
     try {
       const result = await recordCharacterAttempt(nextAttempt);
-      if (result?.attempt?.character_id && result.attempt.character_id !== card.id) {
+      const savedAttempt = result?.attempt as { character_id?: string } | undefined;
+      if (savedAttempt?.character_id && savedAttempt.character_id !== card.id) {
         setSaveError('Kana character identity did not match the selected card.');
       }
     } catch {
@@ -116,14 +148,14 @@ function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }) {
     }
   };
 
-  const rateCard = (confidence) => {
+  const rateCard = (confidence: Confidence) => {
     if (!attempt || !card) return;
     setConfidence(confidence);
-    setAttempt((current) => ({ ...current, confidence }));
+    setAttempt((current) => current ? { ...current, confidence } : current);
     setSessionConfidenceById((current) => ({ ...current, [card.id]: confidence }));
   };
 
-  const moveReviewCard = (characterId, nextConfidence) => {
+  const moveReviewCard = (characterId: string, nextConfidence: Confidence) => {
     const reviewCard = reviewItems.find((item) => item.id === characterId);
     if (!reviewCard) return;
 
@@ -147,6 +179,7 @@ function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }) {
     try {
       const updates = Object.entries(reviewChanges).map(([characterId, confidence]) => {
         const reviewCard = reviewItems.find((item) => item.id === characterId);
+        if (!reviewCard) throw new Error('Review card not found');
         return {
           characterId,
           character: reviewCard.kana,
@@ -200,7 +233,7 @@ function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }) {
                   onDrop={(event) => {
                     event.preventDefault();
                     const characterId = event.dataTransfer.getData('text/plain');
-                    if (characterId) moveReviewCard(characterId, value);
+                    if (characterId) moveReviewCard(characterId, value as Confidence);
                   }}
                   className="min-h-40 border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000]"
                 >
@@ -253,14 +286,14 @@ function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }) {
               <button
                 key={value}
                 type="button"
-                onClick={() => rateCard(value)}
+                onClick={() => rateCard(value as Confidence)}
                 disabled={!attempt}
                 title={`${label}: ${value === 'again' ? 'review soon' : value === 'hard' ? 'needs practice' : 'felt easy'}`}
                 aria-label={`${label} confidence`}
                 className={`flex h-9 w-9 items-center justify-center border-2 border-black text-black shadow-[2px_2px_0px_0px_#000000] transition-all disabled:cursor-not-allowed disabled:opacity-50 ${confidence === value ? 'translate-x-[1px] translate-y-[1px] shadow-none ring-2 ring-black' : 'hover:translate-x-[1px] hover:translate-y-[1px]'}`}
                 style={{ backgroundColor: color }}
               >
-                <Icon className="h-5 w-5" aria-hidden="true" />
+                {Icon && <Icon className="h-5 w-5" aria-hidden="true" />}
               </button>
             ))}
           </div>

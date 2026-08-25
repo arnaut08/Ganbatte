@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getKanaCards } from '../../services/api';
+import { getKanaCards, type ApiRecord } from '../../services/api';
 import { ChevronLeftIcon } from '@radix-ui/react-icons';
 
 const MATRIX_TYPE_LABELS = {
@@ -9,6 +9,42 @@ const MATRIX_TYPE_LABELS = {
   combined: 'COMBINED',
 };
 
+type KanaRow = {
+  id: string;
+  label?: string;
+  cells: string[];
+};
+
+type KanaExtra = {
+  id: string;
+  cells: string[];
+};
+
+type KanaMatrixData = {
+  id: string;
+  name: string;
+  script: string;
+  type: string;
+  columns: string[];
+  rows: KanaRow[];
+  extras: KanaExtra[];
+};
+
+type KanaData = {
+  cards: ApiRecord[];
+  groups: ApiRecord[];
+  matrices: KanaMatrixData[];
+};
+
+type KanaMatrixProps = {
+  matrix: KanaMatrixData;
+  selectedCells: Set<string>;
+  onToggleCell: (matrixId: string, cell: string) => void;
+  onToggleRow: (matrixId: string, rowId: string) => void;
+  onToggleColumn: (matrixId: string, columnIndex: number) => void;
+  onToggleGroup: (matrixId: string) => void;
+};
+
 function KanaMatrix({
   matrix,
   selectedCells,
@@ -16,7 +52,7 @@ function KanaMatrix({
   onToggleRow,
   onToggleColumn,
   onToggleGroup,
-}) {
+}: KanaMatrixProps) {
   const { id, name, script, type, columns, rows, extras } = matrix;
   const isHiragana = script === 'hiragana';
   const themeColor = isHiragana ? '#FFDE59' : '#70CFF8';
@@ -29,11 +65,11 @@ function KanaMatrix({
   const selectedCount = allCells.filter((cell) => selectedCells.has(cell)).length;
   const isGroupSelected = allCells.length > 0 && selectedCount === allCells.length;
 
-  const isRowSelected = (row) =>
+  const isRowSelected = (row: KanaRow) =>
     row.cells.some(Boolean) &&
-    row.cells.every((cell) => !cell || selectedCells.has(cell));
+    row.cells.every((cell: string) => !cell || selectedCells.has(cell));
 
-  const isColumnSelected = (colIndex) => {
+  const isColumnSelected = (colIndex: number) => {
     const activeColCells = rows
       .map((row) => row.cells[colIndex])
       .filter(Boolean);
@@ -52,7 +88,7 @@ function KanaMatrix({
             className="shrink-0 border-2 border-black bg-black px-2 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider"
             style={{ color: themeColor }}
           >
-            {MATRIX_TYPE_LABELS[type] || type}
+            {MATRIX_TYPE_LABELS[type as keyof typeof MATRIX_TYPE_LABELS] || type}
           </span>
           <h3 className="truncate text-sm font-black uppercase tracking-tight text-white sm:text-base">
             {name}
@@ -190,9 +226,15 @@ function KanaMatrix({
   );
 }
 
-function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }) {
-  const [kanaData, setKanaData] = useState({ cards: [], groups: [], matrices: [] });
-  const [selectedCells, setSelectedCells] = useState(() => new Set(initialSelectedKana || []));
+type KanaFilterScreenProps = {
+  onBack: () => void;
+  onApplyFilters: (selectedCells: Set<string>) => void;
+  initialSelectedKana?: string[];
+};
+
+function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaFilterScreenProps) {
+  const [kanaData, setKanaData] = useState<KanaData>({ cards: [], groups: [], matrices: [] });
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(() => new Set(initialSelectedKana || []));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -202,14 +244,14 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }) {
         setKanaData({
           cards: Array.isArray(data?.cards) ? data.cards : [],
           groups: Array.isArray(data?.groups) ? data.groups : [],
-          matrices: Array.isArray(data?.matrices) ? data.matrices : [],
+          matrices: Array.isArray(data?.matrices) ? data.matrices as KanaMatrixData[] : [],
         });
       })
       .catch(() => setError('Unable to load Kana cards. Please try again.'))
       .finally(() => setIsLoading(false));
   }, []);
 
-  const toggleCell = (_matrixId, cell) => {
+  const toggleCell = (_matrixId: string, cell: string) => {
     setSelectedCells((current) => {
       const next = new Set(current);
       if (next.has(cell)) next.delete(cell);
@@ -218,7 +260,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }) {
     });
   };
 
-  const toggleRow = (matrixId, rowId) => {
+  const toggleRow = (matrixId: string, rowId: string) => {
     const matrix = kanaData.matrices.find((m) => m.id === matrixId);
     if (!matrix) return;
     const row = matrix.rows.find((r) => r.id === rowId);
@@ -234,7 +276,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }) {
     });
   };
 
-  const toggleColumn = (matrixId, colIndex) => {
+  const toggleColumn = (matrixId: string, colIndex: number) => {
     const matrix = kanaData.matrices.find((m) => m.id === matrixId);
     if (!matrix) return;
 
@@ -248,7 +290,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }) {
     });
   };
 
-  const toggleGroup = (matrixId) => {
+  const toggleGroup = (matrixId: string) => {
     const matrix = kanaData.matrices.find((m) => m.id === matrixId);
     if (!matrix) return;
 
@@ -272,7 +314,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }) {
   const handleClearAll = () => setSelectedCells(new Set());
 
   const handleSelectAll = () => {
-    const allCells = new Set();
+    const allCells = new Set<string>();
     kanaData.matrices.forEach((matrix) => {
       matrix.rows.forEach((row) => row.cells.filter(Boolean).forEach((c) => allCells.add(c)));
       matrix.extras.forEach((extra) => extra.cells.filter(Boolean).forEach((c) => allCells.add(c)));

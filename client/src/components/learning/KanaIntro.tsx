@@ -11,7 +11,12 @@ const CONFIDENCE_LEVELS = [
   { label: 'Easy', description: 'felt easy', icon: CheckCircledIcon, color: '#A3E636' },
 ];
 
-function KanaIntro({ onBack, onContinue }) {
+type KanaIntroProps = {
+  onBack: () => void;
+  onContinue: () => void;
+};
+
+function KanaIntro({ onBack, onContinue }: KanaIntroProps) {
   return (
     <main className="container mx-auto max-w-4xl px-4 py-6 pb-24">
       {/* 1. Screen Header Lockup */}

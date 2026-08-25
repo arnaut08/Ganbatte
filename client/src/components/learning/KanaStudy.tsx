@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
-import { getKanaCards } from '../../services/api';
+import { getKanaCards, type KanaCard } from '../../services/api';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
-function KanaStudy({ onBack, onOpenFilter, selectedKana }) {
-  const [kanaData, setKanaData] = useState({ cards: [] });
+type KanaStudyProps = {
+  onBack: () => void;
+  onOpenFilter: () => void;
+  selectedKana?: Set<string>;
+};
+
+function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
+  const [kanaData, setKanaData] = useState<{ cards: KanaCard[] }>({ cards: [] });
   const [cardIndex, setCardIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,7 +38,7 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }) {
     card?.groupName?.toLowerCase().includes('hiragana');
   const accentColor = isHiragana ? '#FFDE59' : '#70CFF8';
 
-  const moveCard = (direction) => {
+  const moveCard = (direction: number) => {
     setCardIndex((current) => (current + direction + cards.length) % cards.length);
   };
 
