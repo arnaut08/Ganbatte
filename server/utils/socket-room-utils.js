@@ -1,12 +1,40 @@
+// @ts-check
+
 import { generateRandomCards } from '../services/card-service.js';
 import { KANA_SENTENCES } from '../data/kana-sentences.js';
 
+/** @typedef {Record<string, unknown>} RoomCard */
+
+/**
+ * @typedef {Object} RoomPlayer
+ * @property {string} name
+ * @property {string=} id
+ * @property {string=} userId
+ * @property {string=} user_id
+ * @property {unknown[]=} answers
+ * @property {number[]=} hintsUsed
+ * @property {boolean=} ready
+ */
+
+/**
+ * @typedef {Object} Room
+ * @property {RoomPlayer[]} players
+ * @property {RoomCard[]=} cards
+ * @property {number} currentCardIndex
+ * @property {string} status
+ */
+
+/** @typedef {{ to: (roomCode: string) => { emit: (event: string, payload: unknown) => void } }} SocketServer */
+
 export const roomState = {
+  /** @type {Map<string, Room>} */
   rooms: new Map(),
+  /** @type {Map<string, ReturnType<typeof setTimeout>>} */
   roomCleanupTimers: new Map(),
   DISCONNECT_GRACE_PERIOD_MS: 5 * 60 * 1000,
 };
 
+/** @param {Room} room */
 export function buildAssessmentResults(room) {
   return room.players.map((player) => ({
     name: player.name,
@@ -20,6 +48,7 @@ export function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+/** @param {SocketServer} io @param {string} roomCode */
 export function advanceRoomIfReady(io, roomCode) {
   const room = roomState.rooms.get(roomCode);
   if (!room) return;
@@ -51,13 +80,14 @@ export function advanceRoomIfReady(io, roomCode) {
   }
 }
 
+/** @param {SocketServer} io @param {string} roomCode */
 export function tryAdvanceIfAllSubmitted(io, roomCode) {
   const room = roomState.rooms.get(roomCode);
   if (!room) return;
 
   const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
   const idx = room.currentCardIndex;
-  const allSubmitted = room.players.length > 0 && room.players.every((player) => player.answers[idx] !== undefined);
+  const allSubmitted = room.players.length > 0 && room.players.every((player) => (player.answers || [])[idx] !== undefined);
 
   if (!allSubmitted) return;
 
