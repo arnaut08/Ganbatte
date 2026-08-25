@@ -25,8 +25,8 @@ export type RoomContextValue = {
   friendSearchResults: Friend[];
   isFriendSearchLoading: boolean;
   isPreparingAssessment: boolean;
-  handleCreateRoom: (name: string, deckOptions?: ApiRecord) => Promise<void>;
-  handleJoinRoom: (code: string, name: string, onResult?: (response: unknown) => void) => void;
+  handleCreateRoom: (deckOptions?: ApiRecord) => Promise<void>;
+  handleJoinRoom: (code: string) => void;
   handleReturnToRoom: () => void;
   handleDeclineRoomResume: () => void;
   handleSearchUsers: (query: string) => Promise<void>;

@@ -1,10 +1,23 @@
+import type { ButtonHTMLAttributes, ComponentType, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeftIcon } from '@radix-ui/react-icons';
 import { cn } from '@/lib/utils';
 
-function BackButton({ onClick, className, label = 'Back', ...props }) {
+type BackButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  label?: string;
+};
+
+type LegacyButtonProps = BackButtonProps & {
+  children?: ReactNode;
+  size?: string;
+  variant?: string;
+};
+
+const LegacyButton = Button as unknown as ComponentType<LegacyButtonProps>;
+
+function BackButton({ onClick, className, label = 'Back', ...props }: BackButtonProps) {
   return (
-    <Button
+    <LegacyButton
       type="button"
       variant="neutral"
       size="icon"
@@ -18,7 +31,7 @@ function BackButton({ onClick, className, label = 'Back', ...props }) {
       {...props}
     >
       <ChevronLeftIcon className="h-4 w-4" />
-    </Button>
+    </LegacyButton>
   );
 }
 

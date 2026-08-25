@@ -1,9 +1,32 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import LearningScreen from './learning/LearningScreen';
 import PracticeScreen from './practice/PracticeScreen';
-import { getKanjiCards } from '../services/api';
+import { getKanjiCards, type ApiRecord } from '../services/api';
+
+type LegacyProps = {
+  children?: ReactNode;
+  [key: string]: unknown;
+};
+
+const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
+const LegacyPracticeScreen = PracticeScreen as unknown as ComponentType<LegacyProps>;
+
+type HomeScreen = 'home' | 'learning' | 'practice';
+
+type AppHomeProps = {
+  onCreateRoom: (settings?: ApiRecord) => void;
+  onJoinRoom: (roomCode: string) => void;
+  onOpenKanaStudy: () => void;
+  onOpenKanjiStudy: () => void;
+  onOpenGrammarStudy: () => void;
+  onScreenChange?: (screen: HomeScreen) => void;
+  screen?: HomeScreen;
+  prefillRoomCode?: string;
+  isSocketReady?: boolean;
+  roomCode?: string;
+};
 
 function AppHome({
   onCreateRoom,
@@ -16,10 +39,10 @@ function AppHome({
   prefillRoomCode = '',
   isSocketReady = false,
   roomCode = '',
-}) {
-  const [internalScreen, setInternalScreen] = useState(controlledScreen || 'home');
+}: AppHomeProps) {
+  const [internalScreen, setInternalScreen] = useState<HomeScreen>(controlledScreen || 'home');
   const screen = controlledScreen ?? internalScreen;
-  const setScreen = (nextScreen) => {
+  const setScreen = (nextScreen: HomeScreen) => {
     if (onScreenChange) {
       onScreenChange(nextScreen);
       return;
@@ -29,10 +52,10 @@ function AppHome({
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [deckType, setDeckType] = useState('kana');
   const [grammarLevel, setGrammarLevel] = useState(1);
-  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [selectedGroups, setSelectedGroups] = useState<Array<string | number>>([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
-  const [kanjiGroups, setKanjiGroups] = useState([]);
-  const joinCodeInputRef = useRef(null);
+  const [kanjiGroups, setKanjiGroups] = useState<ApiRecord[]>([]);
+  const joinCodeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (controlledScreen && controlledScreen !== screen) {
@@ -56,7 +79,7 @@ function AppHome({
     getKanjiCards().then((data) => setKanjiGroups(data.groups || [])).catch(() => {});
   }, []);
 
-  const handleGroupToggle = (groupId) => {
+  const handleGroupToggle = (groupId: string | number) => {
     setSelectedGroups((current) => current.includes(groupId)
       ? current.filter((id) => id !== groupId)
       : [...current, groupId]);
@@ -67,7 +90,7 @@ function AppHome({
     setIsGroupMenuOpen(false);
   };
 
-  const handleCreate = (e) => {
+  const handleCreate = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!isSocketReady) return;
 
@@ -79,7 +102,7 @@ function AppHome({
     onCreateRoom(normalizedSettings);
   };
 
-  const handleJoin = (e) => {
+  const handleJoin = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const targetCode = joinCode.trim();
     if (isSocketReady && targetCode) {
@@ -175,13 +198,13 @@ function AppHome({
                 </CardHeader>
 
                 <CardContent className="p-0 pt-4 relative z-10">
-                  <Button
+                  <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('learning')}
                     className="w-full py-6 text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
                     Explore Learning →
-                  </Button>
+                  </LegacyButton>
                 </CardContent>
               </Card>
 
@@ -211,13 +234,13 @@ function AppHome({
                 </CardHeader>
 
                 <CardContent className="p-0 pt-4 relative z-10">
-                  <Button
+                  <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('practice')}
                     className="w-full py-6 text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
                     Start Assessment →
-                  </Button>
+                  </LegacyButton>
                 </CardContent>
               </Card>
             </div>
@@ -230,7 +253,7 @@ function AppHome({
             onOpenGrammarStudy={onOpenGrammarStudy}
           />
         ) : (
-          <PracticeScreen
+          <LegacyPracticeScreen
             onBackToHome={() => setScreen('home')}
             onCreateRoom={handleCreate}
             onJoinRoom={handleJoin}
