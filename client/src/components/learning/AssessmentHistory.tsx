@@ -4,8 +4,29 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
 const PAGE_SIZE = 10;
 
-function AssessmentHistory({ onBack }) {
-  const [results, setResults] = useState([]);
+type AssessmentDetails = {
+  groups?: string[];
+  hints_used?: number[];
+};
+
+type AssessmentResult = {
+  id: string;
+  assessment_type: string;
+  score_percentage: number;
+  correct_questions: number;
+  total_questions: number;
+  created_at: string;
+  companion_user_id?: string | null;
+  details?: AssessmentDetails | null;
+  profile?: { display_name?: string | null } | null;
+};
+
+type AssessmentHistoryProps = {
+  onBack: () => void;
+};
+
+function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
+  const [results, setResults] = useState<AssessmentResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,7 +65,7 @@ function AssessmentHistory({ onBack }) {
         if (queryError) {
           setError('Failed to load assessment records');
         } else {
-          setResults(data || []);
+          setResults((data || []) as AssessmentResult[]);
           // Fallback to data length if count is undefined
           setTotalCount(count ?? (data ? data.length : 0));
         }
@@ -66,7 +87,7 @@ function AssessmentHistory({ onBack }) {
     };
   }, [currentPage]);
 
-  const goToPage = (page) => {
+  const goToPage = (page: number) => {
     if (page < 1 || page > totalPages || page === currentPage) return;
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
