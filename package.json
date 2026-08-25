@@ -10,11 +10,13 @@
     "generate:genki-lessons": "cd server && node scripts/generate-genki-lessons.js",
     "generate:kanji": "cd server && node scripts/generate-kanji.js",
     "build": "cd client && npm run build",
-    "start": "cd server && npm start"
+    "start": "cd server && npm start",
+    "typecheck": "tsc -p client/tsconfig.json && tsc -p server/tsconfig.json"
   },
   "author": "Archit Nautiyal",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "typescript": "^5.9.3"
   }
 }
