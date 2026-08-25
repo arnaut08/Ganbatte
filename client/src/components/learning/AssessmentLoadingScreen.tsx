@@ -1,7 +1,12 @@
+type AssessmentLoadingScreenProps = {
+  title?: string;
+  description?: string;
+};
+
 function AssessmentLoadingScreen({
   title = 'PREPARING GRAMMAR DECK',
   description = 'Generating randomized question sets and synchronizing operators...',
-}) {
+}: AssessmentLoadingScreenProps) {
   return (
     <main className="container mx-auto max-w-3xl space-y-4 px-4 py-4 animate-pulse">
       {/* 1. Header & Skeleton HUD */}

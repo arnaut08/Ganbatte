@@ -1,6 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type ComponentType, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { Friend, FriendRequest } from '../../services/api';
+
+type FriendsPanelProps = {
+  friends?: Friend[];
+  searchResults?: Friend[];
+  friendRequests?: FriendRequest[];
+  onSearchUsers?: (query: string) => void;
+  onSendFriendRequest?: (userId: string) => void;
+  onAcceptFriendRequest?: (requestId: string) => void;
+  onRejectFriendRequest?: (requestId: string) => void;
+  onRemoveFriend?: (userId: string) => void;
+  isSearching?: boolean;
+  onBack: () => void;
+};
+
+type LegacyControlProps = {
+  children?: ReactNode;
+  [key: string]: unknown;
+};
+
+const LegacyButton = Button as unknown as ComponentType<LegacyControlProps>;
+const LegacyInput = Input as unknown as ComponentType<LegacyControlProps>;
 
 function FriendsPanel({
   friends = [],
@@ -13,7 +35,7 @@ function FriendsPanel({
   onRemoveFriend,
   isSearching = false,
   onBack
-}) {
+}: FriendsPanelProps) {
   const [query, setQuery] = useState('');
   const onSearchUsersRef = useRef(onSearchUsers);
 
@@ -115,9 +137,9 @@ function FriendsPanel({
                 <span className="absolute left-3.5 font-mono text-sm font-black text-neutral-400 select-none">
                   &gt;
                 </span>
-                <Input
+                <LegacyInput
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                   placeholder="Type a username..."
                   className="h-12 w-full border-2 border-black bg-white pl-8 pr-4 font-mono text-sm font-black text-black shadow-[3px_3px_0px_0px_#000000] placeholder:font-sans placeholder:text-xs placeholder:font-medium placeholder:text-neutral-400 focus-visible:bg-[#f3f9ff] focus-visible:ring-0 focus:outline-none"
                 />
@@ -175,13 +197,13 @@ function FriendsPanel({
                               Pending
                             </span>
                           ) : (
-                            <Button
+                            <LegacyButton
                               size="sm"
-                              onClick={() => onSendFriendRequest?.(person.id)}
+                              onClick={() => personId && onSendFriendRequest?.(personId)}
                               className="h-9 border-2 border-black bg-[#A3E636] px-4 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                             >
                               + Add
-                            </Button>
+                            </LegacyButton>
                           )}
                         </div>
                       </div>
@@ -233,20 +255,20 @@ function FriendsPanel({
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        <Button
+                        <LegacyButton
                           size="sm"
                           onClick={() => onAcceptFriendRequest?.(request.id)}
                           className="h-8 border-2 border-black bg-[#A3E636] px-3 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                         >
                           Accept
-                        </Button>
-                        <Button
+                        </LegacyButton>
+                        <LegacyButton
                           size="sm"
                           onClick={() => onRejectFriendRequest?.(request.id)}
                           className="h-8 border-2 border-black bg-[#FF6B6B] px-3 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-[#ff8585] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                         >
                           Decline
-                        </Button>
+                        </LegacyButton>
                       </div>
                     </div>
                   ))}
@@ -310,7 +332,10 @@ function FriendsPanel({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => onRemoveFriend?.(friend.user_id || friend.id)}
+                      onClick={() => {
+                        const friendId = friend.user_id ?? friend.id;
+                        if (friendId) onRemoveFriend?.(friendId);
+                      }}
                       className="border-2 border-black bg-white px-2.5 py-1 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#FF6B6B] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                       title="Remove friend"
                     >
