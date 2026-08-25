@@ -1,5 +1,10 @@
+// @ts-check
+
 import { getSupabaseClient, isSupabaseConfigured } from '../config/supabase.js';
 
+/** @typedef {{ lesson_number: number, content: unknown, content_version: string | null, model: string | null, generated_at: string | null }} GenkiLesson */
+
+/** @returns {Promise<GenkiLesson[]>} */
 export async function getPersistedGenkiLessons() {
   if (!isSupabaseConfigured()) return [];
 
@@ -13,6 +18,7 @@ export async function getPersistedGenkiLessons() {
   return data || [];
 }
 
+/** @param {number} lessonNumber @returns {Promise<GenkiLesson | null>} */
 export async function getPersistedGenkiLesson(lessonNumber) {
   if (!isSupabaseConfigured()) return null;
 
@@ -27,6 +33,7 @@ export async function getPersistedGenkiLesson(lessonNumber) {
   return data || null;
 }
 
+/** @param {{ lessonNumber: number, content: unknown, contentVersion: string, model: string }} input @returns {Promise<GenkiLesson>} */
 export async function upsertGenkiLesson({ lessonNumber, content, contentVersion, model }) {
   if (!isSupabaseConfigured()) throw new Error('Supabase is not configured');
 

@@ -1,6 +1,9 @@
+// @ts-check
+
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL } from './env.js';
 
+/** @type {ReturnType<typeof createClient> | undefined} */
 let supabaseClient;
 
 export function isSupabaseConfigured() {
