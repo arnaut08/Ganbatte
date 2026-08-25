@@ -1,3 +1,5 @@
+import type { ComponentType, Dispatch, FormEvent, InputHTMLAttributes, ReactNode, RefObject, SetStateAction } from 'react';
+import type { ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +10,45 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
+
+type DeckType = 'kana' | 'kanji' | 'grammar';
+type KanjiGroup = { id: string; name: string };
+type LegacyProps = { children?: ReactNode; [key: string]: unknown };
+
+const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
+const LegacyCard = Card as unknown as ComponentType<LegacyProps>;
+const LegacyInput = Input as unknown as ComponentType<LegacyProps>;
+const LegacyDropdownMenu = DropdownMenu as unknown as ComponentType<LegacyProps>;
+const LegacyDropdownContent = DropdownMenuContent as unknown as ComponentType<LegacyProps>;
+const LegacyDropdownItem = DropdownMenuItem as unknown as ComponentType<LegacyProps>;
+const LegacyDropdownTrigger = DropdownMenuTrigger as unknown as ComponentType<LegacyProps>;
+
+type CreateRoomCardProps = {
+  deckType: DeckType;
+  setDeckType: Dispatch<SetStateAction<DeckType>>;
+  grammarLevel: number;
+  setGrammarLevel: Dispatch<SetStateAction<number>>;
+  selectedGroups: string[];
+  handleGroupToggle: (groupId: string) => void;
+  onClearSelectedGroups: () => void;
+  isGroupMenuOpen: boolean;
+  setIsGroupMenuOpen: Dispatch<SetStateAction<boolean>>;
+  onCreateRoom: (event: FormEvent<HTMLFormElement>) => void;
+  isSocketReady: boolean;
+  kanjiGroups: KanjiGroup[];
+};
+
+type JoinRoomCardProps = {
+  joinCode: string;
+  setJoinCode: Dispatch<SetStateAction<string>>;
+  joinCodeInputRef: RefObject<HTMLInputElement>;
+  onJoinRoom: (event: FormEvent<HTMLFormElement>) => void;
+  isSocketReady: boolean;
+};
+
+type PracticeScreenProps = CreateRoomCardProps & JoinRoomCardProps & {
+  onBackToHome: () => void;
+};
 
 function CreateRoomCard({
   deckType,
@@ -22,7 +63,7 @@ function CreateRoomCard({
   onCreateRoom,
   isSocketReady,
   kanjiGroups,
-}) {
+}: CreateRoomCardProps) {
   return (
     <Card className="relative flex flex-col justify-between overflow-hidden border-2 border-black bg-[#FFDE59] p-6 shadow-[6px_6px_0px_0px_#000000]">
       <span className="pointer-events-none absolute -bottom-6 -right-3 select-none font-mono text-[130px] font-black leading-none text-black/[0.08]">
@@ -57,7 +98,7 @@ function CreateRoomCard({
                 <button
                   key={type}
                   type="button"
-                  onClick={() => setDeckType(type)}
+                  onClick={() => setDeckType(type as DeckType)}
                   className={`py-2 text-xs font-black uppercase transition-all ${deckType === type
                     ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000]'
                     : 'border-2 border-transparent text-black/70 hover:text-black'
@@ -100,9 +141,9 @@ function CreateRoomCard({
               <span className="font-mono text-[11px] font-black uppercase tracking-wider text-black">
                 KANJI THEMES
               </span>
-              <DropdownMenu open={isGroupMenuOpen} onOpenChange={setIsGroupMenuOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button
+              <LegacyDropdownMenu open={isGroupMenuOpen} onOpenChange={setIsGroupMenuOpen}>
+                <LegacyDropdownTrigger asChild>
+                  <LegacyButton
                     variant="neutral"
                     className="flex h-10 w-full items-center justify-between border-2 border-black bg-white px-3 text-xs font-black uppercase shadow-[3px_3px_0px_0px_#000000]"
                   >
@@ -110,11 +151,11 @@ function CreateRoomCard({
                       {selectedGroups.length === 0 ? 'All Groups' : `${selectedGroups.length} Selected`}
                     </span>
                     <ChevronDownIcon className="h-4 w-4 stroke-[3]" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 border-2 border-black bg-white p-1 shadow-[4px_4px_0px_0px_#000000]" align="start">
-                  <DropdownMenuItem
-                    onSelect={(e) => {
+                  </LegacyButton>
+                </LegacyDropdownTrigger>
+                <LegacyDropdownContent className="w-56 border-2 border-black bg-white p-1 shadow-[4px_4px_0px_0px_#000000]" align="start">
+                  <LegacyDropdownItem
+                    onSelect={(e: { preventDefault: () => void }) => {
                       e.preventDefault();
                       onClearSelectedGroups();
                     }}
@@ -122,11 +163,11 @@ function CreateRoomCard({
                   >
                     <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ''}</span>
                     All Groups
-                  </DropdownMenuItem>
+                  </LegacyDropdownItem>
                   {kanjiGroups.map((group) => (
-                    <DropdownMenuItem
+                    <LegacyDropdownItem
                       key={group.id}
-                      onSelect={(e) => {
+                      onSelect={(e: { preventDefault: () => void }) => {
                         e.preventDefault();
                         handleGroupToggle(group.id);
                       }}
@@ -134,10 +175,10 @@ function CreateRoomCard({
                     >
                       <span className="mr-2">{selectedGroups.includes(group.id) ? '✓' : ''}</span>
                       {group.name}
-                    </DropdownMenuItem>
+                    </LegacyDropdownItem>
                   ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </LegacyDropdownContent>
+              </LegacyDropdownMenu>
 
               {selectedGroups.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -157,13 +198,13 @@ function CreateRoomCard({
       </div>
 
       <form onSubmit={onCreateRoom} className="relative z-10 mt-6">
-        <Button
+        <LegacyButton
           type="submit"
           disabled={!isSocketReady}
           className="w-full border-2 border-black bg-white py-5 text-sm font-black uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50"
         >
           {isSocketReady ? 'Create Room →' : 'Connecting...'}
-        </Button>
+        </LegacyButton>
       </form>
     </Card>
   );
@@ -175,7 +216,7 @@ function JoinRoomCard({
   joinCodeInputRef,
   onJoinRoom,
   isSocketReady,
-}) {
+}: JoinRoomCardProps) {
   return (
     <Card className="relative flex flex-col justify-between overflow-hidden border-2 border-black bg-[#A3E636] p-6 shadow-[6px_6px_0px_0px_#000000]">
       <span className="pointer-events-none absolute -bottom-6 -right-3 select-none font-mono text-[130px] font-black leading-none text-black/[0.08]">
@@ -205,12 +246,12 @@ function JoinRoomCard({
             <label className="font-mono text-[11px] font-black uppercase tracking-wider text-black">
               ROOM ACCESS CODE
             </label>
-            <Input
+            <LegacyInput
               ref={joinCodeInputRef}
               type="text"
               placeholder="e.g. S3OPPP"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setJoinCode(e.target.value)}
               className="h-12 border-2 border-black bg-white px-4 font-mono text-lg font-black uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000000] placeholder:text-neutral-400 placeholder:normal-case placeholder:font-sans placeholder:text-sm"
             />
           </div>
@@ -219,13 +260,13 @@ function JoinRoomCard({
       </div>
 
       <form onSubmit={onJoinRoom} className="relative z-10 mt-6">
-        <Button
+        <LegacyButton
           type="submit"
           disabled={!isSocketReady || !joinCode.trim()}
           className="w-full border-2 border-black bg-white py-5 text-sm font-black uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50"
         >
           Join Room →
-        </Button>
+        </LegacyButton>
       </form>
     </Card>
   );
@@ -249,7 +290,7 @@ export default function PracticeScreen({
   isGroupMenuOpen,
   setIsGroupMenuOpen,
   kanjiGroups = [],
-}) {
+}: PracticeScreenProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center gap-4">

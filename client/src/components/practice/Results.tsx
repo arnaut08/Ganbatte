@@ -7,7 +7,46 @@ import {
 } from '../../utils/romaji';
 import { supabase } from '../../config/supabase';
 
-function renderDifference(answer, expected, side, isKanjiDeck) {
+type ResultPlayer = {
+  userId?: string;
+  name?: string;
+  answers?: unknown[];
+  hintsUsed?: number[];
+};
+
+type ResultCard = {
+  kana?: string;
+  english?: string;
+  romaji?: string;
+  groupId?: string;
+  groupName?: string;
+};
+
+type ResultsProps = {
+  results?: ResultPlayer[];
+  roomCode?: string | null;
+  kanaCards?: ResultCard[];
+  username?: string;
+  user?: { id?: string } | null;
+  room?: { selectedGroups?: string[] } | null;
+  isHost?: boolean;
+  onReplaySet?: () => void;
+  onStartNewSession?: () => void;
+  onRequestHost?: (action: string) => void;
+};
+
+type ResultStats = {
+  correct: number;
+  incorrect: number;
+  total: number;
+  matchedTokens: number;
+  totalTokens: number;
+  percentage: number;
+};
+
+type DiffSegment = { type: string; text: string };
+
+function renderDifference(answer: string, expected: string, side: 'given' | 'expected', isKanjiDeck: boolean) {
   const segments = (isKanjiDeck
     ? buildDirectRomajiDiff(answer, expected)
     : buildRomajiDiff(answer, expected))[side];
@@ -23,8 +62,8 @@ function renderDifference(answer, expected, side, isKanjiDeck) {
   ));
 }
 
-function Results({ results = [], roomCode, kanaCards = [], username, user, room, isHost, onReplaySet, onStartNewSession, onRequestHost }) {
-  const [requestedAction, setRequestedAction] = useState(null);
+function Results({ results = [], roomCode, kanaCards = [], username, user, room, isHost, onReplaySet, onStartNewSession, onRequestHost }: ResultsProps) {
+  const [requestedAction, setRequestedAction] = useState<string | null>(null);
   const savedResult = useRef(false);
   const isKanjiDeck = kanaCards.some((card) => card?.groupId || card?.groupName);
   const selectedDeckGroups = Array.isArray(room?.selectedGroups)
@@ -35,7 +74,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
     ? `ganbatte-saved-result:${user.id}:${roomCode}`
     : null;
 
-  const computeStats = (answers = []) => {
+  const computeStats = (answers: unknown[] = []): ResultStats => {
     let correct = 0;
     let matchedTokens = 0;
     let totalTokens = 0;
@@ -79,7 +118,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
     || results.find((player) => player.name === username)
     || results[0];
 
-  const getHintTotal = (player) => (
+  const getHintTotal = (player: ResultPlayer) => (
     Array.isArray(player?.hintsUsed)
       ? player.hintsUsed.reduce((total, count) => total + Number(count || 0), 0)
       : 0
@@ -328,7 +367,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 {/* Player Answers */}
                 <div className="grid gap-2">
                   {results.map((player, pi) => {
-                    const playerAnswer = player.answers[i];
+                    const playerAnswer = player.answers?.[i];
                     const isUnanswered = playerAnswer === undefined || playerAnswer === null;
                     return (
                       <div
@@ -342,7 +381,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                           {isUnanswered ? (
                             <span className="text-neutral-500 font-mono">[NO INPUT]</span>
                           ) : (
-                            renderDifference(playerAnswer || '', card.romaji, 'given', isKanjiDeck)
+                            renderDifference(String(playerAnswer || ''), card.romaji || '', 'given', isKanjiDeck)
                           )}
                         </span>
                       </div>

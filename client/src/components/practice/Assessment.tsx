@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import type { ChangeEvent, ComponentType, FormEvent, KeyboardEvent, ReactNode } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
@@ -8,6 +9,46 @@ import {
   scoreRomajiAnswer,
 } from '../../utils/romaji';
 
+type AssessmentPlayer = {
+  name?: string;
+  userId?: string;
+  answers?: unknown[];
+  hintsUsed?: number[];
+  ready?: boolean;
+};
+
+type AssessmentRoom = {
+  currentCardIndex?: number;
+  deckType?: string;
+  players?: AssessmentPlayer[];
+};
+
+type AssessmentCard = {
+  kana?: string;
+  romaji?: string;
+  english?: string;
+};
+
+type AssessmentProps = {
+  room?: AssessmentRoom | null;
+  kanaCards?: AssessmentCard[];
+  onSubmitAnswer?: (answer: string) => void;
+  onUseHint?: (cardIndex: number) => void;
+  onNextCard?: () => void;
+  username?: string;
+};
+
+type DiffSegment = { type: string; text: string };
+
+type LegacyProps = {
+  children?: ReactNode;
+  className?: string;
+  [key: string]: unknown;
+};
+
+const LegacySwitch = Switch as unknown as ComponentType<LegacyProps>;
+const LegacyLabel = Label as unknown as ComponentType<LegacyProps>;
+
 function Assessment({
   room,
   kanaCards = [],
@@ -15,12 +56,12 @@ function Assessment({
   onUseHint,
   onNextCard,
   username,
-}) {
+}: AssessmentProps) {
   const [answer, setAnswer] = useState('');
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
   const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
-  const inputRef = useRef(null);
-  const submissionTimeoutRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const submissionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cardIndex = room?.currentCardIndex ?? 0;
   const currentCard = kanaCards[cardIndex] || {};
@@ -86,7 +127,7 @@ function Assessment({
 
   const canUseHint = isKanjiAssessment && !submitted && totalHintsUsed < 2;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e?: FormEvent<HTMLFormElement> | KeyboardEvent<HTMLInputElement>) => {
     if (e) e.preventDefault();
     const cleanAnswer = answer.trim().toLowerCase();
 
@@ -121,7 +162,7 @@ function Assessment({
       : buildRomajiDiff(submittedAnswer || '', currentCard?.romaji || ''))
     : null;
 
-  const renderDifference = (segments = [], tokenClass) =>
+  const renderDifference = (segments: DiffSegment[] = [], tokenClass: string) =>
     segments.map((segment, index) => (
       <span
         key={`${segment.type}-${index}`}
@@ -209,8 +250,8 @@ function Assessment({
                   type="text"
                   autoFocus
                   value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  onKeyDown={(e) => {
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setAnswer(e.target.value)}
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === 'Enter') {
                       handleSubmit(e);
                     }
@@ -271,7 +312,7 @@ function Assessment({
                 </span>
                 <p className="mt-1 font-mono text-base font-black text-white">
                   {isCorrect || !answerDiff ? (
-                    submittedAnswer
+                    String(submittedAnswer ?? '')
                   ) : (
                     renderDifference(
                       answerDiff.given,
@@ -369,17 +410,17 @@ function Assessment({
 
           {/* Toggle Switch */}
           <div className="flex items-center gap-2">
-            <Switch
+            <LegacySwitch
               id="show-opponent"
               checked={showOpponentStatus}
               onCheckedChange={setShowOpponentStatus}
             />
-            <Label
+            <LegacyLabel
               htmlFor="show-opponent"
               className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 cursor-pointer select-none"
             >
               Opponent HUD
-            </Label>
+            </LegacyLabel>
           </div>
         </div>
       </div>

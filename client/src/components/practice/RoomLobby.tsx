@@ -1,8 +1,30 @@
-import { useState } from 'react';
+import { useState, type ComponentType, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CopyIcon, CheckIcon } from '@radix-ui/react-icons';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
+import type { Friend, Room } from '../../services/api';
+
+type RoomLobbyProps = {
+  roomCode: string;
+  room: Room;
+  onStartAssessment: () => void;
+  onLeaveRoom: () => void;
+  currentSocketId?: string;
+  currentUserId?: string | null;
+  isPreparingAssessment?: boolean;
+  currentSessionKey?: string;
+  friends?: Friend[];
+  onInviteFriend?: (userId: string) => void;
+};
+
+type LegacyProps = {
+  children?: ReactNode;
+  [key: string]: unknown;
+};
+
+const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
+const LegacyInput = Input as unknown as ComponentType<LegacyProps>;
 
 function RoomLobby({
   roomCode,
@@ -15,7 +37,7 @@ function RoomLobby({
   currentSessionKey,
   friends = [],
   onInviteFriend,
-}) {
+}: RoomLobbyProps) {
   const isReady = canStartAssessment(room?.players || []);
   const [copied, setCopied] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -90,18 +112,18 @@ function RoomLobby({
                   // DIRECT INVITE LINK
                 </label>
                 <div className="flex gap-2">
-                  <Input
+                  <LegacyInput
                     value={joinLink}
                     readOnly
                     className="h-10 flex-1 border-2 border-black bg-[#252c3d] px-3 font-mono text-xs font-bold text-white shadow-none focus-visible:ring-0"
                   />
-                  <Button
+                  <LegacyButton
                     onClick={handleCopyLink}
                     className="flex h-10 shrink-0 items-center gap-2 border-2 border-black bg-white px-4 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
                     {copied ? <CheckIcon className="h-4 w-4 text-green-600" /> : <CopyIcon className="h-4 w-4" />}
                     {copied ? 'Copied' : 'Copy'}
-                  </Button>
+                  </LegacyButton>
                 </div>
               </div>
 
@@ -126,14 +148,14 @@ function RoomLobby({
                     </div>
                   </div>
 
-                  <Button
+                  <LegacyButton
                     size="sm"
                     onClick={() => setIsInviteOpen((prev) => !prev)}
                     disabled={onlineFriends.length === 0}
                     className="h-9 shrink-0 border-2 border-black bg-[#70CFF8] px-3 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#5bc2ed] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:border-black/50 disabled:bg-neutral-700 disabled:text-neutral-400 disabled:shadow-none"
                   >
                     {isInviteOpen ? 'Close' : `Invite (${onlineFriends.length})`}
-                  </Button>
+                  </LegacyButton>
                 </div>
 
                 {/* Scrollable Accordion Content */}
@@ -148,16 +170,19 @@ function RoomLobby({
                           <span className="truncate text-xs font-black uppercase text-white">
                             {friend.display_name || 'Friend'}
                           </span>
-                          <Button
+                          <LegacyButton
                             size="sm"
                             onClick={() => {
-                              onInviteFriend?.(friend.user_id || friend.id);
-                              setIsInviteOpen(false);
+                              const friendId = friend.user_id ?? friend.id;
+                              if (friendId) {
+                                onInviteFriend?.(friendId);
+                                setIsInviteOpen(false);
+                              }
                             }}
                             className="h-7 shrink-0 border-2 border-black bg-[#FFDE59] px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000000] hover:bg-[#ffe77f] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                           >
                             Invite
-                          </Button>
+                          </LegacyButton>
                         </div>
                       ))}
                     </div>
@@ -179,7 +204,7 @@ function RoomLobby({
             <div className="space-y-3">
               {(room?.players || []).map((player, idx) => {
                 const isCurrentUser = player.userId && currentUserId && player.userId === currentUserId;
-                const presence = getPlayerPresenceStatus(player);
+                const presence = getPlayerPresenceStatus(player as never);
 
                 return (
                   <div
@@ -247,15 +272,15 @@ function RoomLobby({
 
             {/* Action Buttons */}
             <div className="mt-6 grid grid-cols-2 gap-3 pt-2">
-              <Button
+              <LegacyButton
                 size="lg"
                 variant="secondary"
                 onClick={onLeaveRoom}
                 className="h-11 border-2 border-black bg-[#FF6B6B] text-black hover:bg-[#ff8585] shadow-[3px_3px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none font-black uppercase text-sm"
               >
                 Leave
-              </Button>
-              <Button
+              </LegacyButton>
+              <LegacyButton
                 size="lg"
                 onClick={onStartAssessment}
                 disabled={!isReady || isPreparingAssessment || !isHost}
@@ -272,7 +297,7 @@ function RoomLobby({
                   : isReady
                   ? 'Start Match'
                   : 'Waiting...'}
-              </Button>
+              </LegacyButton>
             </div>
           </div>
         </div>

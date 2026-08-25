@@ -1,22 +1,63 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent, ComponentType, KeyboardEvent, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import BackButton from '../common/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from '@/utils/grammarScoring';
-import { mergePlayerAnswers } from '@/utils/grammarRoomSync.ts';
+import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
+import type { AnswerMap, GrammarAnswer } from '@/utils/grammarRoomSync';
 import { supabase } from '../../config/supabase';
 import GrammarPracticeSetup from './GrammarPracticeSetup';
 import GrammarPracticeHeader from './GrammarPracticeHeader';
 import GrammarQuestionPrompt from './GrammarQuestionPrompt';
 
-function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
+type MatchingPair = { left: string; right: string };
+type MatchingAnswer = { selectedLeft: string | null; selectedRight: string | null; pairs: MatchingPair[] };
+const isMatchingAnswer = (value: unknown): value is MatchingAnswer => (
+  typeof value === 'object' && value !== null && 'pairs' in value && Array.isArray(value.pairs)
+);
+type GrammarQuestion = {
+  type?: string;
+  prompt?: string;
+  englishText?: string;
+  lesson?: number;
+  choices?: string[];
+  leftItems?: string[];
+  rightItems?: string[];
+  correctPairs?: MatchingPair[] | Record<string, string>;
+  acceptedAnswers?: unknown[] | unknown;
+  correctAnswer?: unknown;
+  correctAnswerRomaji?: string;
+  explanation?: string;
+};
+type GrammarPlayer = { name?: string; userId?: string; answers?: GrammarAnswer[]; ready?: boolean };
+type GrammarRoom = { code?: string; currentCardIndex?: number; players?: GrammarPlayer[] };
+type GrammarPracticeProps = {
+  questions?: GrammarQuestion[];
+  onBack: () => void;
+  room?: GrammarRoom | null;
+  username?: string;
+  onNextCard?: (() => void) | null;
+  onSubmitAnswer?: ((answer: unknown) => void) | null;
+  forceShowResults?: boolean;
+};
+type LegacyProps = { children?: ReactNode; className?: string; [key: string]: unknown };
+const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
+const LegacyCard = Card as unknown as ComponentType<LegacyProps>;
+const LegacyCardContent = CardContent as unknown as ComponentType<LegacyProps>;
+const LegacyCardDescription = CardDescription as unknown as ComponentType<LegacyProps>;
+const LegacyCardHeader = CardHeader as unknown as ComponentType<LegacyProps>;
+const LegacyCardTitle = CardTitle as unknown as ComponentType<LegacyProps>;
+const LegacyInput = Input as unknown as ComponentType<LegacyProps>;
+
+function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }: GrammarPracticeProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState<AnswerMap>({});
   const [showResults, setShowResults] = useState(Boolean(forceShowResults));
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
   const savedResult = useRef(false);
-  const isRoomMode = Boolean(room && room.players?.length > 0);
+  const isRoomMode = Boolean(room?.players && room.players.length > 0);
   const sessionLabel = isRoomMode ? 'Assessment' : 'Practice';
 
   useEffect(() => {
@@ -40,7 +81,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     savedResult.current = true;
 
     const saveGrammarResult = async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const supabaseClient = supabase;
+      if (!supabaseClient) return;
+      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
       if (sessionError || !session?.user?.id) {
         console.error('Supabase session unavailable while saving grammar result:', sessionError || 'No active session');
         sessionStorage.removeItem(storageKey);
@@ -66,7 +109,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
 
       const summary = summarizeResults(questions, playerAnswers);
 
-      const { error } = await supabase.from('assessment_results').insert({
+      const { error } = await supabaseClient.from('assessment_results').insert({
         user_id: authenticatedUserId,
         assessment_type: 'grammar',
         score_percentage: summary.scorePercent,
@@ -89,7 +132,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     saveGrammarResult();
   }, [showResults, questions, answers, isRoomMode, room, username]);
 
-  const visibleIndex = isRoomMode && Number.isInteger(room.currentCardIndex) ? room.currentCardIndex : currentIndex;
+  const visibleIndex = isRoomMode && Number.isInteger(room?.currentCardIndex) ? room?.currentCardIndex ?? currentIndex : currentIndex;
   const currentQuestion = questions[visibleIndex] || null;
   const progress = questions.length > 0 ? ((visibleIndex + 1) / questions.length) * 100 : 0;
   const isLastQuestion = questions.length > 0 && visibleIndex === questions.length - 1;
@@ -114,7 +157,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   const hasCurrentAnswer = (() => {
     if (currentAnswer === undefined || currentAnswer === null) return false;
     if (typeof currentAnswer === 'string') return currentAnswer.trim() !== '';
-    if (typeof currentAnswer === 'object' && Array.isArray(currentAnswer.pairs)) return currentAnswer.pairs.length > 0;
+    if (isMatchingAnswer(currentAnswer)) return currentAnswer.pairs.length > 0;
     return true;
   })();
   const otherHasCurrentAnswer = Array.isArray(otherPlayer?.answers) && otherPlayer.answers[visibleIndex] !== undefined;
@@ -123,23 +166,23 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       label: otherPlayer.ready === true ? 'Ready' : otherHasCurrentAnswer ? 'Attempting' : 'Waiting',
       icon: otherPlayer.ready === true ? '✅' : otherHasCurrentAnswer ? '🟡' : '⏳',
     }
-    : room && room.players?.length > 1
+    : room && (room.players?.length ?? 0) > 1
       ? { label: 'Waiting', icon: '⏳' }
       : { label: 'Solo practice', icon: '✨' };
 
-  const handleSelectAnswer = (questionIndex, value) => {
+  const handleSelectAnswer = (questionIndex: number, value: GrammarAnswer) => {
     setAnswers((current) => ({ ...current, [questionIndex]: value }));
   };
 
-  const getMatchingSelection = (questionIndex) => {
+  const getMatchingSelection = (questionIndex: number): MatchingAnswer => {
     const value = answers[questionIndex];
-    if (value && typeof value === 'object' && Array.isArray(value.pairs)) {
+    if (isMatchingAnswer(value)) {
       return value;
     }
     return { selectedLeft: null, selectedRight: null, pairs: [] };
   };
 
-  const updateMatchingSelection = (questionIndex, updater) => {
+  const updateMatchingSelection = (questionIndex: number, updater: (current: MatchingAnswer) => MatchingAnswer) => {
     setAnswers((current) => {
       const previous = getMatchingSelection(questionIndex);
       const next = updater(previous);
@@ -147,8 +190,8 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     });
   };
 
-  const handleMatchingSelectLeft = (questionIndex, leftValue) => {
-    updateMatchingSelection(questionIndex, (current) => {
+  const handleMatchingSelectLeft = (questionIndex: number, leftValue: string) => {
+    updateMatchingSelection(questionIndex, (current: MatchingAnswer) => {
       const usedLeft = new Set(current.pairs.map((pair) => pair.left));
       if (usedLeft.has(leftValue) && current.selectedLeft !== leftValue) {
         return current;
@@ -162,8 +205,8 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     });
   };
 
-  const handleMatchingSelectRight = (questionIndex, rightValue) => {
-    updateMatchingSelection(questionIndex, (current) => {
+  const handleMatchingSelectRight = (questionIndex: number, rightValue: string) => {
+    updateMatchingSelection(questionIndex, (current: MatchingAnswer) => {
       const usedRight = new Set(current.pairs.map((pair) => pair.right));
       if (usedRight.has(rightValue) && current.selectedRight !== rightValue) {
         return current;
@@ -189,7 +232,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     });
   };
 
-  const handleUndoMatching = (questionIndex) => {
+  const handleUndoMatching = (questionIndex: number) => {
     setAnswers((current) => ({
       ...current,
       [questionIndex]: { selectedLeft: null, selectedRight: null, pairs: [] },
@@ -201,7 +244,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     if (!hasCurrentAnswer) return false;
 
     const normalizedAnswer = currentQuestion?.type === 'matching'
-      ? (Array.isArray(currentAnswer) ? currentAnswer : (currentAnswer && typeof currentAnswer === 'object' && Array.isArray(currentAnswer.pairs) ? currentAnswer.pairs : currentAnswer))
+      ? (Array.isArray(currentAnswer) ? currentAnswer : (isMatchingAnswer(currentAnswer) ? currentAnswer.pairs : currentAnswer))
       : currentAnswer;
 
     onSubmitAnswer(normalizedAnswer);
@@ -258,19 +301,19 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       };
     });
 
-    const normalizeMatchingPairs = (value) => {
-      if (Array.isArray(value)) return value;
-      if (value && typeof value === 'object' && Array.isArray(value.pairs)) return value.pairs;
+    const normalizeMatchingPairs = (value: unknown): MatchingPair[] => {
+      if (Array.isArray(value)) return value as MatchingPair[];
+      if (isMatchingAnswer(value)) return value.pairs;
       return [];
     };
 
-    const getMatchingPairStates = (question, rawAnswer) => {
+    const getMatchingPairStates = (question: GrammarQuestion, rawAnswer: unknown) => {
       const expectedPairs = Array.isArray(question.correctPairs)
         ? question.correctPairs
         : (question.correctPairs && typeof question.correctPairs === 'object')
           ? Object.entries(question.correctPairs).map(([left, right]) => ({ left, right }))
           : [];
-      const expectedMap = expectedPairs.reduce((accumulator, pair) => {
+      const expectedMap = expectedPairs.reduce<Record<string, string>>((accumulator, pair) => {
         const left = String(pair.left ?? '').trim();
         const right = String(pair.right ?? '').trim();
         if (left && right) {
@@ -278,7 +321,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         }
         return accumulator;
       }, {});
-      const selectedPairs = normalizeMatchingPairs(rawAnswer).reduce((accumulator, pair) => {
+      const selectedPairs = normalizeMatchingPairs(rawAnswer).reduce<Record<string, string>>((accumulator, pair) => {
         if (pair && pair.left && pair.right) {
           accumulator[String(pair.left).trim()] = String(pair.right).trim();
         }
@@ -304,7 +347,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       return states;
     };
 
-    const formatAnswer = (question, rawAnswer) => {
+    const formatAnswer = (question: GrammarQuestion, rawAnswer: unknown) => {
       if (question.type === 'matching') {
         const pairs = normalizeMatchingPairs(rawAnswer);
 
@@ -316,7 +359,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       return String(rawAnswer);
     };
 
-    const getCorrectAnswerLabel = (question) => {
+    const getCorrectAnswerLabel = (question: GrammarQuestion) => {
       if (question.type === 'matching') {
         const pairs = Array.isArray(question.correctPairs)
           ? question.correctPairs
@@ -334,7 +377,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           ? [question.acceptedAnswers]
           : typeof question.correctAnswer !== 'undefined' ? [question.correctAnswer] : [];
       if (answers.length > 0) {
-        return answers.map((answer, index) => {
+        return answers.map((answer: unknown, index: number) => {
           const answerText = String(answer);
           if (!kanaToRomaji(answerText)) return answerText;
           const romaji = index === 0 && question.correctAnswerRomaji
@@ -347,9 +390,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       return 'No answer';
     };
 
-    const isQuestionCorrectForPlayer = (question, rawAnswer) => isQuestionCorrect(question, rawAnswer);
+    const isQuestionCorrectForPlayer = (question: GrammarQuestion, rawAnswer: unknown) => isQuestionCorrect(question, rawAnswer);
 
-    const getQuestionResultBadge = (question, rawAnswer) => {
+    const getQuestionResultBadge = (question: GrammarQuestion, rawAnswer: unknown) => {
       if (question.type !== 'matching') {
         return {
           label: isQuestionCorrectForPlayer(question, rawAnswer) ? 'Correct' : 'Incorrect',
@@ -584,12 +627,12 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
 
   {/* Solo Try Another Set Button */}
   {(!roomPlayers.length || roomPlayers.length === 1) && (
-    <Button
+    <LegacyButton
       onClick={clearAnswers}
       className="w-full border-2 border-black bg-[#A3E636] py-5 font-black uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
     >
       Try Another Set →
-    </Button>
+    </LegacyButton>
   )}
 </div>
     );
@@ -599,7 +642,9 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     return (
       <GrammarPracticeSetup
         onBack={onBack}
-        onGenerate={(selectedLesson, count) => window.generateGrammarAssessment?.(selectedLesson, count)}
+        onGenerate={(selectedLesson, count) => (window as Window & {
+          generateGrammarAssessment?: (lesson: number, questionCount: number) => void;
+        }).generateGrammarAssessment?.(selectedLesson, count)}
       />
     );
   }
@@ -646,11 +691,11 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           {currentQuestion?.type === 'fill-in-the-blank' && (
             <div className="mx-auto w-full max-w-md space-y-2">
               <div className="relative">
-                <Input
+                <LegacyInput
                   autoFocus
                   value={answers[visibleIndex] ?? ''}
-                  onChange={(e) => handleSelectAnswer(visibleIndex, e.target.value)}
-                  onKeyDown={(e) => {
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => handleSelectAnswer(visibleIndex, e.target.value)}
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === 'Enter' && hasCurrentAnswer && !isCurrentPlayerReady) {
                       handleNext();
                     }
@@ -669,11 +714,11 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           {currentQuestion?.type === 'translation' && (
             <div className="mx-auto w-full max-w-lg mt-6 space-y-3">
               <div className="relative">
-                <Input
+                <LegacyInput
                   autoFocus
                   value={answers[visibleIndex] ?? ''}
-                  onChange={(e) => handleSelectAnswer(visibleIndex, e.target.value)}
-                  onKeyDown={(e) => {
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => handleSelectAnswer(visibleIndex, e.target.value)}
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === 'Enter' && hasCurrentAnswer && !isCurrentPlayerReady) {
                       handleNext();
                     }
@@ -784,14 +829,14 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                   </span>
 
                   {getMatchingSelection(visibleIndex).pairs.length > 0 && (
-                    <Button
+                    <LegacyButton
                       size="sm"
                       onClick={() => handleUndoMatching(visibleIndex)}
                       disabled={isCurrentPlayerReady}
                       className="border-2 border-black bg-[#FF6B6B] px-3 py-1 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-[#ff8585] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                     >
                       Undo All
-                    </Button>
+                    </LegacyButton>
                   )}
                 </div>
 
@@ -867,7 +912,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
               {hasCurrentAnswer ? (isCurrentPlayerReady ? 'READY' : 'ANSWERED') : 'SELECT AN OPTION'}
             </span>
 
-            <Button
+            <LegacyButton
               onClick={handleNext}
               disabled={!hasCurrentAnswer || isCurrentPlayerReady}
               className={`border-2 border-black px-6 py-5 text-sm font-black uppercase tracking-wider text-black transition-all ${!hasCurrentAnswer || isCurrentPlayerReady
@@ -884,7 +929,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
                 : isLastQuestion
                   ? 'Finish Quiz'
                   : 'Next →'}
-            </Button>
+            </LegacyButton>
           </div>
         </div>
       </div>

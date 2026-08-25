@@ -1,4 +1,13 @@
-function GrammarQuestionPrompt({ question }) {
+type GrammarQuestionPromptQuestion = {
+  prompt?: string | null;
+  englishText?: string | null;
+};
+
+type GrammarQuestionPromptProps = {
+  question?: GrammarQuestionPromptQuestion | null;
+};
+
+function GrammarQuestionPrompt({ question }: GrammarQuestionPromptProps) {
   return (
     <div className="relative border-2 border-black bg-[#FFDE59] p-5 shadow-[4px_4px_0px_0px_#000000]">
       <span className="font-mono text-[10px] font-black uppercase tracking-widest text-black/60">

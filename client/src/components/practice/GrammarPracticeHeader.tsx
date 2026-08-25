@@ -1,4 +1,18 @@
-function GrammarPracticeHeader({ sessionLabel, lesson, currentIndex, questionCount, progress }) {
+type GrammarPracticeHeaderProps = {
+  sessionLabel: string;
+  lesson?: number | null;
+  currentIndex: number;
+  questionCount: number;
+  progress: number;
+};
+
+function GrammarPracticeHeader({
+  sessionLabel,
+  lesson,
+  currentIndex,
+  questionCount,
+  progress,
+}: GrammarPracticeHeaderProps) {
   return (
     <>
       <div className="flex items-center justify-between">
