@@ -1,14 +1,21 @@
+// @ts-check
+
 import { createClient } from 'redis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { REDIS_URL } from './env.js';
 
+/** @type {ReturnType<typeof createClient> | undefined} */
 let redisClient;
+/** @type {ReturnType<typeof createClient> | undefined} */
 let redisSubscriber;
 const USER_CONNECTION_TTL_SECONDS = 15 * 60;
 
 // In-memory fallback for presence tracking when Redis is not configured.
 // Maps userId -> { socketId, expiresAt }.
+/** @typedef {{ socketId: string, expiresAt: number }} MemoryConnection */
+/** @type {Map<string, MemoryConnection>} */
 const memoryConnections = new Map();
+/** @param {string} userId */
 const getUserConnectionKey = (userId) => `ganbatte:user-connection:${userId}`;
 
 export function isRedisConfigured() {
@@ -24,6 +31,7 @@ function cleanupExpiredMemoryConnections() {
   }
 }
 
+/** @param {{ adapter: (value: unknown) => void }} io */
 export async function configureRedisAdapter(io) {
   if (!isRedisConfigured()) {
     console.warn('REDIS_URL is not configured; using the in-memory Socket.io adapter.');
@@ -42,6 +50,7 @@ export async function configureRedisAdapter(io) {
   return redisClient;
 }
 
+/** @param {string | null | undefined} userId @param {string} socketId */
 export async function claimUserConnection(userId, socketId) {
   if (!userId) return null;
 
@@ -66,6 +75,7 @@ export async function claimUserConnection(userId, socketId) {
   );
 }
 
+/** @param {string | null | undefined} userId @param {string} socketId */
 export async function refreshUserConnection(userId, socketId) {
   if (!userId) return;
 
@@ -90,6 +100,7 @@ export async function refreshUserConnection(userId, socketId) {
   );
 }
 
+/** @param {string | null | undefined} userId @param {string} socketId */
 export async function releaseUserConnection(userId, socketId) {
   if (!userId) return;
 
@@ -114,6 +125,7 @@ export async function releaseUserConnection(userId, socketId) {
   );
 }
 
+/** @param {string | null | undefined} userId */
 export async function getUserSocketId(userId) {
   if (!userId) return null;
 
@@ -126,6 +138,7 @@ export async function getUserSocketId(userId) {
   return redisClient.get(getUserConnectionKey(userId));
 }
 
+/** @param {Array<string | null | undefined>} userIds */
 export async function getUsersPresenceStatus(userIds = []) {
   if (!Array.isArray(userIds) || userIds.length === 0) {
     return [];
@@ -148,18 +161,21 @@ export async function getUsersPresenceStatus(userIds = []) {
   return uniqueUserIds.filter((userId, index) => Boolean(values[index]));
 }
 
+/** @param {string | null | undefined} userId */
 export async function getUserPresenceStatus(userId) {
   if (!userId) return false;
   const [online] = await getUsersPresenceStatus([userId]);
   return Boolean(online);
 }
 
+/** @param {string} key @returns {Promise<unknown>} */
 export async function getCachedJson(key) {
   if (!redisClient?.isReady) return null;
   const value = await redisClient.get(key);
   return value ? JSON.parse(value) : null;
 }
 
+/** @param {string} key @param {unknown} value @param {number} ttlSeconds */
 export async function setCachedJson(key, value, ttlSeconds) {
   if (!redisClient?.isReady) return;
   await redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });

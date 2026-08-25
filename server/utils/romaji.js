@@ -1,3 +1,5 @@
+// @ts-check
+
 const ROMAJI_SYLLABLES = [
   'kyo', 'kyu', 'kya', 'gyo', 'gyu', 'gya', 'sho', 'shu', 'sha',
   'jyo', 'jyu', 'jya', 'jo', 'ju', 'ja', 'cho', 'chu', 'cha',
@@ -14,6 +16,11 @@ const ROMAJI_SYLLABLES = [
   'a', 'i', 'u', 'e', 'o', 'n',
 ];
 
+/** @typedef {{ left?: string, right?: string }} RomajiPair */
+/** @typedef {{ pairs?: RomajiPair[], left?: string, right?: string }} RomajiObject */
+/** @typedef {string | number | null | undefined | RomajiPair | RomajiObject | Array<string | number | RomajiPair | RomajiObject>} RomajiInput */
+
+/** @param {RomajiInput} value @returns {string} */
 function normalizeRomaji(value) {
   if (value === null || value === undefined) return '';
 
@@ -31,7 +38,7 @@ function normalizeRomaji(value) {
   }
 
   if (typeof value === 'object') {
-    if (Array.isArray(value.pairs)) {
+    if ('pairs' in value && Array.isArray(value.pairs)) {
       return value.pairs.map((pair) => normalizeRomaji(`${pair?.left ?? ''} ${pair?.right ?? ''}`)).join('');
     }
 
@@ -50,6 +57,7 @@ function normalizeRomaji(value) {
     .join('');
 }
 
+/** @param {RomajiInput} value */
 function tokenizeRomaji(value) {
   const normalized = normalizeRomaji(value);
   const tokens = [];
@@ -64,6 +72,7 @@ function tokenizeRomaji(value) {
   return tokens;
 }
 
+/** @param {RomajiInput} answer @param {RomajiInput} expected */
 export function isCorrectRomajiAnswer(answer, expected) {
   const answerTokens = tokenizeRomaji(answer);
   const expectedTokens = tokenizeRomaji(expected);

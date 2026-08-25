@@ -1,3 +1,5 @@
+// @ts-check
+
 import { z } from 'zod';
 
 export const roomCodeSchema = z.string()

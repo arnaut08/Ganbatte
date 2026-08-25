@@ -1,7 +1,10 @@
+// @ts-check
+
 import dotenv from 'dotenv';
 
 dotenv.config({ path: new URL('../.env', import.meta.url) });
 
+/** @param {string} value */
 const parseOrigins = (value) => value
   .split(',')
   .map((origin) => origin.trim().replace(/\/$/, ''))
@@ -20,6 +23,7 @@ export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 export const FALLBACK_GEMINI_MODEL = 'gemini-3.5-flash';
 
+/** @param {string | undefined} origin */
 export function isAllowedOrigin(origin) {
   return !origin || CLIENT_ORIGINS.includes(origin.replace(/\/$/, ''));
 }
