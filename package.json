@@ -11,12 +11,14 @@
     "generate:kanji": "cd server && node scripts/generate-kanji.js",
     "build": "cd client && npm run build",
     "start": "cd server && npm start",
-    "typecheck": "tsc -p client/tsconfig.json && tsc -p server/tsconfig.json"
+    "typecheck": "tsc -p client/tsconfig.json && tsc -p server/tsconfig.json",
+    "test": "node --import tsx --test client/src/utils/*.test.js server/middleware/auth.test.js server/services/*.test.js"
   },
   "author": "Archit Nautiyal",
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "tsx": "^4.20.3"
   }
 }

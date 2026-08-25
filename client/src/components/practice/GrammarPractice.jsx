@@ -4,7 +4,7 @@ import BackButton from '../common/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from '@/utils/grammarScoring';
-import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
+import { mergePlayerAnswers } from '@/utils/grammarRoomSync.ts';
 import { supabase } from '../../config/supabase';
 
 function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }) {
