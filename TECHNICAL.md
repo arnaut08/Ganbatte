@@ -30,8 +30,7 @@ Ganbatte/
 │       ├── components/
 │       │   ├── AppHome.jsx
 │       │   ├── auth/
-│       │   │   ├── AuthPage.jsx
-│       │   │   └── AuthPage.css
+│       │   │   └── AuthPage.jsx
 │       │   ├── common/
 │       │   │   └── BackButton.jsx
 │       │   ├── layout/
@@ -39,9 +38,7 @@ Ganbatte/
 │       │   ├── learning/
 │       │   │   ├── LearningScreen.jsx
 │       │   │   ├── KanjiStudy.jsx
-│       │   │   ├── KanjiStudy.css
 │       │   │   ├── AssessmentHistory.jsx
-│       │   │   ├── AssessmentHistory.css
 │       │   │   └── AssessmentLoadingScreen.jsx
 │       │   ├── practice/
 │       │   │   ├── PracticeScreen.jsx
