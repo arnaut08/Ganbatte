@@ -1,8 +1,52 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { User } from '@supabase/supabase-js';
+import type { Socket } from 'socket.io-client';
 import { generateCards, getRoom } from '../services/api';
+import type { ApiRecord, GrammarQuestion, Room } from '../services/api';
+import type { AppStatus, SelectorScreen } from '../contexts/AppContext';
+import type { AssessmentResult } from '../contexts/RoomContext';
+import type { ToastType } from './useToast';
 import { canStartAssessment } from '../utils/roomStatus';
 import { clearRoomQueryParam, clearRoomSession, getSessionKey, readRoomSession, saveRoomSession } from '../utils/roomSession';
 import useRoomSocket from './useRoomSocket';
+
+type DeckOptions = {
+  type?: 'kana' | 'kanji' | 'grammar';
+  groups?: unknown[];
+  maxLesson?: number;
+  count?: number;
+};
+
+type RoomActionResponse = {
+  success?: boolean;
+  message?: string;
+  room?: Room;
+};
+
+type NavigationState = {
+  status: AppStatus;
+  setStatus: Dispatch<SetStateAction<AppStatus>>;
+  setSelectorScreen: Dispatch<SetStateAction<SelectorScreen>>;
+  setScreenHistory: Dispatch<SetStateAction<AppStatus[]>>;
+  statusRef: MutableRefObject<AppStatus>;
+  transitionToStatus: (status: AppStatus) => void;
+  getDisplayName: () => string;
+  handleOpenGrammarPractice: (maxLesson?: number, count?: number, mode?: string) => Promise<void>;
+};
+
+type RoomManagerOptions = {
+  authRequired: boolean;
+  authLoading: boolean;
+  user: User | null;
+  setToast: (toast: { message: string; type: ToastType }) => void;
+  navigation: NavigationState;
+  refreshFriends: (force?: boolean) => Promise<void>;
+  refreshFriendData: (force?: boolean) => Promise<void>;
+  refreshFriendRequests: (force?: boolean) => Promise<void>;
+  socketRef: MutableRefObject<Socket | null>;
+  roomCodeRef: MutableRefObject<string | null>;
+};
 
 export default function useRoomManager({
   authRequired,
@@ -15,42 +59,42 @@ export default function useRoomManager({
   refreshFriendRequests,
   socketRef,
   roomCodeRef,
-}: any) {
+}: RoomManagerOptions) {
   const [roomCode, setRoomCode] = useState<string | null>(null);
-  const [room, setRoom] = useState<any>(null);
+  const [room, setRoom] = useState<Room | null>(null);
   const [username, setUsername] = useState('');
-  const [kanaCards, setKanaCards] = useState<any[]>([]);
-  const [results, setResults] = useState<any>(null);
+  const [kanaCards, setKanaCards] = useState<ApiRecord[]>([]);
+  const [results, setResults] = useState<AssessmentResult[] | null>(null);
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
-  const [grammarQuestions, setGrammarQuestions] = useState<any[]>([]);
+  const [grammarQuestions, setGrammarQuestions] = useState<GrammarQuestion[]>([]);
   const [isPreparingAssessment, setIsPreparingAssessment] = useState(false);
   const { status, setStatus, setSelectorScreen, setScreenHistory, statusRef, transitionToStatus } = navigation;
   roomCodeRef.current = roomCode;
   const getDisplayName = navigation.getDisplayName;
 
-  const handleJoinRoom = useCallback((code: string, name: string, onResult: any = null) => {
+  const handleJoinRoom = useCallback((code: string, name: string, onResult: ((response: RoomActionResponse) => void) | null = null) => {
     if (!socketRef.current) return;
     const playerName = (name || getDisplayName()).trim();
     if (!playerName) return;
     setUsername(playerName);
     setPrefillRoomCode('');
     clearRoomQueryParam();
-    socketRef.current.emit('join-room', code, playerName, getSessionKey(), user?.id, (response: any) => {
+    socketRef.current.emit('join-room', code, playerName, getSessionKey(), user?.id, (response: RoomActionResponse) => {
       onResult?.(response);
-      if (response.success) {
+      if (response.success && response.room) {
         setRoomCode(code);
         saveRoomSession(code, playerName);
         setRoom(response.room);
-        setScreenHistory((currentHistory: string[]) => {
+        setScreenHistory((currentHistory) => {
           const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
           return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
         });
         setStatus('lobby');
-      } else setToast({ message: response.message, type: 'error' });
+      } else setToast({ message: response.message || 'Unable to join the room.', type: 'error' });
     });
   }, [getDisplayName, setScreenHistory, setStatus, setToast, socketRef, user?.id]);
 
-  const handleCreateRoom = useCallback(async (name: string, deckOptions: any = {}) => {
+  const handleCreateRoom = useCallback(async (name: string, deckOptions: DeckOptions = {}) => {
     if (!socketRef.current) return;
     const hostName = (name || getDisplayName()).trim();
     if (!hostName) return;
@@ -69,12 +113,12 @@ export default function useRoomManager({
       getRoom(code).then((nextRoom) => {
         setRoom(nextRoom);
         if (nextRoom.cards) setKanaCards(nextRoom.cards);
-        setScreenHistory((currentHistory: string[]) => {
+        setScreenHistory((currentHistory) => {
           const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
           return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
         });
         transitionToStatus('lobby');
-        const me = nextRoom.players.find((player: any) => player.id === socketRef.current?.id);
+        const me = nextRoom.players.find((player) => player.id === socketRef.current?.id);
         if (me) setUsername(me.name);
       }).catch((error) => console.error('Failed to load room:', error));
     });
@@ -100,7 +144,7 @@ export default function useRoomManager({
     setRoomCode, setRoom, setUsername, setKanaCards, setResults, setPrefillRoomCode,
     setStatus, setScreenHistory, setIsPreparingAssessment, setToast,
   });
-  const activeSocket: any = socket;
+  const activeSocket = socket as unknown as Socket | null;
   socketRef.current = socket;
 
   useEffect(() => {

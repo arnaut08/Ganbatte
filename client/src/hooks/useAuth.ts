@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
 
 export default function useAuth() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const authRequired = Boolean(supabase);
 
@@ -12,12 +13,12 @@ export default function useAuth() {
       return undefined;
     }
 
-    supabase.auth.getSession().then(({ data }: any) => {
+    supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user || null);
       setAuthLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
       setAuthLoading(false);
     });
