@@ -1,8 +1,12 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
-export function Badge({ className, variant = "default", ...props }) {
-  const variants = {
+type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
+  variant?: 'default' | 'neutral' | 'secondary' | 'success' | 'warning' | 'danger' | 'destructive' | 'outline';
+};
+
+export function Badge({ className, variant = "default", ...props }: BadgeProps) {
+  const variants: Record<NonNullable<BadgeProps['variant']>, string> = {
     default: "bg-[#FFDE59]",
     neutral: "bg-white",
     secondary: "bg-[#A3E636]",

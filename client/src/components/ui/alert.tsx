@@ -1,8 +1,12 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
-export function Alert({ className, variant = "default", children, ...props }) {
-  const variants = {
+type AlertProps = React.HTMLAttributes<HTMLDivElement> & {
+  variant?: 'default' | 'danger' | 'success' | 'info';
+};
+
+export function Alert({ className, variant = "default", children, ...props }: AlertProps) {
+  const variants: Record<NonNullable<AlertProps['variant']>, string> = {
     default: "bg-[#FFDE59]",
     danger: "bg-[#FF6B6B]",
     success: "bg-[#A3E636]",
@@ -24,10 +28,10 @@ export function Alert({ className, variant = "default", children, ...props }) {
   );
 }
 
-export function AlertTitle({ className, ...props }) {
+export function AlertTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return <h5 className={cn("mb-1 font-black uppercase tracking-tight text-black", className)} {...props} />;
 }
 
-export function AlertDescription({ className, ...props }) {
+export function AlertDescription({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("text-sm font-medium text-black", className)} {...props} />;
 }
