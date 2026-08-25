@@ -1,8 +1,14 @@
 import { useRef, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { supabase } from '../../config/supabase';
 
-const getCredentialField = (error) => {
-  const errorText = `${error?.code ?? ''} ${error?.message ?? ''}`.toLowerCase();
+type AuthMode = 'signin' | 'signup';
+type CredentialField = 'email' | 'password' | null;
+type AuthForm = { name: string; email: string; password: string };
+
+const getCredentialField = (error: unknown): CredentialField => {
+  const typedError = error as { code?: string; message?: string } | null;
+  const errorText = `${typedError?.code ?? ''} ${typedError?.message ?? ''}`.toLowerCase();
 
   if (/user[_ -]?not[_ -]?found|email[_ -]?not[_ -]?found|email does not exist/.test(errorText)) {
     return 'email';
@@ -16,16 +22,16 @@ const getCredentialField = (error) => {
 };
 
 function AuthPage() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [mode, setMode] = useState('signin');
+  const [form, setForm] = useState<AuthForm>({ name: '', email: '', password: '' });
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('error'); // 'error' | 'success'
-  const [credentialField, setCredentialField] = useState(null);
+  const [messageType, setMessageType] = useState<'error' | 'success'>('error');
+  const [credentialField, setCredentialField] = useState<CredentialField>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const emailInputRef = useRef(null);
-  const passwordInputRef = useRef(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  const handleChange = (event) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
     if (credentialField === name) {
@@ -33,7 +39,7 @@ function AuthPage() {
     }
   };
 
-  const handleSetMode = (nextMode) => {
+  const handleSetMode = (nextMode: AuthMode) => {
     if (mode !== nextMode) {
       setMode(nextMode);
       setMessage('');
@@ -41,7 +47,7 @@ function AuthPage() {
     }
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!supabase) {
       setMessageType('error');

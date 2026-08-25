@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
+import type { MutableRefObject } from 'react';
+import type { Socket } from 'socket.io-client';
 import AppHeader from './components/layout/AppHeader';
 import AppToast from './components/layout/AppToast';
 import AppScreenRouter from './components/layout/AppScreenRouter';
@@ -10,6 +12,7 @@ import {
 } from './utils/roomSession';
 import useAuth from './hooks/useAuth';
 import useToast from './hooks/useToast';
+import type { ToastValue } from './hooks/useToast';
 import useRoomManager from './hooks/useRoomManager';
 import useFriends from './hooks/useFriends';
 import useAppNavigation from './hooks/useAppNavigation';
@@ -17,19 +20,19 @@ import { AppProvider } from './contexts/AppContext';
 import { RoomProvider } from './contexts/RoomContext';
 
 function App() {
-  const [selectedKana, setSelectedKana] = useState(new Set());
+  const [selectedKana, setSelectedKana] = useState<Set<string>>(new Set());
   const { user, authLoading, authRequired, getDisplayName, handleLogout: signOut } = useAuth();
   const { toast, showToast, clearToast } = useToast();
-  const setToast = useCallback((nextToast) => {
+  const setToast = useCallback((nextToast: ToastValue) => {
     if (!nextToast) {
       clearToast();
       return;
     }
     showToast(nextToast.message, nextToast.type, nextToast.actions);
   }, [clearToast, showToast]);
-  const socketRef = useRef(null);
-  const roomCodeRef = useRef(null);
-  const roomManagerRef = useRef(null);
+  const socketRef = useRef<Socket | null>(null);
+  const roomCodeRef = useRef<string | null>(null);
+  const roomManagerRef = useRef<ReturnType<typeof useRoomManager> | null>(null);
   const navigation = useAppNavigation({
     socketRef,
     roomCodeRef,
