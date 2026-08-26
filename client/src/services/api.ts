@@ -1,92 +1,18 @@
 import { SERVER_URL } from '../config';
 import { supabase } from '../config/supabase';
-
-export type ApiRecord = Record<string, unknown>;
-
-export type KanaCard = ApiRecord & {
-  kana: string;
-  romaji: string;
-  script?: string;
-  groupName?: string;
-  mnemonic?: string;
-  example?: [string, string, string];
-};
-
-export type KanjiCard = ApiRecord & {
-  kanji: string;
-  romaji: string;
-  english?: string;
-  groupId?: string;
-  groupName?: string;
-};
-
-export type CardDeck<TCard extends ApiRecord = ApiRecord> = {
-  cards: TCard[];
-  groups?: ApiRecord[];
-  matrices?: ApiRecord[];
-};
-
-export type GrammarQuestion = ApiRecord & {
-  type: string;
-  prompt: string;
-  lesson?: number;
-  englishText?: string;
-  correctAnswer?: string;
-  correctAnswerRomaji?: string;
-  acceptedAnswers?: string[] | string;
-  correctPairs?: Array<{ left: string; right: string }> | Record<string, string>;
-  explanation?: string;
-};
-
-export type GrammarAssessment = {
-  type: 'grammar' | 'kana' | 'kanji';
-  maxLesson: number;
-  count: number;
-  questions: GrammarQuestion[];
-};
-
-export type RoomPlayer = ApiRecord & {
-  id?: string;
-  userId?: string | null;
-  sessionKey?: string;
-  name: string;
-  answers?: unknown[];
-  hintsUsed?: number[];
-  ready?: boolean;
-};
-
-export type Room = ApiRecord & {
-  code?: string;
-  status?: string;
-  deckType?: string;
-  cards?: ApiRecord[];
-  players: RoomPlayer[];
-  currentCardIndex?: number;
-};
-
-export type Friend = ApiRecord & {
-  id?: string;
-  user_id?: string;
-  display_name?: string | null;
-  online?: boolean;
-};
-
-export type FriendRequest = ApiRecord & {
-  id: string;
-  sender_id?: string;
-  receiver_id?: string;
-  status?: string;
-  direction?: 'incoming' | 'outgoing';
-  sender?: Friend;
-  receiver?: Friend;
-};
-
-export type CharacterAttempt = ApiRecord & {
-  character?: string;
-  confidence?: string | null;
-};
-
-export type AttemptInput = ApiRecord;
+import type {
+  ApiRecord,
+  AttemptInput,
+  CardDeck,
+  CharacterAttempt,
+  Friend,
+  FriendRequest,
+  GrammarAssessment,
+  GrammarQuestion,
+  KanaCard,
+  KanjiCard,
+  Room,
+} from '../types';
 
 const PROTECTED_PATH_PREFIXES = [
   '/api/friends',

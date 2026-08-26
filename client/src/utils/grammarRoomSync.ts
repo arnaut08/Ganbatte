@@ -1,16 +1,4 @@
-export type MatchingPair = {
-  left: string;
-  right: string;
-};
-
-export type MatchingAnswerState = {
-  selectedLeft: string | null;
-  selectedRight: string | null;
-  pairs: MatchingPair[];
-};
-
-export type GrammarAnswer = string | MatchingPair[] | MatchingAnswerState;
-export type AnswerMap = Record<number, GrammarAnswer>;
+import type { AnswerMap, GrammarAnswer, MatchingAnswerState } from '../types';
 
 function isMatchingAnswerState(value: unknown): value is MatchingAnswerState {
   return Boolean(
