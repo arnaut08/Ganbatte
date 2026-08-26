@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
-import { getKanjiAttempts, getKanjiCards, recordKanjiAttempt, updateKanjiConfidenceBatch, type KanjiCard } from '../../services/api';
+import { getKanjiAttempts, getKanjiCards, recordKanjiAttempt, updateKanjiConfidenceBatch } from '../../services/api';
+import type { KanjiCard } from '../../types';
 import {
   buildKanjiAttempt,
   getKanjiHint,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getKanaCards, type ApiRecord } from '../../services/api';
+import { getKanaCards } from '../../services/api';
+import type { ApiRecord } from '../../types';
 import { ChevronLeftIcon } from '@radix-ui/react-icons';
 
 const MATRIX_TYPE_LABELS = {

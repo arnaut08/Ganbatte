@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getKanaCards, type KanaCard } from '../../services/api';
+import { getKanaCards } from '../../services/api';
+import type { KanaCard } from '../../types';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
 type KanaStudyProps = {
