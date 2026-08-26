@@ -12,7 +12,7 @@ import {
 } from './utils/roomSession';
 import useAuth from './hooks/useAuth';
 import useToast from './hooks/useToast';
-import type { ToastValue } from './hooks/useToast';
+import type { ToastValue } from './types';
 import useRoomManager from './hooks/useRoomManager';
 import useFriends from './hooks/useFriends';
 import useAppNavigation from './hooks/useAppNavigation';

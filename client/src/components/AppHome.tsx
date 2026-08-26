@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import LearningScreen from './learning/LearningScreen';
 import PracticeScreen from './practice/PracticeScreen';
-import { getKanjiCards, type ApiRecord } from '../services/api';
+import { getKanjiCards } from '../services/api';
+import type { ApiRecord, Deck, DeckOptions } from '../types';
 
 type LegacyProps = {
   children?: ReactNode;
@@ -16,7 +17,7 @@ const LegacyPracticeScreen = PracticeScreen as unknown as ComponentType<LegacyPr
 type HomeScreen = 'home' | 'learning' | 'practice';
 
 type AppHomeProps = {
-  onCreateRoom: (settings?: ApiRecord) => void;
+  onCreateRoom: (settings?: DeckOptions) => void;
   onJoinRoom: (roomCode: string) => void;
   onOpenKanaStudy: () => void;
   onOpenKanjiStudy: () => void;
@@ -50,7 +51,7 @@ function AppHome({
     setInternalScreen(nextScreen);
   };
   const [joinCode, setJoinCode] = useState(roomCode || '');
-  const [deckType, setDeckType] = useState('kana');
+  const [deckType, setDeckType] = useState<Deck>('kana');
   const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState<Array<string | number>>([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
@@ -95,7 +96,7 @@ function AppHome({
     if (!isSocketReady) return;
 
     const normalizedGroups = deckType === 'kanji' ? selectedGroups : [];
-    const normalizedSettings = deckType === 'grammar'
+    const normalizedSettings: DeckOptions = deckType === 'grammar'
       ? { type: 'grammar', groups: [], maxLesson: grammarLevel, count: 5 }
       : { type: deckType, groups: normalizedGroups };
 

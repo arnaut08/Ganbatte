@@ -1,4 +1,4 @@
-import type { ToastAction, ToastValue } from '../../hooks/useToast';
+import type { ToastAction, ToastValue } from '../../types';
 
 type AppToastProps = {
   toast: ToastValue;
