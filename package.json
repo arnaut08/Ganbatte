@@ -7,12 +7,12 @@
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
     "server:dev": "cd server && npm run dev",
     "client:dev": "cd client && npm run dev",
-    "generate:genki-lessons": "cd server && node scripts/generate-genki-lessons.js",
-    "generate:kanji": "cd server && node scripts/generate-kanji.js",
+    "generate:genki-lessons": "cd server && npm run generate:genki-lessons",
+    "generate:kanji": "cd server && npm run generate:kanji",
     "build": "cd client && npm run build",
     "start": "cd server && npm start",
     "typecheck": "tsc -p client/tsconfig.json && tsc -p server/tsconfig.json",
-    "test": "node --import tsx --test client/src/utils/*.test.js server/middleware/auth.test.js server/services/*.test.js"
+    "test": "node --import tsx --test client/src/utils/*.test.js server/middleware/auth.test.ts server/services/*.test.ts"
   },
   "author": "Archit Nautiyal",
   "license": "ISC",
