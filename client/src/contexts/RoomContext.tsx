@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { Socket } from 'socket.io-client';
-import type { ApiRecord, AssessmentResult, DeckOptions, Friend, FriendRequest, GrammarQuestion, Room } from '../types';
+import type { AssessmentResult, DeckOptions, Friend, FriendRequest, GrammarQuestion, Room, StudyCard } from '../types';
 
 export type RoomContextValue = {
   socket: Socket | null;
@@ -9,7 +9,7 @@ export type RoomContextValue = {
   roomCode: string;
   currentSessionKey: string;
   username: string;
-  kanaCards: ApiRecord[];
+  kanaCards: StudyCard[];
   results: AssessmentResult[] | null;
   grammarQuestions: GrammarQuestion[];
   prefillRoomCode: string;

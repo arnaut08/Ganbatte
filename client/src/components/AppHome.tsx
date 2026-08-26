@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import LearningScreen from './learning/LearningScreen';
 import PracticeScreen from './practice/PracticeScreen';
 import { getKanjiCards } from '../services/api';
-import type { ApiRecord, Deck, DeckOptions } from '../types';
+import type { ApiRecord, Deck, DeckOptions, SelectorScreen } from '../types';
 
 type LegacyProps = {
   children?: ReactNode;
@@ -14,16 +14,14 @@ type LegacyProps = {
 const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
 const LegacyPracticeScreen = PracticeScreen as unknown as ComponentType<LegacyProps>;
 
-type HomeScreen = 'home' | 'learning' | 'practice';
-
 type AppHomeProps = {
   onCreateRoom: (settings?: DeckOptions) => void;
   onJoinRoom: (roomCode: string) => void;
   onOpenKanaStudy: () => void;
   onOpenKanjiStudy: () => void;
   onOpenGrammarStudy: () => void;
-  onScreenChange?: (screen: HomeScreen) => void;
-  screen?: HomeScreen;
+  onScreenChange?: (screen: SelectorScreen) => void;
+  screen?: SelectorScreen;
   prefillRoomCode?: string;
   isSocketReady?: boolean;
   roomCode?: string;
@@ -41,9 +39,9 @@ function AppHome({
   isSocketReady = false,
   roomCode = '',
 }: AppHomeProps) {
-  const [internalScreen, setInternalScreen] = useState<HomeScreen>(controlledScreen || 'home');
+  const [internalScreen, setInternalScreen] = useState<SelectorScreen>(controlledScreen || 'home');
   const screen = controlledScreen ?? internalScreen;
-  const setScreen = (nextScreen: HomeScreen) => {
+  const setScreen = (nextScreen: SelectorScreen) => {
     if (onScreenChange) {
       onScreenChange(nextScreen);
       return;

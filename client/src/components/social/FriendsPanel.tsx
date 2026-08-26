@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ComponentType, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { Friend, FriendRequest } from '../../services/api';
+import type { Friend, FriendRequest } from '../../types';
 
 type FriendsPanelProps = {
   friends?: Friend[];
