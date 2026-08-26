@@ -48,3 +48,9 @@ export function getBackStatus(history = []) {
   return previous;
 }
 
+// Completed rooms should take users who are still in the room flow to results.
+// Other screens (home, friends, history, etc.) are intentionally unaffected.
+export function shouldRedirectToCompletedRoomResults(currentStatus, roomStatus) {
+  return roomStatus === 'completed'
+    && (currentStatus === 'assessment' || currentStatus === 'lobby');
+}
