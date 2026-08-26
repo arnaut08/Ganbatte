@@ -12,8 +12,10 @@ import type {
   Room,
   SelectorScreen,
   SocketAck,
+  StudyCard,
   ToastType,
 } from '../types';
+import { isStudyCard } from '../types';
 import { canStartAssessment } from '../utils/roomStatus';
 import { clearRoomQueryParam, clearRoomSession, getSessionKey, readRoomSession, saveRoomSession } from '../utils/roomSession';
 import useRoomSocket from './useRoomSocket';
@@ -63,7 +65,7 @@ export default function useRoomManager({
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [username, setUsername] = useState('');
-  const [kanaCards, setKanaCards] = useState<ApiRecord[]>([]);
+  const [kanaCards, setKanaCards] = useState<StudyCard[]>([]);
   const [results, setResults] = useState<AssessmentResult[] | null>(null);
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [grammarQuestions, setGrammarQuestions] = useState<GrammarQuestion[]>([]);
@@ -112,7 +114,7 @@ export default function useRoomManager({
       saveRoomSession(code, hostName);
       getRoom(code).then((nextRoom) => {
         setRoom(nextRoom);
-        if (nextRoom.cards) setKanaCards(nextRoom.cards);
+        if (nextRoom.cards) setKanaCards(nextRoom.cards.filter(isStudyCard));
         setScreenHistory((currentHistory) => {
           const lastStatus = currentHistory[currentHistory.length - 1] || 'selector';
           return lastStatus === 'lobby' ? currentHistory : [...currentHistory, 'lobby'];
@@ -299,7 +301,7 @@ export default function useRoomManager({
       if (!response?.success || !response.room) { clearRoomSession(); clearRoomState(); setStatus('selector'); return; }
       const rejoinedRoom = response.room;
       setRoom(rejoinedRoom);
-      setKanaCards(rejoinedRoom.cards || []);
+      setKanaCards((rejoinedRoom.cards ?? []).filter(isStudyCard));
       const nextStatus = rejoinedRoom.status === 'active' ? 'assessment' : 'lobby';
       if (nextStatus === 'lobby') activeSocket.emit('set-player-presence', savedRoomCode, 'in_lobby');
       setStatus(nextStatus);

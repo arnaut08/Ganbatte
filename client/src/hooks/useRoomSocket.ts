@@ -2,11 +2,11 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { Socket } from 'socket.io-client';
 import type {
-  ApiRecord,
   AppStatus,
   AssessmentResult,
   Room,
   SocketAck,
+  StudyCard,
   Toast,
 } from '../types';
 import useLegacyRoomSocket from './useRoomSocket.js';
@@ -28,7 +28,7 @@ export type RoomSocketOptions = {
   setRoomCode: Dispatch<SetStateAction<string | null>>;
   setRoom: Dispatch<SetStateAction<Room | null>>;
   setUsername: Dispatch<SetStateAction<string>>;
-  setKanaCards: Dispatch<SetStateAction<ApiRecord[]>>;
+  setKanaCards: Dispatch<SetStateAction<StudyCard[]>>;
   setResults: Dispatch<SetStateAction<AssessmentResult[] | null>>;
   setPrefillRoomCode: Dispatch<SetStateAction<string>>;
   setStatus: Dispatch<SetStateAction<AppStatus>>;

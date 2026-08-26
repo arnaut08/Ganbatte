@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-export type ToastType = 'success' | 'warning' | 'error';
-export type ToastAction = { label: string; onClick: () => void };
-export type ToastValue = {
-  message: string;
-  type: ToastType;
-  actions?: ToastAction[];
-} | null;
+import type { ToastAction, ToastType, ToastValue } from '../types';
 
 export default function useToast() {
   const [toast, setToast] = useState<ToastValue>(null);
