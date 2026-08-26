@@ -72,7 +72,7 @@ function App() {
 
     clearRoomSession();
     friendsState.clearSocialDataCache();
-    sessionStorage.removeItem('ganbatte-session-key');
+    localStorage.removeItem('ganbatte-session-key');
     roomManager.handleDeclineRoomResume();
     setStatus('selector');
     setSelectorScreen('home');

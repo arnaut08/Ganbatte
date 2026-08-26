@@ -10,8 +10,6 @@ import {
   saveRoomSession,
 } from '../utils/roomSession';
 
-const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results', 'assessment-preparing'];
-
 function normalizeRoomResults(rawResults = []) {
   return rawResults.map((player) => ({
     name: player.name,
@@ -139,8 +137,10 @@ export default function useRoomSocket({
       if (newSocket.recovered) return;
 
       const savedSession = readRoomSession();
-      const shouldRestore = ROOM_VIEW_STATUSES.includes(statusRef.current)
-        && Boolean(savedSession?.roomCode && savedSession?.username);
+      // A fresh tab starts on the home screen, so the current UI status cannot
+      // be used to decide whether a saved room should be restored. An explicit
+      // leave clears this session; otherwise rejoin the still-live lobby.
+      const shouldRestore = Boolean(savedSession?.roomCode && savedSession?.username);
       if (!shouldRestore) return;
 
       const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
@@ -313,6 +313,7 @@ export default function useRoomSocket({
               newSocket.emit('join-room', data.roomCode, playerName, getSessionKey(), user?.id, (response) => {
                 newSocket.emit('room-invite-response', {
                   roomCode: data.roomCode,
+                  inviterUserId: data.inviterUserId,
                   inviterSocketId: data.inviterSocketId,
                   accepted: response?.success === true,
                 });
@@ -336,6 +337,7 @@ export default function useRoomSocket({
             label: 'Reject',
             onClick: () => newSocket.emit('room-invite-response', {
               roomCode: data.roomCode,
+              inviterUserId: data.inviterUserId,
               inviterSocketId: data.inviterSocketId,
               accepted: false,
             }),
@@ -357,7 +359,12 @@ export default function useRoomSocket({
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  }, [authLoading, authRequired, refreshFriendData, refreshFriendRequests, refreshFriends, user?.id]);
+  // Keep one socket for the lifetime of the authenticated user. The callback
+  // props are recreated by the room manager as state changes; including them
+  // here would run this cleanup and disconnect the socket during navigation or
+  // browser/tab switches.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, authRequired, user?.id]);
 
   return {
     socket,

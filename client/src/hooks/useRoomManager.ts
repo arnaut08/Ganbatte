@@ -243,7 +243,7 @@ export default function useRoomManager({
     if (!activeSocket || !roomCode) return;
     activeSocket.emit('leave-room', roomCode, (response: SocketAck) => {
       if (response?.success && username) {
-        sessionStorage.setItem('ganbatte-room-session', JSON.stringify({ roomCode, username }));
+        localStorage.setItem('ganbatte-room-session', JSON.stringify({ roomCode, username }));
       }
       setRoomCode(null);
       setRoom(null);
