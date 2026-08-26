@@ -8,26 +8,15 @@ import {
   buildRomajiDiff,
   scoreRomajiAnswer,
 } from '../../utils/romaji';
-
-type AssessmentPlayer = {
-  name?: string;
-  userId?: string;
-  answers?: unknown[];
-  hintsUsed?: number[];
-  ready?: boolean;
-};
+import type { DiffSegment, KanaCard, KanjiCard, Room } from '../../types';
 
 type AssessmentRoom = {
   currentCardIndex?: number;
-  deckType?: string;
-  players?: AssessmentPlayer[];
+  deckType?: Room['deckType'];
+  players?: Room['players'];
 };
 
-type AssessmentCard = {
-  kana?: string;
-  romaji?: string;
-  english?: string;
-};
+type AssessmentCard = Partial<Pick<KanaCard & KanjiCard, 'kana' | 'romaji' | 'english'>>;
 
 type AssessmentProps = {
   room?: AssessmentRoom | null;
@@ -37,8 +26,6 @@ type AssessmentProps = {
   onNextCard?: () => void;
   username?: string;
 };
-
-type DiffSegment = { type: string; text: string };
 
 type LegacyProps = {
   children?: ReactNode;
@@ -64,7 +51,7 @@ function Assessment({
   const submissionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cardIndex = room?.currentCardIndex ?? 0;
-  const currentCard = kanaCards[cardIndex] || {};
+  const currentCard: AssessmentCard = kanaCards[cardIndex] || {};
   const isLastCard = kanaCards.length > 0 && cardIndex === kanaCards.length - 1;
 
   // Safe player lookups

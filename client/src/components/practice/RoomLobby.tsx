@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CopyIcon, CheckIcon } from '@radix-ui/react-icons';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
-import type { Friend, Room } from '../../services/api';
+import type { Friend, Room } from '../../types';
 
 type RoomLobbyProps = {
   roomCode: string;

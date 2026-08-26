@@ -6,33 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from '@/utils/grammarScoring';
 import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
-import type { AnswerMap, GrammarAnswer } from '@/utils/grammarRoomSync';
+import type { AnswerMap, GrammarAnswer, GrammarQuestion, MatchingAnswerState, MatchingPair } from '@/types';
 import { supabase } from '../../config/supabase';
 import GrammarPracticeSetup from './GrammarPracticeSetup';
 import GrammarPracticeHeader from './GrammarPracticeHeader';
 import GrammarQuestionPrompt from './GrammarQuestionPrompt';
 
-type MatchingPair = { left: string; right: string };
-type MatchingAnswer = { selectedLeft: string | null; selectedRight: string | null; pairs: MatchingPair[] };
-const isMatchingAnswer = (value: unknown): value is MatchingAnswer => (
+const isMatchingAnswer = (value: unknown): value is MatchingAnswerState => (
   typeof value === 'object' && value !== null && 'pairs' in value && Array.isArray(value.pairs)
 );
-type GrammarQuestion = {
-  type?: string;
-  prompt?: string;
-  englishText?: string;
-  lesson?: number;
-  choices?: string[];
-  leftItems?: string[];
-  rightItems?: string[];
-  correctPairs?: MatchingPair[] | Record<string, string>;
-  acceptedAnswers?: unknown[] | unknown;
-  correctAnswer?: unknown;
-  correctAnswerRomaji?: string;
-  explanation?: string;
-};
-type GrammarPlayer = { name?: string; userId?: string; answers?: GrammarAnswer[]; ready?: boolean };
-type GrammarRoom = { code?: string; currentCardIndex?: number; players?: GrammarPlayer[] };
+/** A room player in a grammar room, narrowed so answers are grammar answers. */
+type GrammarRoomPlayer = { name?: string; userId?: string | null; answers?: GrammarAnswer[]; ready?: boolean };
+type GrammarRoom = { code?: string; currentCardIndex?: number; players?: GrammarRoomPlayer[] };
 type GrammarPracticeProps = {
   questions?: GrammarQuestion[];
   onBack: () => void;
@@ -174,7 +159,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     setAnswers((current) => ({ ...current, [questionIndex]: value }));
   };
 
-  const getMatchingSelection = (questionIndex: number): MatchingAnswer => {
+  const getMatchingSelection = (questionIndex: number): MatchingAnswerState => {
     const value = answers[questionIndex];
     if (isMatchingAnswer(value)) {
       return value;
@@ -182,7 +167,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     return { selectedLeft: null, selectedRight: null, pairs: [] };
   };
 
-  const updateMatchingSelection = (questionIndex: number, updater: (current: MatchingAnswer) => MatchingAnswer) => {
+  const updateMatchingSelection = (questionIndex: number, updater: (current: MatchingAnswerState) => MatchingAnswerState) => {
     setAnswers((current) => {
       const previous = getMatchingSelection(questionIndex);
       const next = updater(previous);
@@ -191,7 +176,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   };
 
   const handleMatchingSelectLeft = (questionIndex: number, leftValue: string) => {
-    updateMatchingSelection(questionIndex, (current: MatchingAnswer) => {
+    updateMatchingSelection(questionIndex, (current: MatchingAnswerState) => {
       const usedLeft = new Set(current.pairs.map((pair) => pair.left));
       if (usedLeft.has(leftValue) && current.selectedLeft !== leftValue) {
         return current;
@@ -206,7 +191,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   };
 
   const handleMatchingSelectRight = (questionIndex: number, rightValue: string) => {
-    updateMatchingSelection(questionIndex, (current: MatchingAnswer) => {
+    updateMatchingSelection(questionIndex, (current: MatchingAnswerState) => {
       const usedRight = new Set(current.pairs.map((pair) => pair.right));
       if (usedRight.has(rightValue) && current.selectedRight !== rightValue) {
         return current;
@@ -282,7 +267,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   };
 
   if (showResults) {
-    const roomPlayers = Array.isArray(room?.players) && room.players.length > 0
+    const roomPlayers: GrammarRoomPlayer[] = Array.isArray(room?.players) && room.players.length > 0
       ? room.players
       : [{ name: username || 'Player 1', answers: questions.map((_, index) => answers[index]) }];
 

@@ -1,10 +1,7 @@
-type GrammarQuestionPromptQuestion = {
-  prompt?: string | null;
-  englishText?: string | null;
-};
+import type { GrammarQuestion } from '../../types';
 
 type GrammarQuestionPromptProps = {
-  question?: GrammarQuestionPromptQuestion | null;
+  question?: GrammarQuestion | null;
 };
 
 function GrammarQuestionPrompt({ question }: GrammarQuestionPromptProps) {

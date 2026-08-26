@@ -10,9 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
+import type { Deck, KanjiGroup } from '../../types';
 
-type DeckType = 'kana' | 'kanji' | 'grammar';
-type KanjiGroup = { id: string; name: string };
 type LegacyProps = { children?: ReactNode; [key: string]: unknown };
 
 const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
@@ -24,8 +23,8 @@ const LegacyDropdownItem = DropdownMenuItem as unknown as ComponentType<LegacyPr
 const LegacyDropdownTrigger = DropdownMenuTrigger as unknown as ComponentType<LegacyProps>;
 
 type CreateRoomCardProps = {
-  deckType: DeckType;
-  setDeckType: Dispatch<SetStateAction<DeckType>>;
+  deckType: Deck;
+  setDeckType: Dispatch<SetStateAction<Deck>>;
   grammarLevel: number;
   setGrammarLevel: Dispatch<SetStateAction<number>>;
   selectedGroups: string[];
@@ -98,7 +97,7 @@ function CreateRoomCard({
                 <button
                   key={type}
                   type="button"
-                  onClick={() => setDeckType(type as DeckType)}
+                  onClick={() => setDeckType(type as Deck)}
                   className={`py-2 text-xs font-black uppercase transition-all ${deckType === type
                     ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000]'
                     : 'border-2 border-transparent text-black/70 hover:text-black'

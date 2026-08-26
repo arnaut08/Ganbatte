@@ -6,21 +6,11 @@ import {
   scoreRomajiAnswer,
 } from '../../utils/romaji';
 import { supabase } from '../../config/supabase';
+import type { AssessmentResult, DiffSegment, KanaCard, KanjiCard } from '../../types';
 
-type ResultPlayer = {
-  userId?: string;
-  name?: string;
-  answers?: unknown[];
-  hintsUsed?: number[];
-};
+type ResultPlayer = Partial<AssessmentResult>;
 
-type ResultCard = {
-  kana?: string;
-  english?: string;
-  romaji?: string;
-  groupId?: string;
-  groupName?: string;
-};
+type ResultCard = Partial<KanaCard & KanjiCard>;
 
 type ResultsProps = {
   results?: ResultPlayer[];
@@ -43,8 +33,6 @@ type ResultStats = {
   totalTokens: number;
   percentage: number;
 };
-
-type DiffSegment = { type: string; text: string };
 
 function renderDifference(answer: string, expected: string, side: 'given' | 'expected', isKanjiDeck: boolean) {
   const segments = (isKanjiDeck
