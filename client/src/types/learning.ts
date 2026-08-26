@@ -2,6 +2,7 @@ import type { ApiRecord, Deck } from './base';
 
 /** A kana sentence card. */
 export type KanaCard = ApiRecord & {
+  id?: string;
   kana: string;
   romaji: string;
   script?: string;
@@ -12,12 +13,54 @@ export type KanaCard = ApiRecord & {
 
 /** A kanji character card. */
 export type KanjiCard = ApiRecord & {
+  id?: string;
   kanji: string;
   romaji: string;
   english?: string;
   groupId?: string;
   groupName?: string;
 };
+
+/** Any study card usable inside a practice/assessment session. */
+export type StudyCard = KanaCard | KanjiCard;
+
+/** Type guard narrowing raw wire records onto the {@link StudyCard} union. */
+export function isStudyCard(value: unknown): value is StudyCard {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    (typeof record.kana === 'string' && record.kana.length > 0) ||
+    (typeof record.kanji === 'string' && record.kanji.length > 0)
+  );
+}
+
+/**
+ * Type guard narrowing raw wire records onto {@link GrammarQuestion}.
+ * Grammar payloads always carry their discriminator `type`.
+ */
+export function isGrammarQuestion(value: unknown): value is GrammarQuestion {
+  return typeof value === 'object' && value !== null && 'type' in value;
+}
+
+/**
+ * Best-effort runtime check for a serialized grammar answer payload
+ * ({@link GrammarAnswer}: a plain string, matching pairs, or matching state).
+ */
+export function isGrammarAnswer(value: unknown): value is GrammarAnswer {
+  if (typeof value === 'string') return true;
+  if (!value || typeof value !== 'object') return false;
+  return true;
+}
+
+/** A kanji study-group option (as offered by the deck / group pickers). */
+export type KanjiGroup = { id: string; name: string };
+
+/**
+ * Confidence rating shared by the kana/kanji recall + review screens. Both
+ * screens use the same labels; KanaRecall represents "unrated" as `null` while
+ * KanjiStudy uses the `'unrated'` string, so both are part of the union.
+ */
+export type Confidence = 'again' | 'hard' | 'easy' | 'unrated' | null;
 
 /** A fetched/generated deck of study cards. */
 export type CardDeck<TCard extends ApiRecord = ApiRecord> = {
@@ -72,4 +115,60 @@ export type GrammarAssessment = {
   maxLesson: number;
   count: number;
   questions: GrammarQuestion[];
+};
+/** An example sentence inside a grammar point. */
+export type GrammarExample = {
+  japanese: string;
+  furigana?: string;
+  romaji: string;
+  english: string;
+};
+
+/** A single grammar topic within a lesson. */
+export type GrammarPoint = {
+  pattern: string;
+  meaning: string;
+  formation: string;
+  usageNotes?: string[];
+  examples: GrammarExample[];
+};
+
+/** The parsed content body of a grammar lesson. */
+export type GrammarLessonContent = {
+  lessonNumber: number;
+  title: string;
+  overview: string;
+  objectives: string[];
+  grammarPoints: GrammarPoint[];
+  commonMistakes: string[];
+  reviewChecklist: string[];
+  guidedPractice?: Array<{ prompt: string; answer: string; explanation: string }>;
+};
+
+/** A grammar lesson as returned by the lessons API. */
+export type GrammarLesson = {
+  lessonNumber: number;
+  content: GrammarLessonContent;
+};
+
+/** `details` payload of a stored assessment record shown on the history screen. */
+export type AssessmentHistoryDetails = {
+  groups?: string[];
+  hints_used?: number[];
+};
+
+/**
+ * A stored assessment record from the `assessment_results` table. Named
+ * distinctly from {@link AssessmentResult} (the live per-player room result).
+ */
+export type AssessmentHistoryRecord = {
+  id: string;
+  assessment_type: string;
+  score_percentage: number;
+  correct_questions: number;
+  total_questions: number;
+  created_at: string;
+  companion_user_id?: string | null;
+  details?: AssessmentHistoryDetails | null;
+  profile?: { display_name?: string | null } | null;
 };

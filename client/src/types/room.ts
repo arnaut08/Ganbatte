@@ -21,7 +21,7 @@ export type RoomPlayer = ApiRecord & {
 };
 
 /** A multiplayer room state mirrored from the socket server. */
-export type Room = ApiRecord & {
+export type Room = ApiRecord & RoomSelectionHint & {
   code?: string;
   status?: RoomStatus;
   deckType?: Deck;
@@ -36,6 +36,11 @@ export type AssessmentResult = {
   userId: string | null;
   answers: unknown[];
   hintsUsed: number[];
+};
+
+/** The group filter picked for a kana/kanji room, echoed by the server. */
+export type RoomSelectionHint = {
+  selectedGroups?: string[];
 };
 
 /** Options used to create a room deck (normalized before being sent). */

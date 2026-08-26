@@ -20,7 +20,7 @@ export type AppStatus =
   | 'assessment-preparing';
 
 /** Which root selector tab is active on the home (`selector`) screen. */
-export type SelectorScreen = 'home' | 'practice';
+export type SelectorScreen = 'home' | 'learning' | 'practice';
 
 /**
  * Screens that keep a live room session alive in the view stack. Used to

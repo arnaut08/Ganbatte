@@ -21,3 +21,6 @@ export type CharacterAttempt = ApiRecord & {
 
 /** Raw input used when recording a character/kanji attempt. */
 export type AttemptInput = ApiRecord;
+
+/** One highlighted segment produced when diffing an answer against the expected one. */
+export type DiffSegment = { type: string; text: string };
