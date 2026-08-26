@@ -126,7 +126,7 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                     className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000]"
                     title="Back to learning"
                 >
-                    <ChevronLeftIcon className="h-5 w-5 stroke-[3]" />
+                    <span className="font-mono text-lg font-black">&lt;</span>
                 </button>
                 <div>
                     <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">

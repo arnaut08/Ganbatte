@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react';
 import {
   CheckCircledIcon,
-  ChevronLeftIcon,
   ExclamationTriangleIcon,
   LightningBoltIcon,
 } from '@radix-ui/react-icons';
@@ -193,7 +192,7 @@ function KanaRecall({ onBack, onOpenFilter, onReviewComplete, selectedKana }: Ka
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button type="button" onClick={onBack} className="flex h-11 w-11 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000]" title="Back">
-            <ChevronLeftIcon className="h-5 w-5" />
+            <span className="font-mono text-lg font-black">&lt;</span>
           </button>
           <div>
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">// ACTIVE RECALL: KANA</span>

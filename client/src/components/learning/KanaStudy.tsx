@@ -54,7 +54,7 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
             className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
             title="Back to previous screen"
           >
-            <ChevronLeftIcon className="h-5 w-5 stroke-[2]" />
+            <span className="font-mono text-lg font-black">&lt;</span>
           </button>
 
           <div className="flex flex-col justify-center">
