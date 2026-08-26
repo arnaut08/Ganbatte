@@ -12,18 +12,10 @@ import {
   updateCharacterConfidenceBatch,
 } from '../../services/api';
 import { buildKanaAttempt } from '../../utils/kanaRecall';
+import type { Confidence, KanaCard } from '../../types';
 
-type Confidence = 'again' | 'hard' | 'easy' | null;
-
-type KanaRecallCard = {
-  id: string;
-  kana: string;
-  romaji: string;
-  script?: string;
-  groupName?: string;
-  mnemonic?: string;
-  example?: [string, string, string];
-};
+/** Kana recall augments the fetched cards with a client-side id + confidence. */
+type KanaRecallCard = KanaCard & { id: string };
 
 type KanaAttempt = {
   correct: boolean;

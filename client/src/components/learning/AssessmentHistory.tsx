@@ -1,32 +1,16 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../config/supabase';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import type { AssessmentHistoryRecord } from '../../types';
 
 const PAGE_SIZE = 10;
-
-type AssessmentDetails = {
-  groups?: string[];
-  hints_used?: number[];
-};
-
-type AssessmentResult = {
-  id: string;
-  assessment_type: string;
-  score_percentage: number;
-  correct_questions: number;
-  total_questions: number;
-  created_at: string;
-  companion_user_id?: string | null;
-  details?: AssessmentDetails | null;
-  profile?: { display_name?: string | null } | null;
-};
 
 type AssessmentHistoryProps = {
   onBack: () => void;
 };
 
 function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
-  const [results, setResults] = useState<AssessmentResult[]>([]);
+  const [results, setResults] = useState<AssessmentHistoryRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,7 +49,7 @@ function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
         if (queryError) {
           setError('Failed to load assessment records');
         } else {
-          setResults((data || []) as AssessmentResult[]);
+          setResults((data || []) as AssessmentHistoryRecord[]);
           // Fallback to data length if count is undefined
           setTotalCount(count ?? (data ? data.length : 0));
         }

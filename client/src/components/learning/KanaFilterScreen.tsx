@@ -230,12 +230,12 @@ function KanaMatrix({
 type KanaFilterScreenProps = {
   onBack: () => void;
   onApplyFilters: (selectedCells: Set<string>) => void;
-  initialSelectedKana?: string[];
+  initialSelectedKana?: Iterable<string>;
 };
 
 function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaFilterScreenProps) {
   const [kanaData, setKanaData] = useState<KanaData>({ cards: [], groups: [], matrices: [] });
-  const [selectedCells, setSelectedCells] = useState<Set<string>>(() => new Set(initialSelectedKana || []));
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(() => new Set(initialSelectedKana ?? []));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 

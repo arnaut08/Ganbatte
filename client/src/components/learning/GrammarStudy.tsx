@@ -1,42 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { getGrammarLessons } from '../../services/api';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import type { GrammarLesson } from '../../types';
 
 const KANJI_CHARACTER = /\p{Script=Han}/u;
 const HIRAGANA_START = 0x3041;
 const KATAKANA_START = 0x30a1;
 const KATAKANA_END = 0x30f6;
-
-type GrammarExample = {
-    japanese: string;
-    furigana?: string;
-    romaji: string;
-    english: string;
-};
-
-type GrammarPoint = {
-    pattern: string;
-    meaning: string;
-    formation: string;
-    usageNotes?: string[];
-    examples: GrammarExample[];
-};
-
-type GrammarLessonContent = {
-    lessonNumber: number;
-    title: string;
-    overview: string;
-    objectives: string[];
-    grammarPoints: GrammarPoint[];
-    commonMistakes: string[];
-    reviewChecklist: string[];
-    guidedPractice?: Array<{ prompt: string; answer: string; explanation: string }>;
-};
-
-type GrammarLesson = {
-    lessonNumber: number;
-    content: GrammarLessonContent;
-};
 
 type GrammarStudyProps = {
     onBack: () => void;

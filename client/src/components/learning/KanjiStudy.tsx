@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { getKanjiAttempts, getKanjiCards, recordKanjiAttempt, updateKanjiConfidenceBatch } from '../../services/api';
-import type { KanjiCard } from '../../types';
+import type { Confidence, KanjiCard, KanjiGroup } from '../../types';
 import {
   buildKanjiAttempt,
   getKanjiHint,
@@ -22,17 +22,13 @@ const CONFIDENCE_OPTIONS = [
   { level: 'unrated', label: 'Unrated', icon: null, color: '#FFFFFF', description: 'No confidence rating' },
 ];
 
-type ConfidenceLevel = 'again' | 'hard' | 'easy' | 'unrated';
+/** KanjiStudy always labels ratings explicitly (never `null`). */
+type ConfidenceLevel = Exclude<Confidence, null>;
 
 type KanjiStudyCard = KanjiCard & {
   reading?: string;
   meaning?: string;
   example?: [string, string, string];
-};
-
-type KanjiGroup = {
-  id: string;
-  name: string;
 };
 
 type ReviewItem = KanjiStudyCard & {
