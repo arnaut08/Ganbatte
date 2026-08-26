@@ -1,22 +1,6 @@
 import { createContext, useContext, type Dispatch, type SetStateAction, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-
-export type AppStatus =
-  | 'selector'
-  | 'friends'
-  | 'kana-intro'
-  | 'kana-filter'
-  | 'kana-study'
-  | 'kanji-study'
-  | 'grammar-study'
-  | 'grammar-practice'
-  | 'history'
-  | 'lobby'
-  | 'assessment'
-  | 'results'
-  | 'assessment-preparing';
-
-export type SelectorScreen = 'home' | 'practice';
+import type { AppStatus, SelectorScreen } from '../types';
 
 export type AppContextValue = {
   authLoading: boolean;

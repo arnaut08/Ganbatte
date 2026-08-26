@@ -9,9 +9,7 @@ import {
   searchUsers,
   sendFriendRequest,
 } from '../services/api';
-import type { Friend, FriendRequest } from '../services/api';
-import type { AppStatus } from '../contexts/AppContext';
-import type { ToastType } from './useToast';
+import type { AppStatus, Friend, FriendRequest, ToastType } from '../types';
 
 type FriendsOptions = {
   user: User | null;

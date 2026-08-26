@@ -2,9 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import { generateGrammarAssessment } from '../services/api';
-import type { GrammarQuestion } from '../services/api';
-import type { AppStatus, SelectorScreen } from '../contexts/AppContext';
-import type { ToastType } from './useToast';
+import type { AppStatus, GrammarQuestion, SelectorScreen, ToastType } from '../types';
+import { ROOM_VIEW_STATUSES as roomStatuses } from '../types';
 import { pushScreenHistory } from '../utils/navigation';
 
 const screenPriority: Record<AppStatus, number> = {
@@ -12,7 +11,6 @@ const screenPriority: Record<AppStatus, number> = {
   'kanji-study': 0, 'grammar-study': 0, 'grammar-practice': 0, history: 0,
   lobby: 0, assessment: 1, results: 1, 'assessment-preparing': 0,
 };
-const roomStatuses: AppStatus[] = ['lobby', 'assessment', 'results', 'assessment-preparing'];
 
 type NavigationOptions = {
   socketRef: MutableRefObject<Socket | null>;

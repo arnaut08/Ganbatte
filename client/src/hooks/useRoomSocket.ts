@@ -1,23 +1,15 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { Socket } from 'socket.io-client';
-import type { ApiRecord, GrammarQuestion, Room } from '../services/api';
-import type { AppStatus } from '../contexts/AppContext';
-import type { AssessmentResult } from '../contexts/RoomContext';
-import type { ToastAction, ToastType } from './useToast';
+import type {
+  ApiRecord,
+  AppStatus,
+  AssessmentResult,
+  Room,
+  SocketAck,
+  Toast,
+} from '../types';
 import useLegacyRoomSocket from './useRoomSocket.js';
-
-export type RoomSocketToast = {
-  message: string;
-  type: ToastType;
-  actions?: ToastAction[];
-};
-
-export type RoomSocketResponse = {
-  success?: boolean;
-  message?: string;
-  room?: Room;
-};
 
 export type RoomSocketOptions = {
   authRequired: boolean;
@@ -28,7 +20,7 @@ export type RoomSocketOptions = {
   room: Room | null;
   statusRef: MutableRefObject<AppStatus>;
   getDisplayName: () => string;
-  handleJoinRoom: (code: string, name: string, onResult?: (response: RoomSocketResponse) => void) => void;
+  handleJoinRoom: (code: string, name: string, onResult?: (response: SocketAck) => void) => void;
   transitionToStatus: (status: AppStatus) => void;
   refreshFriends: (force?: boolean) => Promise<void>;
   refreshFriendData: (force?: boolean) => Promise<void>;
@@ -42,7 +34,7 @@ export type RoomSocketOptions = {
   setStatus: Dispatch<SetStateAction<AppStatus>>;
   setScreenHistory: Dispatch<SetStateAction<AppStatus[]>>;
   setIsPreparingAssessment: Dispatch<SetStateAction<boolean>>;
-  setToast: (toast: RoomSocketToast) => void;
+  setToast: (toast: Toast) => void;
 };
 
 export type RoomSocketResult = {

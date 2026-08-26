@@ -1,13 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { Socket } from 'socket.io-client';
-import type { Friend, FriendRequest, GrammarQuestion, Room, ApiRecord } from '../services/api';
-
-export type AssessmentResult = {
-  name: string;
-  userId: string | null;
-  answers: unknown[];
-  hintsUsed: number[];
-};
+import type { ApiRecord, AssessmentResult, DeckOptions, Friend, FriendRequest, GrammarQuestion, Room } from '../types';
 
 export type RoomContextValue = {
   socket: Socket | null;
@@ -25,7 +18,7 @@ export type RoomContextValue = {
   friendSearchResults: Friend[];
   isFriendSearchLoading: boolean;
   isPreparingAssessment: boolean;
-  handleCreateRoom: (deckOptions?: ApiRecord) => Promise<void>;
+  handleCreateRoom: (deckOptions?: DeckOptions) => Promise<void>;
   handleJoinRoom: (code: string) => void;
   handleReturnToRoom: () => void;
   handleDeclineRoomResume: () => void;

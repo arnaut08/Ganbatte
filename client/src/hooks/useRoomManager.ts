@@ -3,26 +3,20 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { Socket } from 'socket.io-client';
 import { generateCards, getRoom } from '../services/api';
-import type { ApiRecord, GrammarQuestion, Room } from '../services/api';
-import type { AppStatus, SelectorScreen } from '../contexts/AppContext';
-import type { AssessmentResult } from '../contexts/RoomContext';
-import type { ToastType } from './useToast';
+import type {
+  ApiRecord,
+  AppStatus,
+  AssessmentResult,
+  DeckOptions,
+  GrammarQuestion,
+  Room,
+  SelectorScreen,
+  SocketAck,
+  ToastType,
+} from '../types';
 import { canStartAssessment } from '../utils/roomStatus';
 import { clearRoomQueryParam, clearRoomSession, getSessionKey, readRoomSession, saveRoomSession } from '../utils/roomSession';
 import useRoomSocket from './useRoomSocket';
-
-type DeckOptions = {
-  type?: 'kana' | 'kanji' | 'grammar';
-  groups?: unknown[];
-  maxLesson?: number;
-  count?: number;
-};
-
-type RoomActionResponse = {
-  success?: boolean;
-  message?: string;
-  room?: Room;
-};
 
 type NavigationState = {
   status: AppStatus;
@@ -33,6 +27,12 @@ type NavigationState = {
   transitionToStatus: (status: AppStatus) => void;
   getDisplayName: () => string;
   handleOpenGrammarPractice: (maxLesson?: number, count?: number, mode?: string) => Promise<void>;
+};
+
+/** Window helpers exposed for the legacy JS-driven practice flows. */
+type PracticeAugmentedWindow = Window & {
+  generateCards?: (count?: number, startAfter?: boolean) => Promise<void>;
+  generateGrammarAssessment?: (maxLesson?: number, count?: number) => Promise<void>;
 };
 
 type RoomManagerOptions = {
@@ -72,14 +72,14 @@ export default function useRoomManager({
   roomCodeRef.current = roomCode;
   const getDisplayName = navigation.getDisplayName;
 
-  const handleJoinRoom = useCallback((code: string, name: string, onResult: ((response: RoomActionResponse) => void) | null = null) => {
+  const handleJoinRoom = useCallback((code: string, name: string, onResult: ((response: SocketAck) => void) | null = null) => {
     if (!socketRef.current) return;
     const playerName = (name || getDisplayName()).trim();
     if (!playerName) return;
     setUsername(playerName);
     setPrefillRoomCode('');
     clearRoomQueryParam();
-    socketRef.current.emit('join-room', code, playerName, getSessionKey(), user?.id, (response: RoomActionResponse) => {
+    socketRef.current.emit('join-room', code, playerName, getSessionKey(), user?.id, (response: SocketAck) => {
       onResult?.(response);
       if (response.success && response.room) {
         setRoomCode(code);
@@ -130,8 +130,8 @@ export default function useRoomManager({
       if (!response.cards) return;
       setKanaCards(response.cards);
       if (socketRef.current && roomCode) {
-        socketRef.current.emit('set-cards', roomCode, response.cards, (result: any) => {
-          if (result?.success) setRoom(result.room);
+        socketRef.current.emit('set-cards', roomCode, response.cards, (result: SocketAck) => {
+          if (result?.success && result.room) setRoom(result.room);
           if (startAfter) socketRef.current?.emit('start-assessment', roomCode);
         });
       } else if (startAfter) transitionToStatus('assessment');
@@ -172,14 +172,20 @@ export default function useRoomManager({
 
   useEffect(() => {
     if (room?.status !== 'completed' || !room.players?.length || results) return;
-    setResults(room.players.map((player: any) => ({ name: player.name, userId: player.userId, answers: player.answers, hintsUsed: player.hintsUsed || [] })));
+    setResults(room.players.map((player) => ({
+      name: player.name,
+      userId: player.userId ?? null,
+      answers: player.answers ?? [],
+      hintsUsed: player.hintsUsed || [],
+    })));
     transitionToStatus('results');
   }, [room, results, transitionToStatus]);
 
   useEffect(() => {
-    (window as any).generateCards = handleGenerateCards;
-    (window as any).generateGrammarAssessment = (maxLesson = 12, count = 10) => navigation.handleOpenGrammarPractice(maxLesson, count, 'practice');
-    return () => { delete (window as any).generateCards; delete (window as any).generateGrammarAssessment; };
+    const practiceWindow = window as PracticeAugmentedWindow;
+    practiceWindow.generateCards = handleGenerateCards;
+    practiceWindow.generateGrammarAssessment = (maxLesson = 12, count = 10) => navigation.handleOpenGrammarPractice(maxLesson, count, 'practice');
+    return () => { delete practiceWindow.generateCards; delete practiceWindow.generateGrammarAssessment; };
   }, [handleGenerateCards, navigation]);
 
   const isCurrentPlayerHost = room?.players?.[0]?.id === activeSocket?.id
@@ -188,7 +194,7 @@ export default function useRoomManager({
 
   const handleInviteFriend = useCallback((friendId: string) => {
     if (!activeSocket || !roomCode || !friendId) return;
-    activeSocket.emit('invite-friend-to-room', roomCode, friendId, (response: any) => {
+    activeSocket.emit('invite-friend-to-room', roomCode, friendId, (response: SocketAck) => {
       setToast({
         message: response?.success ? 'Room invite sent.' : (response?.message || 'Unable to send room invite.'),
         type: response?.success ? 'success' : 'error',
@@ -219,7 +225,7 @@ export default function useRoomManager({
     if (activeSocket && roomCode && room) activeSocket.emit('request-assessment-action', roomCode, action);
   }, [activeSocket, room, roomCode]);
 
-  const handleSubmitAnswer = useCallback((answer: any) => {
+  const handleSubmitAnswer = useCallback((answer: unknown) => {
     if (activeSocket && roomCode) activeSocket.emit('submit-answer', roomCode, answer);
   }, [activeSocket, roomCode]);
 
@@ -233,7 +239,7 @@ export default function useRoomManager({
 
   const handleLeaveRoom = useCallback(() => {
     if (!activeSocket || !roomCode) return;
-    activeSocket.emit('leave-room', roomCode, (response: any) => {
+    activeSocket.emit('leave-room', roomCode, (response: SocketAck) => {
       if (response?.success && username) {
         sessionStorage.setItem('ganbatte-room-session', JSON.stringify({ roomCode, username }));
       }
@@ -249,7 +255,7 @@ export default function useRoomManager({
 
   const handleStartNewSession = useCallback(() => {
     if (!activeSocket || !roomCode || !room) return;
-    activeSocket.emit('exit-lobby', roomCode, (response: any) => {
+    activeSocket.emit('exit-lobby', roomCode, (response: SocketAck) => {
       if (!response?.success) return;
       clearRoomSession();
       setRoomCode(null);
@@ -289,11 +295,12 @@ export default function useRoomManager({
     if (!savedRoomCode || !savedUsername || !activeSocket) { setStatus('selector'); return; }
     setRoomCode(savedRoomCode);
     setUsername(savedUsername);
-    activeSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response: any) => {
-      if (!response?.success) { clearRoomSession(); clearRoomState(); setStatus('selector'); return; }
-      setRoom(response.room);
-      setKanaCards(response.room.cards || []);
-      const nextStatus = response.room.status === 'active' ? 'assessment' : 'lobby';
+    activeSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response: SocketAck) => {
+      if (!response?.success || !response.room) { clearRoomSession(); clearRoomState(); setStatus('selector'); return; }
+      const rejoinedRoom = response.room;
+      setRoom(rejoinedRoom);
+      setKanaCards(rejoinedRoom.cards || []);
+      const nextStatus = rejoinedRoom.status === 'active' ? 'assessment' : 'lobby';
       if (nextStatus === 'lobby') activeSocket.emit('set-player-presence', savedRoomCode, 'in_lobby');
       setStatus(nextStatus);
     });
@@ -302,7 +309,7 @@ export default function useRoomManager({
   return useMemo(() => ({
     roomCode, room, username, kanaCards, results, grammarQuestions, prefillRoomCode,
     isPreparingAssessment, socket: activeSocket, isSocketReady,
-    handleCreateRoom: (deckOptions: any) => handleCreateRoom(getDisplayName(), deckOptions),
+    handleCreateRoom: (deckOptions?: DeckOptions) => handleCreateRoom(getDisplayName(), deckOptions),
     handleJoinRoom: (code: string) => handleJoinRoom(code, getDisplayName()),
     handleReturnToRoom, handleDeclineRoomResume,
     isCurrentPlayerHost,
