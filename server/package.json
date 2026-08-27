@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch index.js",
-    "build": "node --check index.js",
-    "generate:genki-lessons": "node scripts/generate-genki-lessons.js",
-    "generate:kanji": "node scripts/generate-kanji.js",
-    "seed:kana": "node scripts/seed-kana.js",
-    "start": "node index.js"
+    "dev": "tsx watch index.ts",
+    "build": "tsc --noEmit",
+    "generate:genki-lessons": "tsx scripts/generate-genki-lessons.ts",
+    "generate:kanji": "tsx scripts/generate-kanji.ts",
+    "seed:kana": "tsx scripts/seed-kana.ts",
+    "start": "tsx index.ts"
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
@@ -24,6 +24,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "@types/express": "^5.0.6",
+    "@types/hpp": "^0.2.7",
+    "nodemon": "^3.0.1",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
   }
 }

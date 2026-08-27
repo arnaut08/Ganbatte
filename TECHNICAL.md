@@ -4,8 +4,8 @@ This document contains setup, architecture, deployment, and implementation detai
 
 ## Technology Stack
 
-- Frontend: React 18, Vite, Socket.io Client
-- Backend: Node.js, Express.js, Socket.io
+- Frontend: React 18, Vite, Socket.io Client, TypeScript (strict mode)
+- Backend: Node.js, Express.js, Socket.io, TypeScript (strict mode)
 - Validation: Zod
 - Server middleware: Helmet, CORS, HPP, rate limiting, payload limits
 - Runtime: Node.js and npm
@@ -17,82 +17,105 @@ This document contains setup, architecture, deployment, and implementation detai
 Ganbatte/
 ├── client/
 │   ├── index.html
+│   ├── tsconfig.json
+│   ├── tailwind.config.ts
 │   ├── package.json
-│   ├── vite.config.js
+│   ├── vite.config.ts
 │   ├── .env.example
 │   └── src/
-│       ├── App.jsx
+│       ├── App.tsx
+│       ├── main.tsx
 │       ├── App.css
 │       ├── index.css
-│       ├── config.js
+│       ├── config.ts
 │       ├── assets/
 │       │   └── logo.svg
 │       ├── components/
-│       │   ├── AppHome.jsx
+│       │   ├── AppHome.tsx
 │       │   ├── auth/
-│       │   │   ├── AuthPage.jsx
-│       │   │   └── AuthPage.css
+│       │   │   └── AuthPage.tsx
 │       │   ├── common/
-│       │   │   └── BackButton.jsx
+│       │   │   └── BackButton.tsx
 │       │   ├── layout/
-│       │   │   └── AppHeader.jsx
+│       │   │   └── AppHeader.tsx
 │       │   ├── learning/
-│       │   │   ├── LearningScreen.jsx
-│       │   │   ├── KanjiStudy.jsx
-│       │   │   ├── KanjiStudy.css
-│       │   │   ├── AssessmentHistory.jsx
-│       │   │   ├── AssessmentHistory.css
-│       │   │   └── AssessmentLoadingScreen.jsx
+│       │   │   ├── LearningScreen.tsx
+│       │   │   ├── KanjiStudy.tsx
+│       │   │   ├── AssessmentHistory.tsx
+│       │   │   └── AssessmentLoadingScreen.tsx
 │       │   ├── practice/
-│       │   │   ├── PracticeScreen.jsx
-│       │   │   ├── Assessment.jsx
+│       │   │   ├── PracticeScreen.tsx
+│       │   │   ├── Assessment.tsx
 │       │   │   ├── Assessment.css
-│       │   │   ├── RoomLobby.jsx
+│       │   │   ├── RoomLobby.tsx
 │       │   │   ├── RoomLobby.css
-│       │   │   ├── GrammarPractice.jsx
-│       │   │   ├── Results.jsx
+│       │   │   ├── GrammarPractice.tsx
+│       │   │   ├── Results.tsx
 │       │   │   └── Results.css
 │       │   ├── social/
-│       │   │   └── FriendsPanel.jsx
+│       │   │   └── FriendsPanel.tsx
 │       │   └── ui/
-│       │       ├── alert.jsx
-│       │       ├── badge.jsx
-│       │       ├── button.jsx
-│       │       ├── card.jsx
-│       │       ├── checkbox.jsx
-│       │       ├── dropdown-menu.jsx
-│       │       ├── input.jsx
-│       │       ├── label.jsx
-│       │       ├── progress.jsx
-│       │       ├── separator.jsx
-│       │       ├── skeleton.jsx
-│       │       ├── switch.jsx
-│       │       └── table.jsx
+│       │       ├── alert.tsx
+│       │       ├── badge.tsx
+│       │       ├── button.tsx
+│       │       ├── card.tsx
+│       │       ├── checkbox.tsx
+│       │       ├── dropdown-menu.tsx
+│       │       ├── input.tsx
+│       │       ├── label.tsx
+│       │       ├── progress.tsx
+│       │       ├── separator.tsx
+│       │       ├── skeleton.tsx
+│       │       ├── switch.tsx
+│       │       └── table.tsx
 │       ├── config/
-│       │   └── supabase.js
+│       │   └── supabase.ts
+│       ├── contexts/
+│       │   ├── AppContext.tsx
+│       │   └── RoomContext.tsx
+│       ├── hooks/
+│       │   ├── useAppNavigation.ts
+│       │   ├── useAuth.ts
+│       │   ├── useFriends.ts
+│       │   ├── useRoomManager.ts
+│       │   ├── useRoomSocket.ts
+│       │   └── useToast.ts
 │       ├── lib/
-│       │   └── utils.js
+│       │   └── utils.ts
 │       ├── services/
-│       │   └── api.js
+│       │   └── api.ts
+│       ├── types/
+│       │   ├── base.ts
+│       │   ├── index.ts
+│       │   ├── learning.ts
+│       │   ├── navigation.ts
+│       │   ├── room.ts
+│       │   ├── social.ts
+│       │   └── toast.ts
 │       └── utils/
-│           ├── friendRefresh.js
-│           ├── grammarRoomSync.js
-│           ├── grammarScoring.js
-│           ├── navigation.js
-│           ├── romaji.js
-│           ├── roomStatus.js
-│           └── statusTransitions.js
+│           ├── friendRefresh.ts
+│           ├── grammarRoomSync.ts
+│           ├── grammarScoring.ts
+│           ├── kanaRecall.ts
+│           ├── kanjiRecall.ts
+│           ├── navigation.ts
+│           ├── romaji.ts
+│           ├── roomSession.ts
+│           ├── roomStatus.ts
+│           ├── statusTransitions.ts
+│           └── *test.ts (co-located unit tests)
 ├── server/
-│   ├── index.js
-│   ├── app.js
+│   ├── index.ts
+│   ├── app.ts
 │   ├── package.json
 │   ├── config/
-│   │   ├── env.js
-│   │   ├── redis.js
-│   │   └── supabase.js
+│   │   ├── env.ts
+│   │   ├── redis.ts
+│   │   └── supabase.ts
 │   ├── controllers/
-│   │   ├── assessment-controller.js
-│   │   └── friend-controller.js
+│   │   ├── assessment-controller.ts
+│   │   ├── friend-controller.ts
+│   │   └── game-controller.ts
 │   ├── database/
 │   │   └── migrations/
 │   │       ├── 001_create_kana_sentences.sql
@@ -101,27 +124,37 @@ Ganbatte/
 │   │       ├── 004_create_friendships.sql
 │   │       └── 005_create_friend_requests.sql
 │   ├── data/
-│   │   ├── kana-sentences.js
-│   │   └── kanji.js
+│   │   ├── kana-sentences.ts
+│   │   ├── kana.ts
+│   │   └── kanji.ts
 │   ├── middleware/
-│   │   ├── auth.js
-│   │   └── error-handler.js
+│   │   ├── auth.ts
+│   │   └── error-handler.ts
 │   ├── repositories/
-│   │   └── kana-sentence-repository.js
+│   │   ├── genki-lesson-repository.ts
+│   │   ├── kana-repository.ts
+│   │   ├── kana-sentence-repository.ts
+│   │   └── kanji-repository.ts
 │   ├── routes/
-│   │   ├── assessment-routes.js
-│   │   ├── friend-routes.js
-│   │   └── game-routes.js
+│   │   ├── assessment-routes.ts
+│   │   ├── friend-routes.ts
+│   │   ├── game-routes.ts
+│   │   └── grammar-lesson-routes.ts
 │   ├── services/
-│   │   ├── card-service.js
-│   │   ├── friend-service.js
-│   │   └── genki-grammar-service.js
+│   │   ├── card-service.ts
+│   │   ├── friend-service.ts
+│   │   ├── genki-grammar-service.ts
+│   │   ├── genki-lesson-service.ts
+│   │   └── kanji-service.ts
 │   ├── socket/
-│   │   └── socket-server.js
+│   │   └── socket-server.ts
+│   ├── types/
+│   │   ├── express.d.ts
+│   │   └── socket-events.ts
 │   └── utils/
-│       ├── romaji.js
-│       ├── socket-room-utils.js
-│       └── validation.js
+│       ├── romaji.ts
+│       ├── socket-room-utils.ts
+│       └── validation.ts
 ├── .github/
 │   └── copilot-instructions.md
 ├── package.json
@@ -134,6 +167,8 @@ Ganbatte/
 
 - Node.js 18 or newer
 - npm
+
+Both the client and server are fully TypeScript (strict mode). TypeScript is checked without emitting build artifacts, and both sides run through `tsx`, which executes the ESM TypeScript sources directly. The root `npm run typecheck` script type-checks both `client/tsconfig.json` and `server/tsconfig.json`.
 
 ## Installation
 
@@ -251,7 +286,7 @@ Configure a Render web service with:
 - `CLIENT_ORIGINS`: comma-separated allowed client origins
 - `REDIS_URL`: Redis connection URL for shared Socket.io rooms
 
-The server build command runs `node --check index.js` because the backend is plain JavaScript and does not require compilation.
+The server build command runs `tsc --noEmit` to type-check the TypeScript backend without producing build artifacts. The server runs through `tsx`, which executes the ESM TypeScript sources directly.
 
 ### Client on Vercel
 
@@ -279,7 +314,7 @@ The repository currently exposes `getRandomKanaSentences()` as the database acce
 
 ## Dataset and Randomization
 
-Sentence records are stored in `server/data/kana-sentences.js`.
+Sentence records are stored in `server/data/kana-sentences.ts`.
 
 The current dataset is generated from independent beginner vocabulary dimensions:
 
@@ -288,14 +323,14 @@ The current dataset is generated from independent beginner vocabulary dimensions
 - 20 activities
 - 6,000 unique sentence combinations
 
-`server/services/card-service.js` selects random records without duplicates within a deck. New rooms and the card-generation endpoint each receive a random set of 10 prompts.
+`server/services/card-service.ts` selects random records without duplicates within a deck. New rooms and the card-generation endpoint each receive a random set of 10 prompts.
 
 ## Romaji and Scoring
 
 - Answers are case-insensitive.
 - Whitespace is ignored during normalization.
 - `wo` is normalized to `o`.
-- Romaji is tokenized using `client/src/utils/romaji.js`.
+- Romaji is tokenized using `client/src/utils/romaji.ts`.
 - Each expected token is worth one possible point.
 - A token receives credit when it matches the expected token at the same position.
 - The percentage is calculated from matched tokens over expected tokens.
@@ -346,6 +381,8 @@ npm run server:dev
 npm run client:dev
 npm run build
 npm start
+npm run typecheck
+npm test
 ```
 
 Server:
@@ -367,9 +404,9 @@ npm run preview
 
 ## Customization
 
-- Add vocabulary dimensions or sentence templates in `server/data/kana-sentences.js`.
+- Add vocabulary dimensions or sentence templates in `server/data/kana-sentences.ts`.
 - Generate and review Kanji study records with `npm run generate:kanji`.
-- Adjust random deck selection in `server/services/card-service.js`.
-- Adjust scoring and difference behavior in `client/src/utils/romaji.js`.
+- Adjust random deck selection in `server/services/card-service.ts`.
+- Adjust scoring and difference behavior in `client/src/utils/romaji.ts`.
 - Update the logo in `client/src/assets/logo.svg`.
 - Customize the visual theme in the CSS files under `client/src/`.

@@ -2,60 +2,45 @@
 
 > Stop saying 'Nani?' to everything.
 
-Ganbatte is a real-time multiplayer Japanese kana reading assessment. Challenge a friend, practice reading Japanese, and build confidence with every question.
+Ganbatte is a friendly Japanese learning app for practising kana, N5 kanji, and Genki Volume 1 grammar. Study independently or invite a friend to a live, two-player assessment room.
 
-## Features
+## What you can do
 
-✨ **Play Together**: Challenge a friend in a live two-player room  
-🎲 **Fresh Questions**: Get a new selection of kana sentences every time  
-🈁 **Learn Japanese**: Practice hiragana and katakana with English translations  
-漢 **Study Kanji**: Learn the complete N5 Kanji set grouped by everyday themes<br>
-📚 **Study Grammar**: Browse structured Genki Volume 1 lesson summaries and practice each lesson<br>
-✍️ **Flexible Answers**: Type romaji naturally without worrying about capitalization or spacing  
-📊 **Clear Results**: See your percentage score and correctly answered questions  
-🔎 **Review Mistakes**: Compare your answer with the correct reading after each question  
-📱 **Play Anywhere**: Enjoy the assessment on desktop or mobile
+- Practise hiragana and katakana reading with English translations
+- Study N5 kanji grouped by practical themes
+- Review Genki Volume 1 grammar lessons
+- Challenge a friend in a real-time assessment room
+- Invite friends, share room codes, and resume room sessions
+- Submit flexible romaji answers with helpful feedback
+- Use hints, track readiness, compare results, and replay assessments
+- Review mistakes and build confidence through repeated practice
 
-## How to Play
+## How it works
 
-1. Enter your name and create a room, or join a room with its code.
-2. Share the room code or invite link with the second player.
-3. Start the assessment once both players are present.
-4. Read the kana sentence and type its romaji reading.
-5. Review your answer against the correct reading.
-6. Mark yourself ready to continue.
-7. View your final score and correctly answered questions.
-8. Choose **Generate New Set & Replay** to play another round.
+1. Choose a practice mode.
+2. Create a room or join one with a room code.
+3. Invite a friend or share the room link.
+4. Start the assessment when both players are ready.
+5. Read each prompt and enter its romaji reading.
+6. Review your answers and compare the final results.
 
-To study Kanji, choose **Study 100 N5 Kanji** from the practice screen, select a topic, and reveal each card's reading and meaning.
+Prefer to study alone? Explore the kanji cards and grammar lessons from the learning area.
 
-## Answer Tips
+## Answer tips
 
-- You can type uppercase or lowercase letters.
+- Uppercase and lowercase letters are accepted.
 - Extra spaces do not affect your answer.
-- Type the romaji reading using the Latin alphabet.
-- Alternative readings such as `wo` and `o` are accepted where appropriate.
-- After each question, check the highlighted differences to learn from mistakes.
+- Use the Latin alphabet for romaji readings.
+- Common alternatives such as `wo` and `o` are accepted where appropriate.
+- Review the answer feedback after every question to learn from mistakes.
 
-## Getting Started
+## Getting started
 
-For installation, local development, deployment, project structure, and technical details, see [TECHNICAL.md](TECHNICAL.md).
+Ganbatte is currently intended for local development and self-hosted deployments. For installation, configuration, database setup, deployment, project structure, and contributor workflows, see the [Technical Guide](TECHNICAL.md).
 
-## Future Enhancements
+## Development checks
 
-- [ ] Connect a persistent PostgreSQL database for sentence storage
-- [ ] Seed and manage 500+ reviewed N5 sentence records
-- [ ] Add authentication and user profiles
-- [ ] Add personal assessment history
-- [ ] Add beginner, intermediate, and advanced difficulty levels
-- [ ] Add kana-specific and vocabulary-specific learning modes
-- [x] Add Genki Volume 1 grammar explanations and learning tips
-- [ ] Add leaderboards and progress charts
-- [ ] Add spaced repetition and missed-question practice
-- [ ] Add room persistence and reconnect support
-- [ ] Add automated tests for core assessment flows
-- [ ] Add pronunciation audio and sound effects
-- [ ] Add a mobile app version
+Contributors should run the checks described in the [Technical Guide](TECHNICAL.md) before submitting changes.
 
 ## License
 
