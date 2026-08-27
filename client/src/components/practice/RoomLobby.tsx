@@ -62,42 +62,42 @@ function RoomLobby({
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+    <div className="mx-auto max-w-5xl px-3 py-3 sm:px-4 sm:py-8">
       {/* Screen Header Lockup */}
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-3.5 sm:mb-6 flex items-center gap-2.5 sm:gap-4">
         <button
           type="button"
           onClick={onLeaveRoom}
-          className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+          className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           title="Leave room"
         >
-          <span className="font-mono text-lg font-black">&lt;</span>
+          <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
         </button>
         <div className="flex flex-col justify-center">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-            // LOBBY: MULTIPLAYER
+          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
+        // LOBBY: MULTIPLAYER
           </span>
-          <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
+          <h1 className="text-base sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
             Match Setup
           </h1>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+      <div className="grid gap-3.5 sm:gap-6 lg:grid-cols-12 lg:items-start">
         {/* LEFT COLUMN: Controls & Players */}
-        <div className="space-y-6 lg:col-span-7">
+        <div className="space-y-3.5 sm:space-y-6 lg:col-span-7">
           {/* Room Code Hero Panel */}
-          <div className="flex flex-col items-center justify-center border-2 border-black bg-[#FFDE59] p-6 shadow-[6px_6px_0px_0px_#000000] sm:p-8">
-            <p className="font-mono text-xs font-black uppercase tracking-widest text-black/70">
+          <div className="flex flex-col items-center justify-center border-2 border-black bg-[#FFDE59] p-3.5 sm:p-8 text-center shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
+            <p className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-widest text-black/70">
               ROOM ACCESS CODE
             </p>
-            <div className="mt-2 border-2 border-black bg-black px-6 py-3 shadow-[4px_4px_0px_0px_#ffffff]">
-              <span className="font-mono text-4xl font-black tracking-[0.2em] text-[#FFDE59] sm:text-5xl">
+            <div className="mt-1.5 sm:mt-2 border-2 border-black bg-black px-4 py-1.5 sm:px-6 sm:py-3 shadow-[2.5px_2.5px_0px_0px_#ffffff] sm:shadow-[4px_4px_0px_0px_#ffffff]">
+              <span className="font-mono text-2xl sm:text-5xl font-black tracking-[0.15em] sm:tracking-[0.2em] text-[#FFDE59]">
                 {roomCode}
               </span>
             </div>
             {isHost && (
-              <p className="mt-4 text-xs font-black uppercase tracking-wider text-black/80">
+              <p className="mt-2 sm:mt-4 text-[10px] sm:text-xs font-black uppercase tracking-wider text-black/80">
                 Share this code to invite your opponent
               </p>
             )}
@@ -105,42 +105,41 @@ function RoomLobby({
 
           {/* Host Invitation Controls */}
           {isHost && (room?.players?.length || 0) < 2 && (
-            <div className="space-y-4">
+            <div className="space-y-2.5 sm:space-y-4">
               {/* Direct Link Bar */}
-              <div className="flex flex-col gap-2 border-2 border-black bg-[#1a1f2c] p-4 shadow-[4px_4px_0px_0px_#000000]">
-                <label className="font-mono text-[10px] font-black uppercase tracking-wider text-[#70CFF8]">
-                  // DIRECT INVITE LINK
+              <div className="flex flex-col gap-1.5 border-2 border-black bg-[#1a1f2c] p-2.5 sm:p-4 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+                <label className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-[#70CFF8]">
+              // DIRECT INVITE LINK
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 sm:gap-2">
                   <LegacyInput
                     value={joinLink}
                     readOnly
-                    className="h-10 flex-1 border-2 border-black bg-[#252c3d] px-3 font-mono text-xs font-bold text-white shadow-none focus-visible:ring-0"
+                    className="h-8 sm:h-10 flex-1 border-2 border-black bg-[#252c3d] px-2.5 sm:px-3 font-mono text-[10px] sm:text-xs font-bold text-white shadow-none focus-visible:ring-0"
                   />
                   <LegacyButton
                     onClick={handleCopyLink}
-                    className="flex h-10 shrink-0 items-center gap-2 border-2 border-black bg-white px-4 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    className="flex h-8 sm:h-10 shrink-0 items-center gap-1.5 border-2 border-black bg-white px-3 sm:px-4 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                   >
-                    {copied ? <CheckIcon className="h-4 w-4 text-green-600" /> : <CopyIcon className="h-4 w-4" />}
+                    {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-600" /> : <CopyIcon className="h-3.5 w-3.5" />}
                     {copied ? 'Copied' : 'Copy'}
                   </LegacyButton>
                 </div>
               </div>
 
               {/* Inline Expandable Friend Picker */}
-              <div className="border-2 border-black bg-[#1a1f2c] p-4 shadow-[4px_4px_0px_0px_#000000]">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-[10px] font-black uppercase tracking-wider text-[#A3E636]">
-                      // ONLINE FRIENDS
+              <div className="border-2 border-black bg-[#1a1f2c] p-2.5 sm:p-4 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+                <div className="flex items-center justify-between gap-2 sm:gap-4">
+                  <div className="flex flex-col gap-0.5 sm:gap-1">
+                    <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-[#A3E636]">
+                  // ONLINE FRIENDS
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <span
-                        className={`h-2.5 w-2.5 border border-black ${
-                          onlineFriends.length > 0 ? 'animate-pulse bg-[#A3E636]' : 'bg-neutral-500'
-                        }`}
+                        className={`h-2 w-2 sm:h-2.5 sm:w-2.5 border border-black ${onlineFriends.length > 0 ? 'animate-pulse bg-[#A3E636]' : 'bg-neutral-500'
+                          }`}
                       />
-                      <span className="text-sm font-black text-white">
+                      <span className="text-xs sm:text-sm font-black text-white">
                         {onlineFriends.length > 0
                           ? `${onlineFriends.length} friend${onlineFriends.length > 1 ? 's' : ''} available`
                           : 'No friends online'}
@@ -152,7 +151,7 @@ function RoomLobby({
                     size="sm"
                     onClick={() => setIsInviteOpen((prev) => !prev)}
                     disabled={onlineFriends.length === 0}
-                    className="h-9 shrink-0 border-2 border-black bg-[#70CFF8] px-3 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#5bc2ed] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:border-black/50 disabled:bg-neutral-700 disabled:text-neutral-400 disabled:shadow-none"
+                    className="h-7 sm:h-9 shrink-0 border-2 border-black bg-[#70CFF8] px-2.5 sm:px-3 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#5bc2ed] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:border-black/50 disabled:bg-neutral-700 disabled:text-neutral-400 disabled:shadow-none"
                   >
                     {isInviteOpen ? 'Close' : `Invite (${onlineFriends.length})`}
                   </LegacyButton>
@@ -160,14 +159,14 @@ function RoomLobby({
 
                 {/* Scrollable Accordion Content */}
                 {isInviteOpen && onlineFriends.length > 0 && (
-                  <div className="mt-3 border-t-2 border-black/40 pt-3">
-                    <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
+                  <div className="mt-2.5 sm:mt-3 border-t-2 border-black/40 pt-2.5 sm:pt-3">
+                    <div className="max-h-36 sm:max-h-40 space-y-1.5 sm:space-y-2 overflow-y-auto pr-1">
                       {onlineFriends.map((friend) => (
                         <div
                           key={friend.user_id || friend.id}
-                          className="flex items-center justify-between gap-2 border-2 border-black bg-[#252c3d] p-2.5 shadow-[2px_2px_0px_0px_#000000]"
+                          className="flex items-center justify-between gap-2 border-2 border-black bg-[#252c3d] p-2 sm:p-2.5 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]"
                         >
-                          <span className="truncate text-xs font-black uppercase text-white">
+                          <span className="truncate text-[11px] sm:text-xs font-black uppercase text-white">
                             {friend.display_name || 'Friend'}
                           </span>
                           <LegacyButton
@@ -179,7 +178,7 @@ function RoomLobby({
                                 setIsInviteOpen(false);
                               }
                             }}
-                            className="h-7 shrink-0 border-2 border-black bg-[#FFDE59] px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000000] hover:bg-[#ffe77f] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                            className="h-6 sm:h-7 shrink-0 border-2 border-black bg-[#FFDE59] px-2 sm:px-2.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000000] hover:bg-[#ffe77f] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                           >
                             Invite
                           </LegacyButton>
@@ -193,15 +192,15 @@ function RoomLobby({
           )}
 
           {/* Players List Panel */}
-          <div className="border-2 border-black bg-[#1a1f2c] p-5 shadow-[4px_4px_0px_0px_#000000] sm:p-6">
-            <div className="mb-4 flex items-center justify-between border-b-2 border-black/40 pb-3">
-              <h3 className="text-lg font-black uppercase tracking-tight text-white">Players</h3>
-              <span className="border-2 border-black bg-[#A3E636] px-2.5 py-0.5 font-mono text-xs font-black text-black shadow-[2px_2px_0px_0px_#000000]">
+          <div className="border-2 border-black bg-[#1a1f2c] p-3.5 sm:p-6 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+            <div className="mb-2.5 sm:mb-4 flex items-center justify-between border-b-2 border-black/40 pb-2 sm:pb-3">
+              <h3 className="text-sm sm:text-lg font-black uppercase tracking-tight text-white">Players</h3>
+              <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[10px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
                 {room?.players?.length || 0}/2 CONNECTED
               </span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {(room?.players || []).map((player, idx) => {
                 const isCurrentUser = player.userId && currentUserId && player.userId === currentUserId;
                 const presence = getPlayerPresenceStatus(player as never);
@@ -209,47 +208,45 @@ function RoomLobby({
                 return (
                   <div
                     key={player.id || idx}
-                    className="flex items-center gap-3 border-2 border-black bg-[#252c3d] p-3 shadow-[3px_3px_0px_0px_#000000]"
+                    className="flex items-center gap-2.5 sm:gap-3 border-2 border-black bg-[#252c3d] p-2 sm:p-3 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]"
                   >
                     <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center border-2 border-black font-mono font-black text-black shadow-[2px_2px_0px_0px_#000000] ${
-                        idx === 0 ? 'bg-[#FFDE59]' : 'bg-[#70CFF8]'
-                      }`}
+                      className={`flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center border-2 border-black font-mono text-xs sm:font-mono font-black text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] ${idx === 0 ? 'bg-[#FFDE59]' : 'bg-[#70CFF8]'
+                        }`}
                     >
                       P{idx + 1}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-bold text-white text-sm">{player.name}</p>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <p className="truncate font-bold text-white text-xs sm:text-sm">{player.name}</p>
                         {isCurrentUser && (
-                          <span className="shrink-0 font-mono text-[10px] font-black text-[#A3E636]">
+                          <span className="shrink-0 font-mono text-[9px] sm:text-[10px] font-black text-[#A3E636]">
                             (YOU)
                           </span>
                         )}
                       </div>
-                      <p className="font-mono text-[10px] font-black uppercase text-neutral-400">
+                      <p className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-400">
                         {idx === 0 ? 'HOST' : 'GUEST'}
                       </p>
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
                       <span
-                        className={`border-2 border-black px-2 py-0.5 font-mono text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000000] ${
-                          presence === 'disconnected'
+                        className={`border-2 border-black px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000000] ${presence === 'disconnected'
                             ? 'bg-[#FF6B6B]'
                             : presence === 'away'
-                            ? 'bg-[#FFDE59]'
-                            : 'bg-[#A3E636]'
-                        }`}
+                              ? 'bg-[#FFDE59]'
+                              : 'bg-[#A3E636]'
+                          }`}
                       >
                         {presence === 'disconnected'
                           ? 'Offline'
                           : presence === 'away'
-                          ? 'Away'
-                          : presence === 'ready'
-                          ? 'Ready'
-                          : 'In Lobby'}
+                      ? 'Away'
+                        : presence === 'ready'
+                        ? 'Ready'
+                      : 'In Lobby'}
                       </span>
                     </div>
                   </div>
@@ -258,25 +255,25 @@ function RoomLobby({
 
               {/* Empty Slot */}
               {(room?.players?.length || 0) === 1 && (
-                <div className="flex items-center gap-3 border-2 border-dashed border-neutral-600 bg-black/20 p-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center border-2 border-dashed border-neutral-600 font-mono text-base font-black text-neutral-500">
+                <div className="flex items-center gap-2.5 sm:gap-3 border-2 border-dashed border-neutral-600 bg-black/20 p-2 sm:p-3">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center border-2 border-dashed border-neutral-600 font-mono text-xs sm:text-base font-black text-neutral-500">
                     ?
                   </div>
                   <div>
-                    <p className="font-bold text-neutral-400 text-sm">Waiting for opponent...</p>
-                    <p className="font-mono text-[10px] text-neutral-500 uppercase">Slot Available</p>
+                    <p className="font-bold text-neutral-400 text-xs sm:text-sm">Waiting for opponent...</p>
+                    <p className="font-mono text-[9px] sm:text-[10px] text-neutral-500 uppercase">Slot Available</p>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-6 grid grid-cols-2 gap-3 pt-2">
+            <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-2 sm:gap-3 pt-1 sm:pt-2">
               <LegacyButton
                 size="lg"
                 variant="secondary"
                 onClick={onLeaveRoom}
-                className="h-11 border-2 border-black bg-[#FF6B6B] text-black hover:bg-[#ff8585] shadow-[3px_3px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none font-black uppercase text-sm"
+                className="h-9 sm:h-11 border-2 border-black bg-[#FF6B6B] text-black hover:bg-[#ff8585] shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none font-black uppercase text-xs sm:text-sm"
               >
                 Leave
               </LegacyButton>
@@ -284,19 +281,18 @@ function RoomLobby({
                 size="lg"
                 onClick={onStartAssessment}
                 disabled={!isReady || isPreparingAssessment || !isHost}
-                className={`h-11 border-2 border-black font-black uppercase text-black text-sm shadow-[3px_3px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-                  !isReady || isPreparingAssessment || !isHost
+                className={`h-9 sm:h-11 border-2 border-black font-black uppercase text-black text-xs sm:text-sm shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${!isReady || isPreparingAssessment || !isHost
                     ? 'bg-neutral-600 opacity-60 cursor-not-allowed shadow-none text-neutral-300'
                     : 'bg-[#A3E636] hover:bg-[#b5eb5b]'
-                }`}
+                  }`}
               >
                 {isPreparingAssessment
                   ? 'Preparing...'
                   : !isHost
-                  ? 'Wait for Host'
-                  : isReady
-                  ? 'Start Match'
-                  : 'Waiting...'}
+                    ? 'Wait for Host'
+                    : isReady
+                      ? 'Start Match'
+                      : 'Waiting...'}
               </LegacyButton>
             </div>
           </div>
@@ -304,44 +300,44 @@ function RoomLobby({
 
         {/* RIGHT COLUMN: Rulebook */}
         <div className="lg:col-span-5">
-          <div className="border-2 border-black bg-[#A3E636] p-6 shadow-[6px_6px_0px_0px_#000000]">
-            <h3 className="mb-4 font-mono text-xs font-black uppercase tracking-widest text-black">
-              // HOW TO PLAY
+          <div className="border-2 border-black bg-[#A3E636] p-3.5 sm:p-6 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
+            <h3 className="mb-2 sm:mb-4 font-mono text-[10px] sm:text-xs font-black uppercase tracking-widest text-black">
+          // HOW TO PLAY
             </h3>
-            <ul className="space-y-3 font-semibold text-xs text-black leading-relaxed">
-              <li className="flex gap-2.5">
-                <span className="mt-1 h-2 w-2 shrink-0 bg-black" />
+            <ul className="space-y-2 sm:space-y-3 font-semibold text-[11px] sm:text-xs text-black leading-snug sm:leading-relaxed">
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 bg-black" />
                 <span>The host shares the room code or invite link, then both players join.</span>
               </li>
-              <li className="flex gap-2.5">
-                <span className="mt-1 h-2 w-2 shrink-0 bg-black" />
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 bg-black" />
                 <span>
                   Each round shows the same{' '}
                   {isKanjiAssessment
                     ? 'kanji'
                     : room?.deckType === 'grammar'
-                    ? 'grammar question'
-                    : 'kana sentence'}{' '}
+                      ? 'grammar question'
+                      : 'kana sentence'}{' '}
                   to both players.
                 </span>
               </li>
-              <li className="flex gap-2.5">
-                <span className="mt-1 h-2 w-2 shrink-0 bg-black" />
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 bg-black" />
                 <span>
                   {isKanjiAssessment
                     ? 'Read the kanji and type its romaji reading'
                     : room?.deckType === 'grammar'
-                    ? 'Answer the grammar prompt, then press Ready'
-                    : 'Type the romaji reading for the kana sentence'}{' '}
+                      ? 'Answer the grammar prompt, then press Ready'
+                      : 'Type the romaji reading for the kana sentence'}{' '}
                   and submit. Spacing is flexible.
                 </span>
               </li>
-              <li className="flex gap-2.5">
-                <span className="mt-1 h-2 w-2 shrink-0 bg-black" />
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 bg-black" />
                 <span>After both submissions, answers are revealed and the next card starts automatically.</span>
               </li>
-              <li className="flex gap-2.5">
-                <span className="mt-1 h-2 w-2 shrink-0 bg-black" />
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 bg-black" />
                 <span>At the end, you get per-player accuracy stats and an answer review.</span>
               </li>
             </ul>

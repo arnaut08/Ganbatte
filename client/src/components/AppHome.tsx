@@ -75,7 +75,7 @@ function AppHome({
   }, [prefillRoomCode, roomCode]);
 
   useEffect(() => {
-    getKanjiCards().then((data) => setKanjiGroups(data.groups || [])).catch(() => {});
+    getKanjiCards().then((data) => setKanjiGroups(data.groups || [])).catch(() => { });
   }, []);
 
   const handleGroupToggle = (groupId: string | number) => {
@@ -111,96 +111,67 @@ function AppHome({
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-4">
+    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-3 sm:p-4">
       <div className="w-full max-w-5xl">
         {screen === 'home' ? (
-          <div className="space-y-8 sm:space-y-10">
+          <div className="space-y-5 sm:space-y-10">
             {/* --- HERO SECTION --- */}
-            <div className="text-center space-y-3 sm:space-y-4">
+            <div className="text-center space-y-2 sm:space-y-4">
               {/* Status Badge */}
-              <div className="inline-flex items-center gap-2 border-2 border-black bg-[#FFDE59] px-3 py-1 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000]">
-                <span className="relative flex h-2 w-2">
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 border-2 border-black bg-[#FFDE59] px-2.5 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000]">
+                <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#A3E636] opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#A3E636]" />
+                  <span className="relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-[#A3E636]" />
                 </span>
                 <span>CO-OP READY // KANA · KANJI · GRAMMAR</span>
               </div>
 
               {/* Heading */}
-              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white leading-tight">
+              <h1 className="text-2xl sm:text-5xl font-black uppercase tracking-tight text-white leading-tight">
                 Master Japanese{' '}
-                <span className="border-b-4 border-[#A3E636] text-[#A3E636]">
+                <span className="border-b-[3px] sm:border-b-4 border-[#A3E636] text-[#A3E636]">
                   Together
                 </span>
               </h1>
 
               {/* Cooperative Hero Subtext */}
-              <p className="mx-auto max-w-xl font-mono text-xs sm:text-sm font-bold text-white/70">
+              <p className="mx-auto max-w-xl font-mono text-[11px] sm:text-sm font-bold text-white/70 leading-snug sm:leading-normal">
                 Build your character and grammar foundation, then team up in live co-op rooms to practice together.
               </p>
-
-              {/* Note: Uncomment this once streak, progress and live rooms tracking is implemented */}
-              {/* Quick Stats Strip */}
-              {/* <div className="mx-auto grid max-w-2xl grid-cols-3 gap-2.5 pt-2 sm:gap-4">
-                <div className="border-2 border-black bg-[#1f2637] p-2.5 text-center shadow-[3px_3px_0px_0px_#000000] sm:p-3">
-                  <span className="block font-mono text-[10px] font-bold uppercase tracking-wider text-white/60 sm:text-xs">
-                    Streak
-                  </span>
-                  <span className="font-mono text-sm font-black text-[#FF6B6B] sm:text-lg">
-                    🔥 5 DAYS
-                  </span>
-                </div>
-                <div className="border-2 border-black bg-[#1f2637] p-2.5 text-center shadow-[3px_3px_0px_0px_#000000] sm:p-3">
-                  <span className="block font-mono text-[10px] font-bold uppercase tracking-wider text-white/60 sm:text-xs">
-                    Mastered
-                  </span>
-                  <span className="font-mono text-sm font-black text-[#FFDE59] sm:text-lg">
-                    46 KANA
-                  </span>
-                </div>
-                <div className="border-2 border-black bg-[#1f2637] p-2.5 text-center shadow-[3px_3px_0px_0px_#000000] sm:p-3">
-                  <span className="block font-mono text-[10px] font-bold uppercase tracking-wider text-white/60 sm:text-xs">
-                    Study Rooms
-                  </span>
-                  <span className="font-mono text-sm font-black text-[#A3E636] sm:text-lg">
-                    🤝 8 ACTIVE
-                  </span>
-                </div>
-              </div> */}
             </div>
 
             {/* --- CORE ACTION CARDS --- */}
-            <div className="grid gap-6 sm:gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+            <div className="grid gap-4 sm:gap-8 md:grid-cols-2 max-w-4xl mx-auto">
               {/* Card 1: Learning */}
-              <Card className="relative overflow-hidden bg-[#FFDE59] border-2 border-black shadow-[6px_6px_0px_0px_#000000] p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000000]">
-                <span className="absolute -right-4 -bottom-6 text-[140px] font-black text-black/[0.07] pointer-events-none select-none leading-none font-mono">
+              <Card className="relative overflow-hidden bg-[#FFDE59] border-2 border-black shadow-[4px_4px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] p-4 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000000]">
+                <span className="absolute -right-3 -bottom-4 sm:-right-4 sm:-bottom-6 text-[100px] sm:text-[140px] font-black text-black/[0.07] pointer-events-none select-none leading-none font-mono">
                   学
                 </span>
 
-                <CardHeader className="p-0 pb-6 relative z-10">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="border-2 border-black bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-[#FFDE59]">
+                <CardHeader className="p-0 pb-3 sm:pb-6 relative z-10">
+                  <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                    <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#FFDE59]">
                       01 // Foundation
                     </span>
-                    <span className="font-mono text-xs font-bold text-black/60 tracking-wider">
+                    <span className="font-mono text-[10px] sm:text-xs font-bold text-black/60 tracking-wider">
                       [SOLO MODE]
                     </span>
                   </div>
 
-                  <CardTitle className="text-3xl font-black uppercase tracking-tight text-black mt-1">
+                  <CardTitle className="text-xl sm:text-3xl font-black uppercase tracking-tight text-black mt-1">
                     Learning
                   </CardTitle>
 
-                  <CardDescription className="text-sm font-bold text-black/80 mt-2 leading-relaxed">
+                  <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 sm:mt-2 leading-snug sm:leading-relaxed">
                     Study essential Japanese characters (Hiragana, Katakana, Kanji) at your own pace.
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="p-0 pt-4 relative z-10">
+                <CardContent className="p-0 pt-2 sm:pt-4 relative z-10">
                   <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('learning')}
-                    className="w-full py-6 text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    className="w-full py-3 sm:py-6 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
                     Explore Learning →
                   </LegacyButton>
@@ -208,35 +179,35 @@ function AppHome({
               </Card>
 
               {/* Card 2: Assessment */}
-              <Card className="relative overflow-hidden bg-[#70CFF8] border-2 border-black shadow-[6px_6px_0px_0px_#000000] p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000000]">
-                <span className="absolute -right-4 -bottom-6 text-[140px] font-black text-black/[0.07] pointer-events-none select-none leading-none font-mono">
+              <Card className="relative overflow-hidden bg-[#70CFF8] border-2 border-black shadow-[4px_4px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] p-4 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000000]">
+                <span className="absolute -right-3 -bottom-4 sm:-right-4 sm:-bottom-6 text-[100px] sm:text-[140px] font-black text-black/[0.07] pointer-events-none select-none leading-none font-mono">
                   試
                 </span>
 
-                <CardHeader className="p-0 pb-6 relative z-10">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="border-2 border-black bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-[#70CFF8]">
+                <CardHeader className="p-0 pb-3 sm:pb-6 relative z-10">
+                  <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                    <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#70CFF8]">
                       02 // Practice
                     </span>
-                    <span className="font-mono text-xs font-bold text-black/60 tracking-wider">
+                    <span className="font-mono text-[10px] sm:text-xs font-bold text-black/60 tracking-wider">
                       [1v1 LIVE]
                     </span>
                   </div>
 
-                  <CardTitle className="text-3xl font-black uppercase tracking-tight text-black mt-1">
+                  <CardTitle className="text-xl sm:text-3xl font-black uppercase tracking-tight text-black mt-1">
                     Assessment
                   </CardTitle>
 
-                  <CardDescription className="text-sm font-bold text-black/80 mt-2 leading-relaxed">
+                  <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 sm:mt-2 leading-snug sm:leading-relaxed">
                     Challenge friends in real-time rooms or test your speed and accuracy against the clock.
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="p-0 pt-4 relative z-10">
+                <CardContent className="p-0 pt-2 sm:pt-4 relative z-10">
                   <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('practice')}
-                    className="w-full py-6 text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    className="w-full py-3 sm:py-6 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
                     Start Assessment →
                   </LegacyButton>
