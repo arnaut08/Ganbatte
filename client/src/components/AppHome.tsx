@@ -142,7 +142,7 @@ function AppHome({
 
             {/* --- CORE ACTION CARDS --- */}
             <div className="grid gap-4 sm:gap-8 md:grid-cols-2 max-w-4xl mx-auto">
-              {/* Card 1: Learning */}
+              {/* Card 1: Study & Recall */}
               <Card className="relative overflow-hidden bg-[#FFDE59] border-2 border-black shadow-[4px_4px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] p-4 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000000]">
                 <span className="absolute -right-3 -bottom-4 sm:-right-4 sm:-bottom-6 text-[100px] sm:text-[140px] font-black text-black/[0.07] pointer-events-none select-none leading-none font-mono">
                   学
@@ -151,19 +151,19 @@ function AppHome({
                 <CardHeader className="p-0 pb-3 sm:pb-6 relative z-10">
                   <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
                     <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#FFDE59]">
-                      01 // Foundation
+                      01 // SOLO DRILL
                     </span>
                     <span className="font-mono text-[10px] sm:text-xs font-bold text-black/60 tracking-wider">
-                      [SOLO MODE]
+                      [SELF PACED]
                     </span>
                   </div>
 
                   <CardTitle className="text-xl sm:text-3xl font-black uppercase tracking-tight text-black mt-1">
-                    Learning
+                    Study &amp; Recall
                   </CardTitle>
 
                   <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 sm:mt-2 leading-snug sm:leading-relaxed">
-                    Study essential Japanese characters (Hiragana, Katakana, Kanji) at your own pace.
+                    Practice Kana, Kanji, and Genki Grammar points through active recall and flashcards at your own pace.
                   </CardDescription>
                 </CardHeader>
 
@@ -173,12 +173,12 @@ function AppHome({
                     onClick={() => setScreen('learning')}
                     className="w-full py-3 sm:py-6 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
-                    Explore Learning →
+                    Start Study Deck →
                   </LegacyButton>
                 </CardContent>
               </Card>
 
-              {/* Card 2: Assessment */}
+              {/* Card 2: Live Co-Op Room */}
               <Card className="relative overflow-hidden bg-[#70CFF8] border-2 border-black shadow-[4px_4px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] p-4 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000000]">
                 <span className="absolute -right-3 -bottom-4 sm:-right-4 sm:-bottom-6 text-[100px] sm:text-[140px] font-black text-black/[0.07] pointer-events-none select-none leading-none font-mono">
                   試
@@ -187,19 +187,19 @@ function AppHome({
                 <CardHeader className="p-0 pb-3 sm:pb-6 relative z-10">
                   <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
                     <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#70CFF8]">
-                      02 // Practice
+                      02 // MULTIPLAYER
                     </span>
                     <span className="font-mono text-[10px] sm:text-xs font-bold text-black/60 tracking-wider">
-                      [1v1 LIVE]
+                      [1v1 BATTLE]
                     </span>
                   </div>
 
                   <CardTitle className="text-xl sm:text-3xl font-black uppercase tracking-tight text-black mt-1">
-                    Assessment
+                    Live Co-Op Room
                   </CardTitle>
 
                   <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 sm:mt-2 leading-snug sm:leading-relaxed">
-                    Challenge friends in real-time rooms or test your speed and accuracy against the clock.
+                    Create a live room, challenge friends with custom decks, and test accuracy and speed head-to-head.
                   </CardDescription>
                 </CardHeader>
 
@@ -209,7 +209,7 @@ function AppHome({
                     onClick={() => setScreen('practice')}
                     className="w-full py-3 sm:py-6 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
-                    Start Assessment →
+                    Enter Match Lobby →
                   </LegacyButton>
                 </CardContent>
               </Card>
