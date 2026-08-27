@@ -315,23 +315,23 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
   }));
 
   return (
-    <main className="container mx-auto max-w-3xl space-y-6 px-4 py-6">
-      {/* 1. Cleaned-Up Header Bar */}
-      <div className="flex items-center gap-4">
+    <main className="container mx-auto max-w-3xl space-y-3.5 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
+      {/* 1. Header Bar */}
+      <div className="flex items-center gap-2.5 sm:gap-4">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           title="Back to previous screen"
         >
-          <span className="font-mono text-lg font-black">&lt;</span>
+          <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
         </button>
 
         <div>
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-            // PRACTICE: KANJI DECK
+          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
+        // PRACTICE: KANJI DECK
           </span>
-          <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight sm:text-3xl">
+          <h1 className="text-base sm:text-3xl font-black uppercase tracking-tight text-white leading-tight">
             Reading Foundation
           </h1>
         </div>
@@ -339,16 +339,26 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
 
       {/* 2. Review Screen */}
       {!isLoading && !error && isReviewing && (
-        <section className="space-y-5 border-2 border-black bg-[#FFDE59] p-5 text-black shadow-[6px_6px_0px_0px_#000000] sm:p-8">
-          <div className="border-b-2 border-black pb-4">
-            <span className="font-mono text-xs font-black uppercase tracking-wider">// SESSION REVIEW</span>
-            <h2 className="mt-1 text-3xl font-black uppercase tracking-tight">Sort your confidence</h2>
-            <p className="mt-2 text-sm font-bold">Move any character that changed for you. Only moved characters will be updated.</p>
+        <section className="space-y-3.5 sm:space-y-5 border-2 border-black bg-[#FFDE59] p-3.5 text-black shadow-[3px_3px_0px_0px_#000000] sm:p-8 sm:shadow-[6px_6px_0px_0px_#000000]">
+          <div className="border-b-2 border-black pb-2.5 sm:pb-4">
+            <span className="font-mono text-[9px] sm:text-xs font-black uppercase tracking-wider">
+          // SESSION REVIEW
+            </span>
+            <h2 className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-black uppercase tracking-tight">
+              Sort your confidence
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm font-bold leading-tight">
+              Move any character that changed for you. Only moved characters will be updated.
+            </p>
           </div>
 
-          {reviewError && <div className="border-2 border-black bg-[#FF6B6B] p-3 font-mono text-xs font-black uppercase">{reviewError}</div>}
+          {reviewError && (
+            <div className="border-2 border-black bg-[#FF6B6B] p-2 font-mono text-[10px] sm:text-xs font-black uppercase">
+              {reviewError}
+            </div>
+          )}
 
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
             {confidenceLevels.map(({ level, label, icon: Icon, color }) => {
               const levelKey = level || 'unrated';
               const items = reviewItems.filter((item) => item.confidence === level);
@@ -361,22 +371,25 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
                     const character = event.dataTransfer.getData('text/plain');
                     if (character) moveReviewCard(character, level as ConfidenceLevel | null);
                   }}
-                  className="min-h-40 border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000]"
+                  className="min-h-28 sm:min-h-40 border-2 border-black bg-white p-2 sm:p-3 shadow-[2px_2px_0px_0px_#000]"
                 >
-                  <div className="flex items-center gap-2 border-b-2 border-black pb-2">
-                    <span className="flex h-8 w-8 items-center justify-center border-2 border-black" style={{ backgroundColor: color }}>
-                      {Icon ? <Icon className="h-4 w-4 text-black" aria-hidden="true" /> : <span className="font-black text-black">?</span>}
+                  <div className="flex items-center gap-1.5 border-b-2 border-black pb-1 sm:pb-2">
+                    <span
+                      className="flex h-5 w-5 sm:h-8 sm:w-8 items-center justify-center border-2 border-black shadow-[1px_1px_0px_0px_#000]"
+                      style={{ backgroundColor: color }}
+                    >
+                      {Icon ? <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-black" aria-hidden="true" /> : <span className="font-black text-[10px] text-black">?</span>}
                     </span>
-                    <span className="font-mono text-xs font-black uppercase">{label}</span>
-                    <span className="ml-auto font-mono text-xs font-black">{items.length}</span>
+                    <span className="font-mono text-[9px] sm:text-xs font-black uppercase truncate">{label}</span>
+                    <span className="ml-auto font-mono text-[9px] sm:text-xs font-black">{items.length}</span>
                   </div>
-                  <div className="mt-3 flex min-h-20 flex-wrap content-start gap-2">
+                  <div className="mt-1.5 flex min-h-12 sm:min-h-20 flex-wrap content-start gap-1 sm:gap-2">
                     {items.map((item) => (
                       <div
                         key={item.kanji}
                         draggable
                         onDragStart={(event) => event.dataTransfer.setData('text/plain', item.kanji)}
-                        className="flex h-12 w-12 cursor-grab items-center justify-center border-2 border-black bg-[#F3F4F6] text-2xl font-black shadow-[2px_2px_0px_0px_#000] active:cursor-grabbing"
+                        className="flex h-7 w-7 sm:h-12 sm:w-12 cursor-grab items-center justify-center border-2 border-black bg-[#F3F4F6] text-sm sm:text-2xl font-black shadow-[1px_1px_0px_0px_#000] active:cursor-grabbing"
                         title={`Move ${item.kanji}`}
                         aria-label={`${item.kanji}, ${label}`}
                       >
@@ -389,42 +402,56 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
             })}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-black pt-4">
-            <span className="font-mono text-xs font-black uppercase">{Object.keys(reviewChanges).length} ratings changed</span>
-            <button type="button" onClick={saveReview} disabled={isSavingReview} className="border-2 border-black bg-black px-6 py-3 font-mono text-sm font-black uppercase text-[#FFDE59] shadow-[4px_4px_0px_0px_#000] disabled:cursor-wait disabled:opacity-50">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black pt-2.5 sm:pt-4">
+            <span className="font-mono text-[9px] sm:text-xs font-black uppercase">
+              {Object.keys(reviewChanges).length} ratings changed
+            </span>
+            <button
+              type="button"
+              onClick={saveReview}
+              disabled={isSavingReview}
+              className="border-2 border-black bg-black px-3.5 py-1.5 sm:px-6 sm:py-3 font-mono text-[10px] sm:text-sm font-black uppercase text-[#FFDE59] shadow-[2px_2px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] disabled:cursor-wait disabled:opacity-50"
+            >
               {isSavingReview ? 'Saving...' : 'Save review'}
             </button>
           </div>
         </section>
       )}
 
-      {/* 3. Streamlined Setup Screen */}
+      {/* 3. Setup Screen */}
       {!isLoading && !error && !isLearning && !isReviewing && (
-        <section className="space-y-6 border-2 border-black bg-[#FFDE59] p-6 text-black shadow-[6px_6px_0px_0px_#000000] sm:p-8">
-          <div className="border-b-2 border-black pb-4">
-            <span className="font-mono text-xs font-black uppercase tracking-wider">// STUDY SETUP</span>
-            <h2 className="mt-1 text-3xl font-black uppercase tracking-tight">Choose your Kanji mission</h2>
-            <p className="mt-2 max-w-2xl text-sm font-bold">
+        <section className="space-y-4 sm:space-y-6 border-2 border-black bg-[#FFDE59] p-3.5 text-black shadow-[3px_3px_0px_0px_#000000] sm:p-8 sm:shadow-[6px_6px_0px_0px_#000000]">
+          <div className="border-b-2 border-black pb-2.5 sm:pb-4">
+            <span className="font-mono text-[9px] sm:text-xs font-black uppercase tracking-wider">
+          // STUDY SETUP
+            </span>
+            <h2 className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-black uppercase tracking-tight">
+              Choose your Kanji mission
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm font-bold leading-tight text-black/90">
               Select your prompt mode, target groups, and confidence levels to shape your practice session.
             </p>
           </div>
 
           {/* Prompt Mode Selector */}
           <div>
-            <h3 className="font-mono text-xs font-black uppercase text-black">1. Prompt Mode</h3>
-            <div className="mt-2.5 grid gap-3 sm:grid-cols-2">
+            <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase text-black">
+              1. Prompt Mode
+            </h3>
+            <div className="mt-1.5 sm:mt-2.5 grid gap-2 sm:gap-3 sm:grid-cols-2">
               {Object.entries(KANJI_PROMPT_MODES).map(([label, mode]) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setPromptMode(mode)}
-                  className={`border-2 border-black p-4 text-left font-mono shadow-[3px_3px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
-                    promptMode === mode ? 'bg-[#A3E636] text-black' : 'bg-white hover:bg-neutral-100'
-                  }`}
+                  className={`border-2 border-black p-2.5 sm:p-4 text-left font-mono shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${promptMode === mode ? 'bg-[#A3E636] text-black' : 'bg-white hover:bg-neutral-100'
+                    }`}
                 >
-                  <span className="block text-xs font-black uppercase">{label} mode</span>
-                  <span className="mt-1 block text-xs font-bold text-black/80">
-                    {mode === KANJI_PROMPT_MODES.READING ? 'Type the romaji reading for each Kanji.' : 'Type the English meaning for each Kanji.'}
+                  <span className="block text-[11px] sm:text-xs font-black uppercase">{label} mode</span>
+                  <span className="mt-0.5 block text-[10px] sm:text-xs font-bold text-black/80 leading-tight">
+                    {mode === KANJI_PROMPT_MODES.READING
+                      ? 'Type the romaji reading for each Kanji.'
+                      : 'Type the English meaning for each Kanji.'}
                   </span>
                 </button>
               ))}
@@ -434,19 +461,20 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
           {/* Group Filter Section */}
           <div>
             <div className="flex items-center justify-between gap-2">
-              <h3 className="font-mono text-xs font-black uppercase text-black">2. Kanji Groups</h3>
+              <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase text-black">
+                2. Kanji Groups
+              </h3>
               <button
                 type="button"
                 onClick={selectAllGroups}
-                className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${
-                  selectedGroups.length === 0 ? 'bg-[#70CFF8] text-black' : 'bg-white text-black hover:bg-neutral-100'
-                }`}
+                className={`border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${selectedGroups.length === 0 ? 'bg-[#70CFF8] text-black' : 'bg-white text-black hover:bg-neutral-100'
+                  }`}
               >
                 {selectedGroups.length === 0 ? '✓ All Kanji Active' : 'Select All Groups'}
               </button>
             </div>
 
-            <div className="mt-2.5 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5 sm:gap-2">
               {kanjiData.groups.map((group) => {
                 const isSelected = selectedGroups.includes(group.id);
                 return (
@@ -454,9 +482,8 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
                     key={group.id}
                     type="button"
                     onClick={() => toggleGroup(group.id)}
-                    className={`border-2 border-black px-3 py-1.5 font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
-                      isSelected ? 'bg-[#70CFF8] text-black' : 'bg-white text-black hover:bg-neutral-100'
-                    }`}
+                    className={`border-2 border-black px-2.5 py-1 sm:px-3 sm:py-1.5 font-mono text-[10px] sm:text-xs font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${isSelected ? 'bg-[#70CFF8] text-black' : 'bg-white text-black hover:bg-neutral-100'
+                      }`}
                   >
                     {group.name}
                   </button>
@@ -467,38 +494,39 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
 
           {/* Target Confidence Levels */}
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
               <div>
-                <h3 className="font-mono text-xs font-black uppercase text-black">3. Target Confidence</h3>
-                <p className="font-mono text-[10px] text-black/70">Pick the ratings you want to include in this session</p>
+                <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase text-black">
+                  3. Target Confidence
+                </h3>
+                <p className="font-mono text-[9px] sm:text-[10px] text-black/70">
+                  Pick the ratings you want to include in this session
+                </p>
               </div>
 
-              {/* Quick Preset Buttons */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5">
                 <button
                   type="button"
                   onClick={setAllLevels}
-                  className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${
-                    selectedConfidenceLevels.length === 4 ? 'bg-[#70CFF8]' : 'bg-white hover:bg-neutral-100'
-                  }`}
+                  className={`border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${selectedConfidenceLevels.length === 4 ? 'bg-[#70CFF8]' : 'bg-white hover:bg-neutral-100'
+                    }`}
                 >
                   All Cards
                 </button>
                 <button
                   type="button"
                   onClick={setSkipEasy}
-                  className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${
-                    selectedConfidenceLevels.length === 3 && !selectedConfidenceLevels.includes('easy')
+                  className={`border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] ${selectedConfidenceLevels.length === 3 && !selectedConfidenceLevels.includes('easy')
                       ? 'bg-[#70CFF8]'
                       : 'bg-white hover:bg-neutral-100'
-                  }`}
+                    }`}
                 >
                   Skip Easy
                 </button>
               </div>
             </div>
 
-            <div className="mt-2.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
               {CONFIDENCE_OPTIONS.map(({ level, label, icon: Icon, color, description }) => {
                 const isSelected = selectedConfidenceLevels.includes(level as ConfidenceLevel);
                 return (
@@ -507,24 +535,23 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
                     type="button"
                     onClick={() => toggleConfidenceLevel(level as ConfidenceLevel)}
                     aria-pressed={isSelected}
-                    className={`flex flex-col justify-between border-2 border-black p-3.5 text-left font-mono transition-all shadow-[3px_3px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
-                      isSelected ? 'bg-white' : 'bg-neutral-200/80 opacity-60 hover:opacity-100'
-                    }`}
+                    className={`flex flex-col justify-between border-2 border-black p-2.5 sm:p-3.5 text-left font-mono transition-all shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${isSelected ? 'bg-white' : 'bg-neutral-200/80 opacity-60 hover:opacity-100'
+                      }`}
                   >
                     <div>
                       <div className="flex items-center justify-between">
                         <span
-                          className="flex h-7 w-7 items-center justify-center border-2 border-black shadow-[1px_1px_0px_0px_#000]"
+                          className="flex h-5 w-5 sm:h-7 sm:w-7 items-center justify-center border-2 border-black shadow-[1px_1px_0px_0px_#000]"
                           style={{ backgroundColor: color }}
                         >
-                          {Icon ? <Icon className="h-4 w-4 text-black" aria-hidden="true" /> : <span className="font-black text-xs text-black">?</span>}
+                          {Icon ? <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-black" aria-hidden="true" /> : <span className="font-black text-[10px] text-black">?</span>}
                         </span>
-                        <span className={`border border-black px-1.5 py-0.5 text-[9px] font-black uppercase ${isSelected ? 'bg-[#A3E636]' : 'bg-white'}`}>
+                        <span className={`border border-black px-1 py-0.2 sm:px-1.5 sm:py-0.5 text-[8px] sm:text-[9px] font-black uppercase ${isSelected ? 'bg-[#A3E636]' : 'bg-white'}`}>
                           {isSelected ? 'Included' : 'Excluded'}
                         </span>
                       </div>
-                      <span className="mt-2.5 block text-xs font-black uppercase text-black">{label}</span>
-                      <span className="mt-0.5 block text-[11px] font-bold text-neutral-600">{description}</span>
+                      <span className="mt-1.5 sm:mt-2.5 block text-[10px] sm:text-xs font-black uppercase text-black">{label}</span>
+                      <span className="mt-0.5 block text-[9px] sm:text-[11px] font-bold text-neutral-600 leading-tight">{description}</span>
                     </div>
                   </button>
                 );
@@ -533,13 +560,15 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
           </div>
 
           {/* Bottom Action Section */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-black pt-4">
-            <span className="font-mono text-xs font-black uppercase">{cards.length} cards matched</span>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black pt-3 sm:pt-4">
+            <span className="font-mono text-[10px] sm:text-xs font-black uppercase">
+              {cards.length} cards matched
+            </span>
             <button
               type="button"
               onClick={startLearning}
               disabled={cards.length === 0}
-              className="border-2 border-black bg-black px-6 py-3 font-mono text-sm font-black uppercase text-[#FFDE59] shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:cursor-not-allowed disabled:opacity-40"
+              className="border-2 border-black bg-black px-4 py-2 sm:px-6 sm:py-3 font-mono text-xs sm:text-sm font-black uppercase text-[#FFDE59] shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:cursor-not-allowed disabled:opacity-40"
             >
               Start learning →
             </button>
@@ -549,34 +578,36 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex flex-col items-center justify-center border-2 border-black bg-[#1a1f2c] py-20 shadow-[6px_6px_0px_0px_#000000]">
-          <div className="h-4 w-32 bg-[#252c3d] animate-pulse mb-6" />
-          <div className="h-28 w-28 bg-[#252c3d] animate-pulse mb-6" />
-          <div className="h-10 w-36 bg-[#252c3d] animate-pulse" />
+        <div className="flex flex-col items-center justify-center border-2 border-black bg-[#1a1f2c] py-12 sm:py-20 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
+          <div className="h-4 w-28 sm:w-32 bg-[#252c3d] animate-pulse mb-4 sm:mb-6" />
+          <div className="h-20 w-20 sm:h-28 sm:w-28 bg-[#252c3d] animate-pulse mb-4 sm:mb-6" />
+          <div className="h-8 w-28 sm:h-10 sm:w-36 bg-[#252c3d] animate-pulse" />
         </div>
       )}
 
       {/* Error Banner */}
       {error && (
-        <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-sm font-black uppercase text-black shadow-[4px_4px_0px_0px_#000000]">
+        <div className="border-2 border-black bg-[#FF6B6B] p-3 text-center font-mono text-xs sm:text-sm font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000]">
           {error}
         </div>
       )}
 
       {/* Flashcard Active Mode */}
       {!isLoading && !error && isLearning && card && (
-        <div className="relative border-2 border-black bg-[#FFDE59] p-6 sm:p-8 shadow-[6px_6px_0px_0px_#000000]">
-          <div className="flex items-center justify-between border-b-2 border-black pb-3">
-            <span className="border-2 border-black bg-black px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-[#FFDE59]">
+        <div className="relative border-2 border-black bg-[#FFDE59] p-3.5 sm:p-8 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
+          <div className="flex items-center justify-between border-b-2 border-black pb-2">
+            <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-[#FFDE59]">
               {card.groupName || 'N5 Kanji'}
             </span>
-            <span className="font-mono text-xs font-black uppercase tracking-wider text-black">
+            <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-black">
               {isRetryMode ? 'RETRY' : 'CARD'} {cardIndex + 1} OF {activeCards.length}
             </span>
           </div>
 
-          <div ref={confidenceRef} tabIndex={-1} className="mt-3 flex items-center justify-end gap-2 outline-none" aria-label="Confidence rating">
-            <span className="mr-1 font-mono text-[10px] font-black uppercase text-black/70">Confidence</span>
+          <div ref={confidenceRef} tabIndex={-1} className="mt-2 sm:mt-3 flex items-center justify-end gap-1.5 sm:gap-2 outline-none" aria-label="Confidence rating">
+            <span className="mr-1 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black/70">
+              Confidence
+            </span>
             {confidenceOptions.map(({ level, label, icon: Icon, color }) => (
               <button
                 key={level}
@@ -585,36 +616,38 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
                 disabled={!attempt}
                 title={`${label}: ${level === 'again' ? 'review soon' : level === 'hard' ? 'needs practice' : 'felt easy'}`}
                 aria-label={`${label} confidence`}
-                className={`flex h-9 w-9 items-center justify-center border-2 border-black text-black shadow-[2px_2px_0px_0px_#000] transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
-                  confidence === level ? 'translate-x-[1px] translate-y-[1px] shadow-none ring-2 ring-black' : 'hover:translate-x-[1px] hover:translate-y-[1px]'
-                }`}
+                className={`flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center border-2 border-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] transition-all disabled:cursor-not-allowed disabled:opacity-40 ${confidence === level
+                    ? 'translate-x-[1px] translate-y-[1px] shadow-none ring-2 ring-black'
+                    : 'hover:translate-x-[1px] hover:translate-y-[1px]'
+                  }`}
                 style={{ backgroundColor: color }}
               >
-                {Icon && <Icon className="h-5 w-5" aria-hidden="true" />}
+                {Icon && <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" aria-hidden="true" />}
               </button>
             ))}
           </div>
 
-          <div className="my-6 flex justify-center">
-            <div className="flex h-36 w-36 items-center justify-center border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000000] sm:h-44 sm:w-44">
-              <span className="kana-font select-none text-7xl sm:text-8xl font-black text-black leading-none">
+          {/* Main Kanji Character Box */}
+          <div className="my-3 sm:my-6 flex justify-center">
+            <div className="flex h-28 w-28 sm:h-44 sm:w-44 items-center justify-center border-2 border-black bg-white shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+              <span className="kana-font select-none text-6xl sm:text-8xl font-black text-black leading-none">
                 {card.kanji}
               </span>
             </div>
           </div>
 
-          <div className="border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_#000000]">
-            <div className="flex items-center justify-between pb-1.5">
-              <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-500">
-                // {promptMode === KANJI_PROMPT_MODES.READING ? 'PROMPT: ROMAJI READING' : 'PROMPT: ENGLISH MEANING'}
+          <div className="border-2 border-black bg-white p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+            <div className="flex items-center justify-between pb-1">
+              <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-500">
+            // {promptMode === KANJI_PROMPT_MODES.READING ? 'PROMPT: ROMAJI READING' : 'PROMPT: ENGLISH MEANING'}
               </span>
               {usedHint && (
-                <span className="font-mono text-[10px] font-black uppercase text-[#d97706]">• Hint used</span>
+                <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-[#d97706]">• Hint used</span>
               )}
             </div>
 
             {!attempt ? (
-              <form onSubmit={submitAnswer} className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <form onSubmit={submitAnswer} className="mt-1.5 flex gap-1.5 sm:gap-2">
                 <input
                   ref={answerRef}
                   value={answer}
@@ -624,33 +657,34 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
                       ? 'e.g. yon, shi...'
                       : 'e.g. four, person...'
                   }
-                  className="h-11 min-w-0 flex-1 border-2 border-black px-3.5 font-mono text-sm font-bold text-black shadow-[2px_2px_0px_0px_#000000] focus:bg-[#f3f9ff] focus:outline-none"
+                  className="h-9 sm:h-11 min-w-0 flex-1 border-2 border-black px-2.5 sm:px-3.5 font-mono text-xs sm:text-sm font-bold text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] focus:bg-[#f3f9ff] focus:outline-none"
                   aria-label={promptMode === KANJI_PROMPT_MODES.READING ? 'Kanji reading' : 'Kanji meaning'}
                 />
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={!answer.trim()}
-                    className="h-11 flex-1 sm:flex-none border-2 border-black bg-[#A3E636] px-5 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Check
-                  </button>
-                  <button
-                    type="button"
-                    onClick={skipAnswer}
-                    className="h-11 border-2 border-black bg-neutral-100 px-3.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] hover:bg-neutral-200 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-                  >
-                    Skip
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={!answer.trim()}
+                  className="h-9 sm:h-11 border-2 border-black bg-[#A3E636] px-3.5 sm:px-5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Check
+                </button>
+                <button
+                  type="button"
+                  onClick={skipAnswer}
+                  className="h-9 sm:h-11 border-2 border-black bg-neutral-100 px-2.5 sm:px-3.5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] hover:bg-neutral-200 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                  Skip
+                </button>
               </form>
             ) : (
               <div
-                className={`mt-2 border-2 border-black p-3 font-mono text-sm font-black shadow-[2px_2px_0px_0px_#000000] ${
-                  attempt.skipped ? 'bg-[#70CFF8] text-black' : attempt.correct ? 'bg-[#A3E636] text-black' : 'bg-[#FF6B6B] text-black'
-                }`}
+                className={`mt-1.5 border-2 border-black p-2.5 sm:p-3 font-mono text-xs sm:text-sm font-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] ${attempt.skipped ? 'bg-[#70CFF8] text-black' : attempt.correct ? 'bg-[#A3E636] text-black' : 'bg-[#FF6B6B] text-black'
+                  }`}
               >
-                {attempt.skipped ? `↷ Skipped. Expected: ${getKanjiPromptAnswer(card, promptMode)}` : attempt.correct ? '✓ Correct Answer!' : `✕ Incorrect. Expected: ${getKanjiPromptAnswer(card, promptMode)}`}
+                {attempt.skipped
+                  ? `↷ Skipped. Expected: ${getKanjiPromptAnswer(card, promptMode)}`
+                  : attempt.correct
+                    ? '✓ Correct Answer!'
+                    : `✕ Incorrect. Expected: ${getKanjiPromptAnswer(card, promptMode)}`}
               </div>
             )}
 
@@ -658,53 +692,53 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
               <button
                 type="button"
                 onClick={() => setUsedHint(true)}
-                className="mt-2.5 font-mono text-[10px] font-black uppercase text-neutral-500 underline underline-offset-2 hover:text-black"
+                className="mt-2 font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-500 underline underline-offset-2 hover:text-black"
               >
                 Show hint?
               </button>
             )}
 
             {usedHint && !attempt && (
-              <div className="mt-2 border-2 border-black bg-[#FFDE59] p-2.5 font-mono text-xs font-black text-black shadow-[2px_2px_0px_0px_#000000]">
+              <div className="mt-1.5 border-2 border-black bg-[#FFDE59] p-2 font-mono text-[10px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000000]">
                 {getKanjiHint(card, promptMode) || 'No hint available for this card.'}
               </div>
             )}
           </div>
 
           {(isRevealed || attempt) && (
-            <div className="mt-5 space-y-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
-                  <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-                    // Reading (Kana / Romaji)
+            <div className="mt-3 sm:mt-5 space-y-2 sm:space-y-3">
+              <div className="grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2">
+                <div className="border-2 border-black bg-white p-2.5 sm:p-3.5 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
+                  <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-500">
+                // Reading (Kana / Romaji)
                   </span>
-                  <p className="jp-font mt-1 text-xl font-black text-black">
+                  <p className="jp-font mt-0.5 text-base sm:text-xl font-black text-black">
                     {card.reading}
                   </p>
-                  <p className="font-mono text-xs font-bold uppercase text-neutral-600">
+                  <p className="font-mono text-[10px] sm:text-xs font-bold uppercase text-neutral-600">
                     {card.romaji}
                   </p>
                 </div>
 
-                <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
-                  <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-                    // Meaning
+                <div className="border-2 border-black bg-white p-2.5 sm:p-3.5 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
+                  <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-500">
+                // Meaning
                   </span>
-                  <p className="mt-1 text-xl font-black text-black capitalize">
+                  <p className="mt-0.5 text-base sm:text-xl font-black text-black capitalize">
                     {card.meaning}
                   </p>
                 </div>
               </div>
 
               {card.example && (
-                <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
-                  <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-                    // Example Usage
+                <div className="border-2 border-black bg-white p-2.5 sm:p-3.5 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
+                  <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-500">
+                // Example Usage
                   </span>
-                  <p className="jp-font mt-1 text-base font-bold text-black">
+                  <p className="jp-font mt-0.5 text-sm sm:text-base font-bold text-black">
                     {card.example[0]}
                   </p>
-                  <p className="font-mono text-xs font-semibold text-neutral-600">
+                  <p className="font-mono text-[10px] sm:text-xs font-semibold text-neutral-600">
                     {card.example[1]}
                   </p>
                 </div>
@@ -716,14 +750,14 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
 
       {/* 4. Navigation Bar */}
       {!isLoading && !error && isLearning && card && (
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <div className="flex items-center justify-between gap-2.5 pt-1 sm:pt-2">
           <button
             type="button"
             onClick={() => moveCard(-1)}
             disabled={cardIndex === 0}
-            className="flex h-11 items-center gap-1.5 border-2 border-black bg-white px-6 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex h-9 sm:h-11 items-center gap-1 border-2 border-black bg-white px-4 sm:px-6 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <ChevronLeftIcon className="h-4 w-4" />
+            <ChevronLeftIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>Prev</span>
           </button>
 
@@ -731,24 +765,24 @@ function KanjiStudy({ onBack }: KanjiStudyProps) {
             type="button"
             onClick={advanceCard}
             disabled={Boolean(attempt && !confidence)}
-            className="flex h-11 items-center gap-1.5 border-2 border-black bg-[#A3E636] px-8 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex h-9 sm:h-11 items-center gap-1 border-2 border-black bg-[#A3E636] px-5 sm:px-8 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span>{cardIndex === activeCards.length - 1 ? 'Review' : 'Next'}</span>
-            <ChevronRightIcon className="h-4 w-4" />
+            <ChevronRightIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </div>
       )}
 
       {/* 5. Retry Bar */}
       {!isLoading && !error && isLearning && retryCards.length > 0 && !isRetryMode && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black bg-[#FF6B6B] p-3.5 shadow-[4px_4px_0px_0px_#000000]">
-          <p className="font-mono text-xs font-black uppercase text-black">
-            {retryCards.length} card{retryCards.length === 1 ? '' : 's'} flagged for review
+        <div className="flex flex-wrap items-center justify-between gap-2 border-2 border-black bg-[#FF6B6B] p-2.5 sm:p-3.5 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+          <p className="font-mono text-[10px] sm:text-xs font-black uppercase text-black">
+            {retryCards.length} card{retryCards.length === 1 ? '' : 's'} flagged
           </p>
           <button
             type="button"
             onClick={startRetry}
-            className="border-2 border-black bg-white px-3.5 py-1.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+            className="border-2 border-black bg-white px-2.5 py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
           >
             Review Flagged →
           </button>
