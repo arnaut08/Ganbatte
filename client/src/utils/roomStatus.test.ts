@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { canStartAssessment, getPlayerPresenceStatus } from './roomStatus.js';
+import { canStartAssessment, getPlayerPresenceStatus } from './roomStatus';
 
 test('room presence distinguishes lobby, away, and disconnected states', () => {
   assert.equal(getPlayerPresenceStatus({ connected: true, presence: 'in_lobby' }), 'in_lobby');

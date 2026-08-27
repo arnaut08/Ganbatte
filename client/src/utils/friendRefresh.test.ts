@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createFriendRefreshGuard } from './friendRefresh.js';
+import { createFriendRefreshGuard } from './friendRefresh';
 
 test('friend refresh guard suppresses duplicate refreshes for the same user across reconnects', () => {
   const shouldRefresh = createFriendRefreshGuard();

@@ -242,9 +242,7 @@ export default function useRoomManager({
   const handleLeaveRoom = useCallback(() => {
     if (!activeSocket || !roomCode) return;
     activeSocket.emit('leave-room', roomCode, (response: SocketAck) => {
-      if (response?.success && username) {
-        localStorage.setItem('ganbatte-room-session', JSON.stringify({ roomCode, username }));
-      }
+      if (response?.success) clearRoomSession();
       setRoomCode(null);
       setRoom(null);
       setUsername('');
@@ -253,7 +251,7 @@ export default function useRoomManager({
       setStatus('selector');
       setSelectorScreen('practice');
     });
-  }, [activeSocket, roomCode, setSelectorScreen, setStatus, username]);
+  }, [activeSocket, clearRoomSession, roomCode, setSelectorScreen, setStatus]);
 
   const handleStartNewSession = useCallback(() => {
     if (!activeSocket || !roomCode || !room) return;

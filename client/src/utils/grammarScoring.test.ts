@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from './grammarScoring.js';
+import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from './grammarScoring';
+import type { GrammarAnswer, GrammarQuestion } from '../types/learning';
 
 test('kana answers can be displayed with romaji', () => {
   assert.equal(kanaToRomaji('これは わたしの かばんです'), 'koreha watashino kabandesu');
@@ -10,7 +11,7 @@ test('kana answers can be displayed with romaji', () => {
 });
 
 test('multiple choice accepts the canonical answer', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'multiple-choice',
     correctAnswer: 'の',
     acceptedAnswers: ['の'],
@@ -21,7 +22,7 @@ test('multiple choice accepts the canonical answer', () => {
 });
 
 test('translation accepts alternate accepted answers', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'translation',
     correctAnswer: 'これは私のかばんです',
     acceptedAnswers: ['これは私のかばんです。', 'これは私のかばんです'],
@@ -32,7 +33,7 @@ test('translation accepts alternate accepted answers', () => {
 });
 
 test('answers are compared with a single accepted answer value', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'translation',
     correctAnswer: 'これは私のかばんです',
     acceptedAnswers: 'これは私の鞄です',
@@ -43,7 +44,7 @@ test('answers are compared with a single accepted answer value', () => {
 });
 
 test('romaji answers are converted to kana before checking the canonical answer', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'translation',
     correctAnswer: 'これは私のかばんです',
     acceptedAnswers: ['これは私のかばんです'],
@@ -54,7 +55,7 @@ test('romaji answers are converted to kana before checking the canonical answer'
 });
 
 test('normalization is skipped when the canonical answer is already romaji', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'translation',
     correctAnswer: 'kore wa watashi no kaban desu',
     acceptedAnswers: ['kore wa watashi no kaban desu'],
@@ -65,7 +66,7 @@ test('normalization is skipped when the canonical answer is already romaji', () 
 });
 
 test('romaji references accept o as equivalent to wo', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'fill-in-the-blank',
     correctAnswer: 'を',
     correctAnswerRomaji: 'wo',
@@ -78,7 +79,7 @@ test('romaji references accept o as equivalent to wo', () => {
 });
 
 test('romaji answers are checked directly against correctAnswerRomaji', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'fill-in-the-blank',
     correctAnswer: 'は',
     correctAnswerRomaji: 'wa',
@@ -91,7 +92,7 @@ test('romaji answers are checked directly against correctAnswerRomaji', () => {
 });
 
 test('matching compares pair sets without order', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'matching',
     correctPairs: [
       { left: 'は', right: 'topic marker' },
@@ -117,7 +118,7 @@ test('matching compares pair sets without order', () => {
 });
 
 test('matching scores pairs from the solo selection state', () => {
-  const question = {
+  const question: GrammarQuestion = {
     type: 'matching',
     correctPairs: [
       { left: 'は', right: 'topic marker' },
@@ -142,7 +143,7 @@ test('matching scores pairs from the solo selection state', () => {
 });
 
 test('summary counts correct answers across the entire set', () => {
-  const questions = [
+  const questions: GrammarQuestion[] = [
     { type: 'multiple-choice', correctAnswer: 'の', acceptedAnswers: ['の'] },
     { type: 'translation', correctAnswer: '私は学生です', acceptedAnswers: ['私は学生です。', '私は学生です'] },
     { type: 'matching', correctPairs: [{ left: 'を', right: 'direct object marker' }] },
@@ -160,12 +161,12 @@ test('summary counts correct answers across the entire set', () => {
 });
 
 test('unanswered questions are counted as incorrect', () => {
-  const questions = [
+  const questions: GrammarQuestion[] = [
     { type: 'multiple-choice', correctAnswer: 'の', acceptedAnswers: ['の'] },
     { type: 'matching', correctPairs: [{ left: 'は', right: 'topic marker' }] },
   ];
 
-  const result = summarizeResults(questions, [undefined, {}]);
+  const result = summarizeResults(questions, [undefined, {}] as GrammarAnswer[]);
 
   assert.equal(result.correctCount, 0);
   assert.equal(result.incorrectCount, 2);
@@ -173,7 +174,7 @@ test('unanswered questions are counted as incorrect', () => {
 });
 
 test('solo answer values remain positional for object answers such as matching pairs', () => {
-  const questions = [
+  const questions: GrammarQuestion[] = [
     { type: 'matching', correctPairs: [{ left: 'は', right: 'topic marker' }] },
     { type: 'translation', correctAnswer: '学生です', acceptedAnswers: ['学生です'] },
   ];

@@ -1,6 +1,6 @@
 export const ROOM_VIEW_STATUSES = ['lobby', 'assessment', 'results', 'assessment-preparing'];
 
-export function canTransitionToStatus(current, nextStatus, screenPriority = {}) {
+export function canTransitionToStatus(current: string, nextStatus?: string, screenPriority: Record<string, number> = {}): boolean {
   if (!nextStatus) return false;
 
   const currentPriority = screenPriority[current] ?? 0;

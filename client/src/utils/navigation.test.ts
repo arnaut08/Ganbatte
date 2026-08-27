@@ -6,7 +6,7 @@ import {
   getPreviousStatus,
   getBackStatus,
   shouldRedirectToCompletedRoomResults,
-} from './navigation.js';
+} from './navigation';
 
 test('pushScreenHistory tracks the last non-duplicate screen before moving forward', () => {
   assert.deepEqual(pushScreenHistory(['selector'], 'selector', 'friends'), ['selector', 'friends']);

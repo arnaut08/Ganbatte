@@ -12,7 +12,7 @@
     "build": "cd client && npm run build",
     "start": "cd server && npm start",
     "typecheck": "tsc -p client/tsconfig.json && tsc -p server/tsconfig.json",
-    "test": "node --import tsx --test client/src/utils/*.test.js server/middleware/auth.test.ts server/services/*.test.ts"
+    "test": "node --import tsx --test client/src/utils/*.test.ts server/middleware/auth.test.ts server/services/*.test.ts"
   },
   "author": "Archit Nautiyal",
   "license": "ISC",

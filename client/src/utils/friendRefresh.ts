@@ -1,8 +1,8 @@
-export function createFriendRefreshGuard(minIntervalMs = 1000) {
+export function createFriendRefreshGuard(minIntervalMs: number = 1000) {
   const lastRefreshByKey = new Map();
   let lastNullRefreshAt = 0;
 
-  const shouldRefresh = (userId, socketId, scope = 'combined') => {
+  const shouldRefresh = (userId: string | null, socketId: string | null, scope: string = 'combined'): boolean => {
     const now = Date.now();
 
     if (userId == null) {

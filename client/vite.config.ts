@@ -2,8 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from "@tailwindcss/vite"
 import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 
-const srcPath = resolve(__dirname, 'src');
+const srcPath = resolve(fileURLToPath(new URL('.', import.meta.url)), 'src');
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

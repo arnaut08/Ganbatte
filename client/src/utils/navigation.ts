@@ -1,6 +1,7 @@
 const DEFAULT_STATUS = 'selector';
+type ScreenStatus = string;
 
-export function pushScreenHistory(history = [], currentStatus, nextStatus) {
+export function pushScreenHistory(history: ScreenStatus[] = [], currentStatus?: ScreenStatus, nextStatus?: ScreenStatus): ScreenStatus[] {
   const safeHistory = Array.isArray(history) && history.length > 0 ? [...history] : [DEFAULT_STATUS];
   const current = currentStatus || safeHistory[safeHistory.length - 1] || DEFAULT_STATUS;
 
@@ -25,7 +26,7 @@ export function pushScreenHistory(history = [], currentStatus, nextStatus) {
   return [...safeHistory, nextStatus];
 }
 
-export function getPreviousStatus(history = []) {
+export function getPreviousStatus(history: ScreenStatus[] = []): ScreenStatus {
   if (!Array.isArray(history) || history.length < 2) {
     return DEFAULT_STATUS;
   }
@@ -33,7 +34,7 @@ export function getPreviousStatus(history = []) {
   return history[history.length - 2] || DEFAULT_STATUS;
 }
 
-export function getBackStatus(history = []) {
+export function getBackStatus(history: ScreenStatus[] = []): ScreenStatus {
   if (!Array.isArray(history) || history.length === 0) {
     return DEFAULT_STATUS;
   }
@@ -50,7 +51,7 @@ export function getBackStatus(history = []) {
 
 // Completed rooms should take users who are still in the room flow to results.
 // Other screens (home, friends, history, etc.) are intentionally unaffected.
-export function shouldRedirectToCompletedRoomResults(currentStatus, roomStatus) {
+export function shouldRedirectToCompletedRoomResults(currentStatus: ScreenStatus, roomStatus: string): boolean {
   return roomStatus === 'completed'
     && (currentStatus === 'assessment' || currentStatus === 'lobby');
 }

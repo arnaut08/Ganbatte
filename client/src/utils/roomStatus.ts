@@ -1,4 +1,6 @@
-export function getPlayerPresenceStatus(player = null) {
+import type { RoomPlayer } from '../types/room';
+
+export function getPlayerPresenceStatus(player: Partial<RoomPlayer> | null = null): string {
   if (!player) return 'disconnected';
 
   if (player.status === 'ready') return 'ready';
@@ -10,12 +12,12 @@ export function getPlayerPresenceStatus(player = null) {
   return 'in_lobby';
 }
 
-function isPlayerInLobby(player = null) {
+function isPlayerInLobby(player: Partial<RoomPlayer> | null = null): boolean {
   const status = getPlayerPresenceStatus(player);
   return status === 'in_lobby' || status === 'ready';
 }
 
-export function canStartAssessment(players = []) {
+export function canStartAssessment(players: Partial<RoomPlayer>[] = []): boolean {
   return Array.isArray(players)
     && players.length === 2
     && players.every((player) => {

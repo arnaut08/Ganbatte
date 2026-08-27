@@ -1,4 +1,4 @@
-const ROMAJI_SYLLABLES = [
+const ROMAJI_SYLLABLES: string[] = [
   'kyo', 'kyu', 'kya', 'gyo', 'gyu', 'gya', 'sho', 'shu', 'sha',
   'jyo', 'jyu', 'jya', 'jo', 'ju', 'ja', 'cho', 'chu', 'cha',
   'nyo', 'nyu', 'nya', 'hyo', 'hyu', 'hya', 'byo', 'byu', 'bya',
@@ -14,8 +14,12 @@ const ROMAJI_SYLLABLES = [
   'a', 'i', 'u', 'e', 'o', 'n',
 ];
 
-function normalizeRomaji(value) {
-  return (value || '')
+type RomajiToken = { value: string; start: number; end: number };
+type MappedRomaji = { raw: string; normalized: string; spans: Array<[number, number]> };
+export type RomajiDiffSegment = { type: 'plain' | 'diff'; text: string };
+
+function normalizeRomaji(value: unknown = ''): string {
+  return String(value || '')
     .toLowerCase()
     .trim()
     .split(/\s+/)
@@ -23,8 +27,8 @@ function normalizeRomaji(value) {
     .join('');
 }
 
-function tokenizeNormalizedRomaji(normalized) {
-  const tokens = [];
+function tokenizeNormalizedRomaji(normalized: string): RomajiToken[] {
+  const tokens: RomajiToken[] = [];
   let index = 0;
 
   while (index < normalized.length) {
@@ -41,11 +45,11 @@ function tokenizeNormalizedRomaji(normalized) {
   return tokens;
 }
 
-function tokenizeRomaji(value) {
+function tokenizeRomaji(value: unknown): string[] {
   return tokenizeNormalizedRomaji(normalizeRomaji(value)).map((token) => token.value);
 }
 
-export function scoreRomajiAnswer(answer, expected) {
+export function scoreRomajiAnswer(answer: unknown, expected: unknown) {
   const expectedTokens = tokenizeRomaji(expected);
   const answerTokens = tokenizeRomaji(answer);
   const matched = expectedTokens.reduce(
@@ -60,16 +64,16 @@ export function scoreRomajiAnswer(answer, expected) {
   };
 }
 
-export function areRomajiAnswersEqual(answer, expected) {
+export function areRomajiAnswersEqual(answer: unknown, expected: unknown): boolean {
   return normalizeRomaji(answer) === normalizeRomaji(expected);
 }
 
-function buildNormalizedMap(rawValue) {
-  const raw = rawValue || '';
+function buildNormalizedMap(rawValue: unknown = ''): MappedRomaji {
+  const raw = String(rawValue || '');
   const lower = raw.toLowerCase();
   const words = [...lower.matchAll(/\S+/g)];
   let normalized = '';
-  const spans = [];
+  const spans: Array<[number, number]> = [];
 
   words.forEach((match) => {
     const word = match[0];
@@ -91,7 +95,7 @@ function buildNormalizedMap(rawValue) {
   return { raw, normalized, spans };
 }
 
-function getRawTokenRange(mapped, token) {
+function getRawTokenRange(mapped: MappedRomaji, token: RomajiToken) {
   const rawStart = token.start >= mapped.spans.length
     ? mapped.raw.length
     : mapped.spans[token.start][0];
@@ -102,7 +106,7 @@ function getRawTokenRange(mapped, token) {
   return { rawStart, rawEnd };
 }
 
-function findMatchingTokenIndexes(tokens, otherTokens) {
+function findMatchingTokenIndexes(tokens: RomajiToken[], otherTokens: RomajiToken[]): Set<number> {
   const scores = Array.from({ length: tokens.length + 1 }, () => (
     Array(otherTokens.length + 1).fill(0)
   ));
@@ -123,7 +127,7 @@ function findMatchingTokenIndexes(tokens, otherTokens) {
     }
   }
 
-  const matches = new Set();
+  const matches = new Set<number>();
   let row = tokens.length;
   let column = otherTokens.length;
   while (row > 0 && column > 0) {
@@ -145,11 +149,11 @@ function findMatchingTokenIndexes(tokens, otherTokens) {
   return matches;
 }
 
-function buildDiffSegments(mapped, tokens, matchedIndexes, otherTokens) {
-  const segments = [];
+function buildDiffSegments(mapped: MappedRomaji, tokens: RomajiToken[], matchedIndexes: Set<number>, otherTokens: RomajiToken[]): RomajiDiffSegment[] {
+  const segments: RomajiDiffSegment[] = [];
   let rawCursor = 0;
 
-  const addSegment = (type, text) => {
+  const addSegment = (type: RomajiDiffSegment['type'], text: string): void => {
     if (!text) return;
     const previous = segments[segments.length - 1];
     if (type === 'plain' && previous?.type === 'diff' && /^\s+$/.test(text)) {
@@ -190,7 +194,7 @@ function buildDiffSegments(mapped, tokens, matchedIndexes, otherTokens) {
   return segments;
 }
 
-export function buildRomajiDiff(givenRaw, expectedRaw) {
+export function buildRomajiDiff(givenRaw: unknown, expectedRaw: unknown) {
   const givenMapped = buildNormalizedMap(givenRaw);
   const expectedMapped = buildNormalizedMap(expectedRaw);
   const given = tokenizeNormalizedRomaji(givenMapped.normalized);
@@ -204,11 +208,11 @@ export function buildRomajiDiff(givenRaw, expectedRaw) {
   };
 }
 
-export function buildDirectRomajiDiff(givenRaw, expectedRaw) {
+export function buildDirectRomajiDiff(givenRaw: unknown, expectedRaw: unknown) {
   const type = areRomajiAnswersEqual(givenRaw, expectedRaw) ? 'plain' : 'diff';
 
   return {
-    given: [{ type, text: givenRaw || '∅' }],
-    expected: [{ type, text: expectedRaw || '∅' }],
+    given: [{ type, text: String(givenRaw || '∅') }],
+    expected: [{ type, text: String(expectedRaw || '∅') }],
   };
 }

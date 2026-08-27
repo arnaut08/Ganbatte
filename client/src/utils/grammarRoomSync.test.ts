@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { mergePlayerAnswers } from './grammarRoomSync.ts';
+import { mergePlayerAnswers } from './grammarRoomSync';
 
 test('preserves locally typed answers when the room snapshot is temporarily empty', () => {
   const previous = { 0: 'watashi', 1: 'kore' };

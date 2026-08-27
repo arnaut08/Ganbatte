@@ -1,4 +1,6 @@
-const ROMAJI_TO_KANA = {
+import type { GrammarAnswer, GrammarQuestion, MatchingPair } from '../types/learning';
+
+const ROMAJI_TO_KANA: Record<string, string> = {
   'kyo': 'きょ', 'kyu': 'きゅ', 'kya': 'きゃ',
   'gyo': 'ぎょ', 'gyu': 'ぎゅ', 'gya': 'ぎゃ',
   'sho': 'しょ', 'shu': 'しゅ', 'sha': 'しゃ',
@@ -51,7 +53,7 @@ const KANJI_TO_KANA = {
   'です': 'です',
 };
 
-const KANA_TO_ROMAJI = {
+const KANA_TO_ROMAJI: Record<string, string> = {
   'きゃ': 'kya', 'きゅ': 'kyu', 'きょ': 'kyo', 'しゃ': 'sha', 'しゅ': 'shu', 'しょ': 'sho',
   'ちゃ': 'cha', 'ちゅ': 'chu', 'ちょ': 'cho', 'にゃ': 'nya', 'にゅ': 'nyu', 'にょ': 'nyo',
   'ひゃ': 'hya', 'ひゅ': 'hyu', 'ひょ': 'hyo', 'みゃ': 'mya', 'みゅ': 'myu', 'みょ': 'myo',
@@ -69,14 +71,15 @@ const KANA_TO_ROMAJI = {
 
 const KATAKANA_TO_HIRAGANA_OFFSET = 'ァ'.charCodeAt(0) - 'ぁ'.charCodeAt(0);
 
-function normalizeKanaCharacter(character) {
+function normalizeKanaCharacter(character: string): string {
   const codePoint = character.codePointAt(0);
+  if (codePoint === undefined) return character;
   return codePoint >= 'ァ'.charCodeAt(0) && codePoint <= 'ヶ'.charCodeAt(0)
     ? String.fromCodePoint(codePoint - KATAKANA_TO_HIRAGANA_OFFSET)
     : character;
 }
 
-export function kanaToRomaji(value) {
+export function kanaToRomaji(value: string): string {
   const text = String(value ?? '').trim();
   if (!text || /[^\sぁ-ゖァ-ヺー。、！？・「」『』（）()]/u.test(text) || !/[ぁ-ゖァ-ヺ]/u.test(text)) return '';
 
@@ -98,13 +101,13 @@ export function kanaToRomaji(value) {
   return result;
 }
 
-function looksLikeRomaji(value) {
+function looksLikeRomaji(value: string): boolean {
   const text = String(value ?? '').trim();
   if (!text) return false;
   return /[a-zA-Z]/.test(text) && !/[ぁ-ゖァ-ヺー]/.test(text);
 }
 
-function convertRomajiToKana(value) {
+function convertRomajiToKana(value: string): string {
   const text = String(value ?? '').trim();
   if (!text) return '';
 
@@ -130,7 +133,7 @@ function convertRomajiToKana(value) {
   }).join('');
 }
 
-function normalizeJapaneseText(value) {
+function normalizeJapaneseText(value: string): string {
   const entries = Object.entries(KANJI_TO_KANA).sort((left, right) => right[0].length - left[0].length);
   let normalized = value;
 
@@ -141,7 +144,7 @@ function normalizeJapaneseText(value) {
   return normalized;
 }
 
-function normalizePlainText(value) {
+function normalizePlainText(value: string): string {
   return String(value ?? '')
     .trim()
     .replace(/[\p{P}\p{S}]/gu, '')
@@ -149,7 +152,7 @@ function normalizePlainText(value) {
     .toLowerCase();
 }
 
-function normalizeRomajiReference(value) {
+function normalizeRomajiReference(value: string): string {
   const normalized = normalizePlainText(value);
   if (normalized === 'wo' || normalized === 'o' || normalized === 'を') {
     return 'o';
@@ -158,7 +161,7 @@ function normalizeRomajiReference(value) {
   return normalized;
 }
 
-function normalizeText(value, expectedValue = value) {
+function normalizeText(value: string, expectedValue: string = value): string {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
 
@@ -173,11 +176,11 @@ function normalizeText(value, expectedValue = value) {
   return normalizePlainText(normalizeJapaneseText(normalized));
 }
 
-function normalizePairs(value) {
+function normalizePairs(value: unknown): Record<string, string> {
   if (!value) return {};
 
-  if (typeof value === 'object' && !Array.isArray(value) && Array.isArray(value.pairs)) {
-    return normalizePairs(value.pairs);
+  if (typeof value === 'object' && !Array.isArray(value) && Array.isArray((value as { pairs?: unknown }).pairs)) {
+    return normalizePairs((value as { pairs?: unknown }).pairs);
   }
 
   if (Array.isArray(value)) {
@@ -189,7 +192,7 @@ function normalizePairs(value) {
         accumulator[left] = right;
       }
       return accumulator;
-    }, {});
+    }, {} as Record<string, string>);
   }
 
   if (typeof value === 'object') {
@@ -200,13 +203,13 @@ function normalizePairs(value) {
         accumulator[normalizedLeft] = normalizedRight;
       }
       return accumulator;
-    }, {});
+    }, {} as Record<string, string>);
   }
 
   return {};
 }
 
-export function getMatchingResultScore(question, answer) {
+export function getMatchingResultScore(question: GrammarQuestion, answer: GrammarAnswer): { correct: number; total: number; isCorrect: boolean; scorePercent: number } {
   const expected = normalizePairs(question?.correctPairs || {});
   const actual = normalizePairs(answer || []);
   const expectedEntries = Object.entries(expected);
@@ -228,46 +231,52 @@ export function getMatchingResultScore(question, answer) {
   };
 }
 
-export function isQuestionCorrect(question, answer) {
+export function isQuestionCorrect(question: GrammarQuestion | null | undefined, answer: GrammarAnswer): boolean {
   if (!question) return false;
 
   if (question.type === 'matching') {
     return getMatchingResultScore(question, answer).isCorrect;
   }
 
+  const answerText = typeof answer === 'string' ? answer : String(answer ?? '');
+  const correctAnswer = question.correctAnswer;
+  const correctAnswerRomaji = question.correctAnswerRomaji;
+
   const accepted = typeof question.acceptedAnswers !== 'undefined' && question.acceptedAnswers !== null
     ? (Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : [question.acceptedAnswers])
-    : typeof question.correctAnswer !== 'undefined'
-      ? [question.correctAnswer]
+    : typeof correctAnswer !== 'undefined'
+      ? [correctAnswer]
       : [];
 
   if (accepted.length === 0) {
-    return typeof question.correctAnswer !== 'undefined'
-      && normalizeText(answer, question.correctAnswer) === normalizeText(question.correctAnswer, question.correctAnswer);
+    return typeof correctAnswer !== 'undefined'
+      && normalizeText(answerText, correctAnswer) === normalizeText(correctAnswer, correctAnswer);
   }
 
-  const hasRomajiReference = typeof question.correctAnswerRomaji !== 'undefined' && question.correctAnswerRomaji;
-  const referenceAnswer = hasRomajiReference ? question.correctAnswerRomaji : accepted[0];
+  const hasRomajiReference = typeof correctAnswerRomaji !== 'undefined' && !!correctAnswerRomaji;
+  const referenceAnswer = hasRomajiReference ? correctAnswerRomaji! : accepted[0];
 
-  if (hasRomajiReference) {
-    const normalizedAnswer = normalizeText(answer, question.correctAnswerRomaji);
-    const normalizedReference = normalizeText(question.correctAnswerRomaji, question.correctAnswerRomaji);
-    const normalizedCanonical = normalizeText(question.correctAnswer, question.correctAnswerRomaji);
+  if (hasRomajiReference && correctAnswerRomaji !== undefined) {
+    const normalizedAnswer = normalizeText(answerText, correctAnswerRomaji);
+    const normalizedReference = normalizeText(correctAnswerRomaji, correctAnswerRomaji);
+    const normalizedCanonical = typeof correctAnswer !== 'undefined'
+      ? normalizeText(correctAnswer, correctAnswerRomaji)
+      : '';
 
     if (normalizedAnswer === normalizedReference || normalizedAnswer === normalizedCanonical) {
       return true;
     }
   }
 
-  const normalizedAnswer = normalizeText(answer, referenceAnswer);
+  const normalizedAnswer = normalizeText(answerText, referenceAnswer);
   return accepted.some((candidate) => {
-    const candidateReference = hasRomajiReference ? question.correctAnswerRomaji : candidate;
+    const candidateReference = hasRomajiReference && correctAnswerRomaji ? correctAnswerRomaji : candidate;
     const candidateValue = normalizeText(candidate, candidateReference);
     return candidateValue === normalizedAnswer;
   });
 }
 
-export function summarizeResults(questions = [], answers = []) {
+export function summarizeResults(questions: GrammarQuestion[] = [], answers: GrammarAnswer[] = []) {
   const totalCount = Array.isArray(questions) ? questions.length : 0;
   let correctCount = 0;
   let questionTotal = 0;

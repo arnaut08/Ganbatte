@@ -6,9 +6,9 @@ import {
   getKanjiHint,
   getKanjiPromptAnswer,
   isKanjiRecallCorrect,
-} from './kanjiRecall.js';
+} from './kanjiRecall';
 
-const card = { kanji: '学', romaji: 'gaku', meaning: 'study; learning' };
+const card = { kanji: '学', romaji: 'gaku', english: 'study; learning' };
 
 test('checks reading prompts with existing romaji normalization', () => {
   assert.equal(isKanjiRecallCorrect(' GAKU ', card, 'reading'), true);

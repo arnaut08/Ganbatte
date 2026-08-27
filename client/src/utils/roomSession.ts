@@ -9,11 +9,13 @@ export function getSessionKey() {
   return sessionKey;
 }
 
-export function saveRoomSession(roomCode, username) {
-  localStorage.setItem(ROOM_SESSION_STORAGE, JSON.stringify({ roomCode, username }));
+export interface SavedRoomSession { roomCode: string; username: string; sessionKey?: string }
+
+export function saveRoomSession(roomCode: string, username: string): void {
+  localStorage.setItem(ROOM_SESSION_STORAGE, JSON.stringify({ roomCode, username, sessionKey: getSessionKey() }));
 }
 
-export function readRoomSession() {
+export function readRoomSession(): SavedRoomSession | null {
   const raw = localStorage.getItem(ROOM_SESSION_STORAGE);
   if (!raw) return null;
 

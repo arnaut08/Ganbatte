@@ -4,7 +4,7 @@ This document contains setup, architecture, deployment, and implementation detai
 
 ## Technology Stack
 
-- Frontend: React 18, Vite, Socket.io Client, TypeScript
+- Frontend: React 18, Vite, Socket.io Client, TypeScript (strict mode)
 - Backend: Node.js, Express.js, Socket.io, TypeScript (strict mode)
 - Validation: Zod
 - Server middleware: Helmet, CORS, HPP, rate limiting, payload limits
@@ -17,14 +17,17 @@ This document contains setup, architecture, deployment, and implementation detai
 Ganbatte/
 ├── client/
 │   ├── index.html
+│   ├── tsconfig.json
+│   ├── tailwind.config.ts
 │   ├── package.json
-│   ├── vite.config.js
+│   ├── vite.config.ts
 │   ├── .env.example
 │   └── src/
 │       ├── App.tsx
+│       ├── main.tsx
 │       ├── App.css
 │       ├── index.css
-│       ├── config.js
+│       ├── config.ts
 │       ├── assets/
 │       │   └── logo.svg
 │       ├── components/
@@ -66,19 +69,41 @@ Ganbatte/
 │       │       ├── switch.tsx
 │       │       └── table.tsx
 │       ├── config/
-│       │   └── supabase.js
+│       │   └── supabase.ts
+│       ├── contexts/
+│       │   ├── AppContext.tsx
+│       │   └── RoomContext.tsx
+│       ├── hooks/
+│       │   ├── useAppNavigation.ts
+│       │   ├── useAuth.ts
+│       │   ├── useFriends.ts
+│       │   ├── useRoomManager.ts
+│       │   ├── useRoomSocket.ts
+│       │   └── useToast.ts
 │       ├── lib/
-│       │   └── utils.js
+│       │   └── utils.ts
 │       ├── services/
 │       │   └── api.ts
+│       ├── types/
+│       │   ├── base.ts
+│       │   ├── index.ts
+│       │   ├── learning.ts
+│       │   ├── navigation.ts
+│       │   ├── room.ts
+│       │   ├── social.ts
+│       │   └── toast.ts
 │       └── utils/
-│           ├── friendRefresh.js
+│           ├── friendRefresh.ts
 │           ├── grammarRoomSync.ts
-│           ├── grammarScoring.js
-│           ├── navigation.js
-│           ├── romaji.js
-│           ├── roomStatus.js
-│           └── statusTransitions.js
+│           ├── grammarScoring.ts
+│           ├── kanaRecall.ts
+│           ├── kanjiRecall.ts
+│           ├── navigation.ts
+│           ├── romaji.ts
+│           ├── roomSession.ts
+│           ├── roomStatus.ts
+│           ├── statusTransitions.ts
+│           └── *test.ts (co-located unit tests)
 ├── server/
 │   ├── index.ts
 │   ├── app.ts
@@ -106,7 +131,10 @@ Ganbatte/
 │   │   ├── auth.ts
 │   │   └── error-handler.ts
 │   ├── repositories/
-│   │   └── kana-sentence-repository.js
+│   │   ├── genki-lesson-repository.ts
+│   │   ├── kana-repository.ts
+│   │   ├── kana-sentence-repository.ts
+│   │   └── kanji-repository.ts
 │   ├── routes/
 │   │   ├── assessment-routes.ts
 │   │   ├── friend-routes.ts
@@ -119,7 +147,7 @@ Ganbatte/
 │   │   ├── genki-lesson-service.ts
 │   │   └── kanji-service.ts
 │   ├── socket/
-│   │   └── socket-server.js
+│   │   └── socket-server.ts
 │   ├── types/
 │   │   ├── express.d.ts
 │   │   └── socket-events.ts
@@ -140,7 +168,7 @@ Ganbatte/
 - Node.js 18 or newer
 - npm
 
-TypeScript is checked without emitting build artifacts. The server uses `tsx` to execute ESM TypeScript directly.
+Both the client and server are fully TypeScript (strict mode). TypeScript is checked without emitting build artifacts, and both sides run through `tsx`, which executes the ESM TypeScript sources directly. The root `npm run typecheck` script type-checks both `client/tsconfig.json` and `server/tsconfig.json`.
 
 ## Installation
 
@@ -302,7 +330,7 @@ The current dataset is generated from independent beginner vocabulary dimensions
 - Answers are case-insensitive.
 - Whitespace is ignored during normalization.
 - `wo` is normalized to `o`.
-- Romaji is tokenized using `client/src/utils/romaji.js`.
+- Romaji is tokenized using `client/src/utils/romaji.ts`.
 - Each expected token is worth one possible point.
 - A token receives credit when it matches the expected token at the same position.
 - The percentage is calculated from matched tokens over expected tokens.
@@ -379,6 +407,6 @@ npm run preview
 - Add vocabulary dimensions or sentence templates in `server/data/kana-sentences.ts`.
 - Generate and review Kanji study records with `npm run generate:kanji`.
 - Adjust random deck selection in `server/services/card-service.ts`.
-- Adjust scoring and difference behavior in `client/src/utils/romaji.js`.
+- Adjust scoring and difference behavior in `client/src/utils/romaji.ts`.
 - Update the logo in `client/src/assets/logo.svg`.
 - Customize the visual theme in the CSS files under `client/src/`.

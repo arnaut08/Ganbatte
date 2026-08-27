@@ -375,7 +375,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
       return 'No answer';
     };
 
-    const isQuestionCorrectForPlayer = (question: GrammarQuestion, rawAnswer: unknown) => isQuestionCorrect(question, rawAnswer);
+    const isQuestionCorrectForPlayer = (question: GrammarQuestion, rawAnswer: unknown) => isQuestionCorrect(question, rawAnswer as GrammarAnswer);
 
     const getQuestionResultBadge = (question: GrammarQuestion, rawAnswer: unknown) => {
       if (question.type !== 'matching') {
@@ -387,7 +387,7 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         };
       }
 
-      const score = getMatchingResultScore(question, rawAnswer);
+      const score = getMatchingResultScore(question, rawAnswer as GrammarAnswer);
       const hasPairs = score.total > 0;
       const label = hasPairs ? `${score.correct}/${score.total} pairs correct` : 'No pairs to score';
 

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   areRomajiAnswersEqual,
   buildDirectRomajiDiff,
-} from './romaji.js';
+} from './romaji';
 
 test('whole-answer comparison tolerates spaces without token matching', () => {
   assert.equal(areRomajiAnswersEqual('  ohayou   gozaimasu ', 'ohayougozaimasu'), true);
