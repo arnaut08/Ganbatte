@@ -191,32 +191,32 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
   );
 
   return (
-    <main className="container mx-auto max-w-4xl space-y-6 px-4 py-6">
+    <main className="container mx-auto max-w-4xl space-y-3.5 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
       {/* 1. Header Bar */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-            // SESSION COMPLETE
+          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
+        // SESSION COMPLETE
           </span>
-          <h1 className="text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">
+          <h1 className="text-lg sm:text-3xl font-black uppercase tracking-tight text-white leading-tight">
             Assessment Results
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 self-start sm:self-auto">
           {roomCode && (
-            <span className="border-2 border-black bg-[#252c3d] px-3 py-1 font-mono text-xs font-black uppercase text-neutral-300 shadow-[2px_2px_0px_0px_#000]">
+            <span className="border-2 border-black bg-[#252c3d] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-neutral-300 shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]">
               ROOM: {roomCode}
             </span>
           )}
-          <span className="border-2 border-black bg-[#A3E636] px-3 py-1 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000]">
+          <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]">
             COMPLETED
           </span>
         </div>
       </div>
 
       {/* 2. Podium Scoreboard */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-2.5 sm:gap-4 sm:grid-cols-2">
         {results.map((player, idx) => {
           const stats = computeStats(player.answers || []);
           const isWinner = results.length > 1 && stats.percentage === maxScore;
@@ -224,33 +224,33 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
           return (
             <div
               key={idx}
-              className={`relative flex flex-col justify-between border-2 border-black p-5 shadow-[6px_6px_0px_0px_#000000] ${isWinner ? 'bg-[#70CFF8]' : 'bg-[#1a1f2c]'
+              className={`relative flex flex-col justify-between border-2 border-black p-3.5 sm:p-5 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] ${isWinner ? 'bg-[#70CFF8]' : 'bg-[#1a1f2c]'
                 }`}
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`border-2 border-black px-2 py-0.5 font-mono text-[10px] font-black uppercase ${isWinner ? 'bg-black text-[#FFDE59]' : 'bg-[#2c3345] text-neutral-300'
+                  className={`border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase ${isWinner ? 'bg-black text-[#FFDE59]' : 'bg-[#2c3345] text-neutral-300'
                     }`}
                 >
                   {isWinner ? '★ WINNER' : results.length > 1 ? `RANK #${idx + 1}` : 'OPERATOR'}
                 </span>
                 <span
-                  className={`font-mono text-xs font-bold ${isWinner ? 'text-black/70' : 'text-neutral-400'
+                  className={`font-mono text-[10px] sm:text-xs font-bold ${isWinner ? 'text-black/70' : 'text-neutral-400'
                     }`}
                 >
                   P{idx + 1}
                 </span>
               </div>
 
-              <div className="my-4">
+              <div className="my-2 sm:my-4">
                 <h2
-                  className={`text-xl font-black uppercase truncate ${isWinner ? 'text-black' : 'text-white'
+                  className={`text-base sm:text-xl font-black uppercase truncate ${isWinner ? 'text-black' : 'text-white'
                     }`}
                 >
                   {player.name}
                 </h2>
                 <div
-                  className={`mt-1 font-mono text-5xl font-black ${isWinner ? 'text-black' : 'text-[#A3E636]'
+                  className={`mt-0.5 sm:mt-1 font-mono text-3xl sm:text-5xl font-black leading-none ${isWinner ? 'text-black' : 'text-[#A3E636]'
                     }`}
                 >
                   {stats.percentage}%
@@ -258,7 +258,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
               </div>
 
               <div
-                className={`flex flex-wrap items-center gap-3 border-t-2 pt-3 font-mono text-xs font-black ${isWinner ? 'border-black/20 text-black' : 'border-neutral-700 text-neutral-400'
+                className={`flex flex-wrap items-center gap-2 sm:gap-3 border-t-2 pt-2 sm:pt-3 font-mono text-[10px] sm:text-xs font-black ${isWinner ? 'border-black/20 text-black' : 'border-neutral-700 text-neutral-400'
                   }`}
               >
                 <span className="text-[#10b981]">✔ {stats.correct}/{stats.total} CORRECT</span>
@@ -277,95 +277,95 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
       </div>
 
       {/* 3. Action Controls */}
-      <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-1 sm:pt-2">
         {requestedAction ? (
-          <div className="flex items-center gap-2.5 border-2 border-black bg-[#252c3d] px-4 py-2.5 shadow-[3px_3px_0px_0px_#000000] sm:px-5 sm:py-3">
-            <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+          <div className="flex items-center gap-2 border-2 border-black bg-[#252c3d] px-3 py-2 sm:px-5 sm:py-3 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
+            <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping bg-[#A3E636] opacity-75" />
-              <span className="relative inline-flex h-2 w-2 bg-[#A3E636] sm:h-2.5 sm:w-2.5" />
+              <span className="relative inline-flex h-2 w-2 bg-[#A3E636]" />
             </span>
-            <span className="font-mono text-xs font-black uppercase tracking-wider text-white">
+            <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-white">
               Waiting for Host to <span className="text-[#FFDE59]">Start New Assessment</span>
               <span className="animate-pulse">...</span>
             </span>
           </div>
         ) : (
-          <>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3">
             <button
               type="button"
               onClick={onStartNewSession}
-              className="h-11 border-2 border-black bg-[#FFDE59] px-5 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+              className="h-9 sm:h-11 border-2 border-black bg-[#FFDE59] px-3 sm:px-5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
-              Start New Session
+              New Session
             </button>
             <button
               type="button"
               onClick={handleReplaySelection}
-              className="h-11 border-2 border-black bg-[#A3E636] px-5 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+              className="h-9 sm:h-11 border-2 border-black bg-[#A3E636] px-3 sm:px-5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               Replay Set →
             </button>
-          </>
+          </div>
         )}
       </div>
 
       {/* 4. Round-by-Round Breakdown List */}
-      <div className="space-y-4 pt-4">
-        <div className="border-b-2 border-neutral-700 pb-2">
-          <span className="font-mono text-xs font-black uppercase tracking-wider text-[#70CFF8]">
-            // CARD EVALUATION ({kanaCards.length} ITEMS)
+      <div className="space-y-2.5 sm:space-y-4 pt-2 sm:pt-4">
+        <div className="border-b-2 border-neutral-700 pb-1.5 sm:pb-2">
+          <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#70CFF8]">
+        // CARD EVALUATION ({kanaCards.length} ITEMS)
           </span>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5 sm:space-y-3">
           {kanaCards.map((card, i) => (
             <div
               key={i}
-              className="border-2 border-black bg-[#1a1f2c] p-4 shadow-[4px_4px_0px_0px_#000000] space-y-3"
+              className="border-2 border-black bg-[#1a1f2c] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] space-y-2.5 sm:space-y-3"
             >
               {/* Top Row: Index, Phrase, English */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b-2 border-black/40 pb-2">
-                <div className="flex items-center gap-3">
-                  <span className="border border-black bg-white px-2 py-0.5 font-mono text-xs font-black text-black">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b-2 border-black/40 pb-2">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="border border-black bg-white px-1.5 py-0.2 sm:px-2 sm:py-0.5 font-mono text-[10px] sm:text-xs font-black text-black">
                     #{i + 1}
                   </span>
-                  <p className="jp-font text-xl font-black text-white sm:text-2xl">
+                  <p className="jp-font text-base sm:text-2xl font-black text-white">
                     {card.kana}
                   </p>
                 </div>
                 {card.english && (
-                  <p className="font-mono text-xs font-bold text-neutral-400">
+                  <p className="font-mono text-[10px] sm:text-xs font-bold text-neutral-400">
                     EN: {card.english}
                   </p>
                 )}
               </div>
 
               {/* Submissions vs Target */}
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
                 {/* Correct Solution */}
-                <div className="border-2 border-black bg-[#A3E636] p-3 shadow-[2px_2px_0px_0px_#000000]">
-                  <span className="font-mono text-[10px] font-black uppercase text-black/70">
+                <div className="border-2 border-black bg-[#A3E636] p-2 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
+                  <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-black/70">
                     TARGET ROMAJI
                   </span>
-                  <p className="mt-0.5 font-mono text-sm font-black text-black sm:text-base">
+                  <p className="mt-0.5 font-mono text-xs sm:text-base font-black text-black">
                     {card.romaji}
                   </p>
                 </div>
 
                 {/* Player Answers */}
-                <div className="grid gap-2">
+                <div className="grid gap-1.5 sm:gap-2">
                   {results.map((player, pi) => {
                     const playerAnswer = player.answers?.[i];
                     const isUnanswered = playerAnswer === undefined || playerAnswer === null;
                     return (
                       <div
                         key={pi}
-                        className="flex items-center justify-between border-2 border-black bg-[#252c3d] px-3 py-1.5 shadow-[2px_2px_0px_0px_#000000]"
+                        className="flex items-center justify-between border-2 border-black bg-[#252c3d] px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]"
                       >
-                        <span className="font-mono text-xs font-bold text-neutral-300">
+                        <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-300">
                           {player.name}:
                         </span>
-                        <span className="font-mono text-xs font-black text-white">
+                        <span className="font-mono text-[10px] sm:text-xs font-black text-white">
                           {isUnanswered ? (
                             <span className="text-neutral-500 font-mono">[NO INPUT]</span>
                           ) : (
@@ -387,21 +387,18 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 if (playersWithHints.length === 0) return null;
 
                 return (
-                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-black/40">
-                    <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                    // Hints Used:
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-black/40">
+                    <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                  // Hints:
                     </span>
-                    {playersWithHints.map((player, pi) => {
-                      const count = Number(player.hintsUsed?.[i] || 0);
-                      return (
-                        <span
-                          key={pi}
-                          className="inline-flex items-center gap-1.5 border-2 border-black bg-[#FFDE59] px-2 py-0.5 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000]"
-                        >
-                          <span>{player.name}</span>
-                        </span>
-                      );
-                    })}
+                    {playersWithHints.map((player, pi) => (
+                      <span
+                        key={pi}
+                        className="inline-flex items-center gap-1 border-2 border-black bg-[#FFDE59] px-1.5 py-0.2 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000000]"
+                      >
+                        {player.name}
+                      </span>
+                    ))}
                   </div>
                 );
               })()}
