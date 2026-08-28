@@ -11,7 +11,8 @@ create table if not exists public.vocab_items (
   pos text not null,
   metadata jsonb not null default '{}'::jsonb,
   examples jsonb not null default '[]'::jsonb,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint unique_level_kanji_kana unique (jlpt_level, kanji, kana)
 );
 
 create index if not exists vocab_items_jlpt_level_idx
