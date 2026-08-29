@@ -11,6 +11,7 @@ const Assessment = lazy(() => import('../practice/Assessment'));
 const Results = lazy(() => import('../practice/Results'));
 const AuthPage = lazy(() => import('../auth/AuthPage'));
 const KanjiStudy = lazy(() => import('../learning/KanjiStudy'));
+const KanjiIntroScreen = lazy(() => import('../learning/KanjiIntroScreen'));
 const VocabScreen = lazy(() => import('../learning/VocabScreen'));
 const VocabIntroScreen = lazy(() => import('../learning/VocabIntroScreen'));
 const KanaRecall = lazy(() => import('../learning/KanaRecall'));
@@ -26,7 +27,7 @@ type ScreenRouterProps = AppContextValue & RoomContextValue;
 
 function LegacyAppScreenRouter({
   authLoading, authRequired, user, status, selectorScreen, appHomeKey, setSelectorScreen,
-  handleCreateRoom, handleJoinRoom, handleOpenKanaStudy, handleOpenKanjiStudy,
+  handleCreateRoom, handleJoinRoom, handleOpenKanaStudy, handleOpenKanjiStudy, handleStartKanjiLearning,
   handleOpenVocabStudy, handleStartVocabLearning, handleOpenGrammarStudy, handleOpenGrammarPractice, handleReturnToRoom,
   handleDeclineRoomResume, prefillRoomCode, isSocketReady, roomCode, currentSessionKey,
   username, friends, friendSearchResults, isFriendSearchLoading, handleSearchUsers,
@@ -114,6 +115,10 @@ function LegacyAppScreenRouter({
               onReviewComplete={handleKanaReviewComplete}
               selectedKana={selectedKana}
             />
+          )}
+
+          {status === 'kanji-intro' && (
+            <KanjiIntroScreen onBack={handleGoBack} onStartLearning={handleStartKanjiLearning} />
           )}
 
           {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}

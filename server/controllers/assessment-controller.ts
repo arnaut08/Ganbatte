@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { getSupabaseClient } from '../config/supabase.js';
+import { calculateSrsUpdate } from '../services/vocab-progress-service.js';
 import type { Request, Response } from 'express';
 
 const assessmentQuerySchema = z.object({
@@ -32,6 +33,11 @@ const kanjiConfidenceBatchSchema = z.object({
   updates: z.array(characterConfidenceUpdateSchema).min(1).max(300),
 });
 
+const kanjiReviewSchema = z.object({
+  character_id: z.string().uuid(),
+  rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+});
+
 export async function generateAssessment(req: Request, res: Response): Promise<void> {
   const parsed = assessmentQuerySchema.safeParse(req.query);
   if (!parsed.success) {
@@ -57,6 +63,51 @@ export async function generateAssessment(req: Request, res: Response): Promise<v
   } catch (error) {
     console.error('Assessment generation failed:', error);
     res.status(500).json({ error: 'Assessment generation failed' });
+  }
+}
+
+export async function reviewKanji(req: Request, res: Response): Promise<void> {
+  const parsed = kanjiReviewSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid Kanji review' });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data: character, error: characterError } = await supabase
+      .from('kanji_characters')
+      .select('id')
+      .eq('id', parsed.data.character_id)
+      .maybeSingle();
+    if (characterError) throw characterError;
+    if (!character) {
+      res.status(404).json({ error: 'Kanji character not found.' });
+      return;
+    }
+
+    const { data: current, error: currentError } = await supabase
+      .from('user_kanji_progress')
+      .select('srs_stage, interval_days, ease_factor, repetitions')
+      .eq('user_id', req.user!.id)
+      .eq('character_id', parsed.data.character_id)
+      .maybeSingle();
+    if (currentError) throw currentError;
+
+    const update = calculateSrsUpdate(
+      current as Partial<{ srs_stage: number; interval_days: number; ease_factor: number; repetitions: number }> | null,
+      parsed.data.rating,
+    );
+    const { data, error } = await supabase
+      .from('user_kanji_progress')
+      .upsert({ user_id: req.user!.id, character_id: parsed.data.character_id, ...update }, { onConflict: 'user_id,character_id' })
+      .select('*')
+      .single();
+    if (error) throw error;
+    res.json({ progress: data });
+  } catch (error) {
+    console.error('Kanji review failed:', error);
+    res.status(500).json({ error: 'Unable to record Kanji review' });
   }
 }
 

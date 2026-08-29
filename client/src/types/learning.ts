@@ -19,6 +19,19 @@ export type KanjiCard = ApiRecord & {
   english?: string;
   groupId?: string;
   groupName?: string;
+  progress?: { srs_stage?: number; next_review_at?: string } | null;
+};
+
+export type KanjiGroupOverview = {
+  group_id: string;
+  theme: string;
+  total_characters: number;
+  learned_characters: number;
+  mastered_characters: number;
+  due_characters: number;
+  quiz_passed: boolean;
+  is_cleared: boolean;
+  is_mastered: boolean;
 };
 
 /** Any study card usable inside a practice/assessment session. */
