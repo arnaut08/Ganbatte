@@ -11,6 +11,8 @@ const Assessment = lazy(() => import('../practice/Assessment'));
 const Results = lazy(() => import('../practice/Results'));
 const AuthPage = lazy(() => import('../auth/AuthPage'));
 const KanjiStudy = lazy(() => import('../learning/KanjiStudy'));
+const VocabScreen = lazy(() => import('../learning/VocabScreen'));
+const VocabIntroScreen = lazy(() => import('../learning/VocabIntroScreen'));
 const KanaRecall = lazy(() => import('../learning/KanaRecall'));
 const KanaIntro = lazy(() => import('../learning/KanaIntro'));
 const KanaFilterScreen = lazy(() => import('../learning/KanaFilterScreen'));
@@ -25,7 +27,7 @@ type ScreenRouterProps = AppContextValue & RoomContextValue;
 function LegacyAppScreenRouter({
   authLoading, authRequired, user, status, selectorScreen, appHomeKey, setSelectorScreen,
   handleCreateRoom, handleJoinRoom, handleOpenKanaStudy, handleOpenKanjiStudy,
-  handleOpenGrammarStudy, handleOpenGrammarPractice, handleReturnToRoom,
+  handleOpenVocabStudy, handleStartVocabLearning, handleOpenGrammarStudy, handleOpenGrammarPractice, handleReturnToRoom,
   handleDeclineRoomResume, prefillRoomCode, isSocketReady, roomCode, currentSessionKey,
   username, friends, friendSearchResults, isFriendSearchLoading, handleSearchUsers,
   handleRemoveFriend, handleGoBack, handleContinueKanaIntro, handleOpenKanaFilter,
@@ -70,6 +72,7 @@ function LegacyAppScreenRouter({
               onJoinRoom={handleJoinRoom}
               onOpenKanaStudy={handleOpenKanaStudy}
               onOpenKanjiStudy={handleOpenKanjiStudy}
+              onOpenVocabStudy={handleOpenVocabStudy}
               onOpenGrammarStudy={handleOpenGrammarStudy}
               prefillRoomCode={prefillRoomCode}
               isSocketReady={isSocketReady}
@@ -114,6 +117,12 @@ function LegacyAppScreenRouter({
           )}
 
           {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}
+
+          {status === 'vocab-intro' && (
+            <VocabIntroScreen onBack={handleGoBack} onStartLearning={handleStartVocabLearning} />
+          )}
+
+          {status === 'vocab-study' && <VocabScreen onBack={handleGoBack} />}
 
           {status === 'grammar-study' && (
             <GrammarStudy

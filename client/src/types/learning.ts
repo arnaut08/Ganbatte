@@ -69,6 +69,64 @@ export type CardDeck<TCard extends ApiRecord = ApiRecord> = {
   matrices?: ApiRecord[];
 };
 
+export type VocabStage = {
+  stage_number: number;
+  theme: string;
+  total_words: number;
+  learned_words: number;
+  mastered_words: number;
+  due_words: number;
+  quiz_passed: boolean;
+  is_cleared: boolean;
+  is_mastered: boolean;
+};
+
+export type VocabOverview = {
+  level: string;
+  stages: VocabStage[];
+};
+
+export type VocabFilterItem = {
+  id: string;
+  stage_number: number;
+  theme: string;
+  pos: string;
+  progress?: { srs_stage?: number; next_review_at?: string } | null;
+};
+
+export type VocabMetadata = {
+  verb_group?: 'ichidan' | 'godan' | 'irregular' | null;
+  transitivity?: 'transitive' | 'intransitive' | null;
+  textbook_reference?: string | null;
+  nuance?: string | null;
+};
+
+export type VocabExample = {
+  ja: string;
+  en: string;
+  furigana: string;
+};
+
+export type VocabItem = {
+  id?: string;
+  jlpt_level?: string;
+  kanji: string;
+  kana: string;
+  furigana: string;
+  romaji?: string | null;
+  theme: string;
+  stage_number: number;
+  english: string[];
+  pos: string;
+  metadata?: VocabMetadata;
+  examples: VocabExample[];
+};
+
+export type VocabStudyItem = VocabItem & {
+  id: string;
+  progress?: { srs_stage?: number; next_review_at?: string } | null;
+};
+
 /** The concrete grammar question kinds the generator can emit. */
 export type GrammarQuestionType =
   | 'multiple-choice'

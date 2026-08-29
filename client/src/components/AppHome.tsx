@@ -19,6 +19,7 @@ type AppHomeProps = {
   onJoinRoom: (roomCode: string) => void;
   onOpenKanaStudy: () => void;
   onOpenKanjiStudy: () => void;
+  onOpenVocabStudy: () => void;
   onOpenGrammarStudy: () => void;
   onScreenChange?: (screen: SelectorScreen) => void;
   screen?: SelectorScreen;
@@ -32,6 +33,7 @@ function AppHome({
   onJoinRoom,
   onOpenKanaStudy,
   onOpenKanjiStudy,
+  onOpenVocabStudy,
   onOpenGrammarStudy,
   onScreenChange,
   screen: controlledScreen,
@@ -220,6 +222,7 @@ function AppHome({
             onBackToHome={() => setScreen('home')}
             onOpenKanaStudy={onOpenKanaStudy}
             onOpenKanjiStudy={onOpenKanjiStudy}
+            onOpenVocabStudy={onOpenVocabStudy}
             onOpenGrammarStudy={onOpenGrammarStudy}
           />
         ) : (
