@@ -27,14 +27,24 @@ function renderBracketFurigana(text: string): ReactNode {
     const reading = match[2];
 
     nodes.push(
-      <ruby
+      <span
         key={`${match.index}-${kanji}`}
-        className="kanji-reading"
+        className="group relative mx-0.5 inline-block cursor-pointer align-baseline focus:outline-none"
         tabIndex={0}
       >
-        <span>{kanji}</span>
-        <rt>{reading}</rt>
-      </ruby>
+        {/* Furigana Badge (Clearly readable, centered directly above the Kanji) */}
+        <span
+          className="pointer-events-none absolute bottom-[calc(100%+4px)] left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded border-2 border-black bg-white px-1.5 py-0.5 font-mono text-xs font-black leading-none text-black opacity-0 shadow-[2px_2px_0px_0px_#000000] transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100"
+          aria-hidden="true"
+        >
+          {reading}
+        </span>
+
+        {/* Highlighted Yellow Kanji Block */}
+        <span className="border-b-2 border-black bg-[#FFDE59] px-1 py-0.5 font-black text-black">
+          {kanji}
+        </span>
+      </span>
     );
 
     lastIndex = match.index + match[0].length;
@@ -88,11 +98,10 @@ export default function VocabCard({ vocab, onRate }: VocabCardProps) {
       {/* FRONT FACE (Yellow #FFDE59) */}
       <section
         style={{ gridArea: '1 / 1' }}
-        className={`flex min-h-[460px] w-full flex-col justify-between border-2 border-black bg-[#FFDE59] p-4 text-black shadow-[4px_4px_0px_0px_#000000] transition-all duration-500 ease-in-out [backface-visibility:hidden] sm:min-h-[500px] sm:p-6 sm:shadow-[6px_6px_0px_0px_#000000] ${
-          isRevealed
+        className={`flex min-h-[460px] w-full flex-col justify-between border-2 border-black bg-[#FFDE59] p-4 text-black shadow-[4px_4px_0px_0px_#000000] transition-all duration-500 ease-in-out [backface-visibility:hidden] sm:min-h-[500px] sm:p-6 sm:shadow-[6px_6px_0px_0px_#000000] ${isRevealed
             ? 'pointer-events-none opacity-0 [transform:rotateY(180deg)]'
             : 'z-10 opacity-100 [transform:rotateY(0deg)]'
-        }`}
+          }`}
       >
         {/* HEADER */}
         <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-2.5 sm:pb-3">
@@ -153,11 +162,10 @@ export default function VocabCard({ vocab, onRate }: VocabCardProps) {
       {/* BACK FACE (Cyan #70CFF8) */}
       <section
         style={{ gridArea: '1 / 1' }}
-        className={`flex min-h-[460px] w-full flex-col justify-between border-2 border-black bg-[#70CFF8] p-3.5 text-black shadow-[4px_4px_0px_0px_#000000] transition-all duration-500 ease-in-out [backface-visibility:hidden] sm:min-h-[500px] sm:p-6 sm:shadow-[6px_6px_0px_0px_#000000] ${
-          !isRevealed
+        className={`flex min-h-[460px] w-full flex-col justify-between border-2 border-black bg-[#70CFF8] p-3.5 text-black shadow-[4px_4px_0px_0px_#000000] transition-all duration-500 ease-in-out [backface-visibility:hidden] sm:min-h-[500px] sm:p-6 sm:shadow-[6px_6px_0px_0px_#000000] ${!isRevealed
             ? 'pointer-events-none opacity-0 [transform:rotateY(-180deg)]'
             : 'z-10 opacity-100 [transform:rotateY(0deg)]'
-        }`}
+          }`}
       >
         {/* TOP BAR */}
         <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-2 sm:pb-2.5">
@@ -181,30 +189,30 @@ export default function VocabCard({ vocab, onRate }: VocabCardProps) {
           </h2>
 
           {/* MEANING BOX */}
-          <div className="mt-2 border-2 border-black bg-white p-2 text-left shadow-[2px_2px_0px_0px_#000000] sm:p-2.5">
+          <div className="mt-2.5 border-2 border-black bg-white p-3 text-left shadow-[2px_2px_0px_0px_#000000] sm:p-3.5">
             <span className="block font-mono text-[8px] font-black uppercase text-neutral-500 sm:text-[9px]">
               MEANING
             </span>
-            <p className="text-xs font-black text-black sm:text-base">
+            <p className="mt-0.5 text-sm font-black text-black sm:text-lg">
               {vocab.english.join(' / ')}
             </p>
           </div>
 
           {/* EXAMPLES */}
           {vocab.examples?.length > 0 && (
-            <div className="mt-2 space-y-1.5 text-left">
+            <div className="mt-3 space-y-2.5 text-left">
               <span className="block font-mono text-[8px] font-black uppercase text-black/70 sm:text-[9px]">
                 EXAMPLES
               </span>
               {vocab.examples.slice(0, 2).map((example: any, index: number) => (
                 <div
                   key={`${example.ja}-${index}`}
-                  className="border-2 border-black bg-white p-1.5 font-mono shadow-[2px_2px_0px_0px_#000000] sm:p-2"
+                  className="border-2 border-black bg-white p-2.5 font-mono shadow-[2px_2px_0px_0px_#000000] sm:p-3"
                 >
-                  <p className="jp-font text-[11px] font-black leading-tight text-black sm:text-xs">
+                  <p className="jp-font text-xs font-black leading-relaxed text-black sm:text-sm">
                     {renderBracketFurigana(example.furigana || example.ja)}
                   </p>
-                  <p className="mt-0.5 text-[9px] font-semibold text-neutral-600 sm:text-[10px]">
+                  <p className="mt-1.5 text-[11px] font-bold leading-normal text-neutral-800 sm:text-xs">
                     {example.en}
                   </p>
                 </div>
