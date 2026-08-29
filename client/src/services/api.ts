@@ -12,6 +12,9 @@ import type {
   KanaCard,
   KanjiCard,
   Room,
+  VocabOverview,
+  VocabFilterItem,
+  VocabStudyItem,
 } from '../types';
 
 const PROTECTED_PATH_PREFIXES = [
@@ -26,6 +29,7 @@ const PROTECTED_PATH_PREFIXES = [
   '/api/kanji-attempts',
   '/api/rooms',
   '/api/generate-cards',
+  '/api/vocab',
 ];
 
 const pendingRequests = new Map<string, Promise<unknown>>();
@@ -150,6 +154,27 @@ export function generateCards(count = 10): Promise<CardDeck<KanaCard | KanjiCard
 
 export function getKanaCards(): Promise<CardDeck<KanaCard>> {
   return request('/api/kana-cards');
+}
+
+export function getVocabOverview(level = 'N5'): Promise<VocabOverview> {
+  return request(`/api/vocab/overview?level=${encodeURIComponent(level)}`);
+}
+
+export function getVocabFilter(level = 'N5', pos?: string): Promise<{ level: string; items: VocabFilterItem[] }> {
+  const params = new URLSearchParams({ level });
+  if (pos) params.set('pos', pos);
+  return request(`/api/vocab/filter?${params.toString()}`);
+}
+
+export function getVocabStage(stageNumber: number, level = 'N5'): Promise<{ level: string; stage_number: number; items: VocabStudyItem[] }> {
+  return request(`/api/vocab/stage/${encodeURIComponent(stageNumber)}?level=${encodeURIComponent(level)}`);
+}
+
+export function reviewVocab(vocabId: string, rating: 1 | 2 | 3 | 4): Promise<{ progress: ApiRecord }> {
+  return request('/api/vocab/review', {
+    method: 'POST',
+    body: JSON.stringify({ vocab_id: vocabId, rating }),
+  });
 }
 
 export function generateGrammarAssessment(

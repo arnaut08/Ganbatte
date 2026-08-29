@@ -1,6 +1,7 @@
 import { createContext, useContext, type Dispatch, type SetStateAction, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { AppStatus, SelectorScreen } from '../types';
+import type { VocabSessionConfig } from '../components/learning/VocabIntroScreen';
 
 export type AppContextValue = {
   authLoading: boolean;
@@ -16,6 +17,8 @@ export type AppContextValue = {
   handleGoBack: () => void;
   handleOpenKanaStudy: () => void;
   handleOpenKanjiStudy: () => void;
+  handleOpenVocabStudy: () => void;
+  handleStartVocabLearning: (config: VocabSessionConfig) => void;
   handleOpenGrammarStudy: () => void;
   handleOpenGrammarPractice: (maxLesson?: number, count?: number, mode?: string) => Promise<void>;
   selectedKana: Set<string>;

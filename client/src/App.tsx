@@ -98,6 +98,8 @@ function App() {
     handleGoBack: navigation.handleGoBack,
     handleOpenKanaStudy: navigation.handleOpenKanaStudy,
     handleOpenKanjiStudy: navigation.handleOpenKanjiStudy,
+    handleOpenVocabStudy: navigation.handleOpenVocabStudy,
+    handleStartVocabLearning: navigation.handleStartVocabLearning,
     handleOpenGrammarStudy: navigation.handleOpenGrammarStudy,
     handleOpenGrammarPractice: navigation.handleOpenGrammarPractice,
     selectedKana,

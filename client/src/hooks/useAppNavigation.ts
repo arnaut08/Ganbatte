@@ -5,10 +5,11 @@ import { generateGrammarAssessment } from '../services/api';
 import type { AppStatus, GrammarQuestion, SelectorScreen, ToastType } from '../types';
 import { ROOM_VIEW_STATUSES as roomStatuses } from '../types';
 import { pushScreenHistory } from '../utils/navigation';
+import type { VocabSessionConfig } from '../components/learning/VocabIntroScreen';
 
 const screenPriority: Record<AppStatus, number> = {
   selector: 0, friends: 0, 'kana-intro': 0, 'kana-filter': 0, 'kana-study': 0,
-  'kanji-study': 0, 'grammar-study': 0, 'grammar-practice': 0, history: 0,
+  'kanji-study': 0, 'vocab-intro': 0, 'vocab-study': 0, 'grammar-study': 0, 'grammar-practice': 0, history: 0,
   lobby: 0, assessment: 1, results: 1, 'assessment-preparing': 0,
 };
 
@@ -91,6 +92,8 @@ export default function useAppNavigation({ socketRef, roomCodeRef, setGrammarQue
     handleApplyKanaFilters: (selectedKana: Set<string>) => { setSelectedKana(selectedKana); navigateToScreen('kana-study'); },
     handleKanaReviewComplete: () => navigateToScreen('kana-intro'),
     handleOpenKanjiStudy: () => navigateToScreen('kanji-study'),
+    handleOpenVocabStudy: () => navigateToScreen('vocab-intro'),
+    handleStartVocabLearning: (_config: VocabSessionConfig) => navigateToScreen('vocab-study'),
     handleOpenGrammarStudy: () => navigateToScreen('grammar-study'),
     handleOpenGrammarPractice,
     handleOpenHistory: () => navigateToScreen('history'),

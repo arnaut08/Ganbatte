@@ -11,6 +11,8 @@ export type AppStatus =
   | 'kana-filter'
   | 'kana-study'
   | 'kanji-study'
+  | 'vocab-intro'
+  | 'vocab-study'
   | 'grammar-study'
   | 'grammar-practice'
   | 'history'
