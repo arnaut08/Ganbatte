@@ -161,10 +161,10 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
         <button
           type="button"
           onClick={onBack}
-          className="flex h-10 w-10 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
           aria-label="Return to learning modules"
         >
-          <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
+          <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
         </button>
         <div>
           <span className="font-mono text-[10px] font-black uppercase tracking-wider text-[#A3E636]">04 // Vocabulary</span>

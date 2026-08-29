@@ -3,6 +3,7 @@ import { getVocabStage, reviewVocab } from '../../services/api';
 import type { VocabStudyItem } from '../../types';
 import VocabCard from './VocabCard';
 import VocabStageQuiz from './VocabStageQuiz';
+import VocabStudySkeleton from './VocabStudySkeleton';
 
 type VocabStudySessionProps = {
   level?: string;
@@ -88,19 +89,29 @@ export default function VocabStudySession({
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-7 sm:py-8">
-      <header className="flex items-center justify-between gap-3">
-        <button type="button" onClick={onBackToStageMap} className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]" aria-label="Return to vocabulary stage map" title="Back to vocabulary stage map">
+      <header className="flex items-center gap-2.5 sm:gap-4">
+        <button
+          type="button"
+          onClick={onBackToStageMap}
+          className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
+          aria-label="Return to vocabulary stage map"
+          title="Back to vocabulary stage map"
+        >
           <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
         </button>
-        <div className="min-w-0 text-right">
-          <span className="font-mono text-[10px] font-black uppercase tracking-wider text-[#FFDE59]">JLPT {level} // STAGE {stageNumber}</span>
-          <h1 className="truncate text-xl font-black uppercase tracking-tight text-white sm:text-3xl">Vocabulary Recall</h1>
+
+        <div className="flex flex-col justify-center text-left">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59] sm:text-xs">
+            JLPT {level} // STAGE {stageNumber}
+          </span>
+          <h1 className="text-lg font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
+            Vocabulary Recall
+          </h1>
         </div>
       </header>
 
-      {isLoading && (
-        <div className="border-2 border-black bg-[#1a1f2c] p-12 text-center font-mono text-xs font-black uppercase text-neutral-400 shadow-[6px_6px_0px_0px_#000]">Loading study session...</div>
-      )}
+      {isLoading && <VocabStudySkeleton />}
+      
       {error && !isLoading && (
         <div className="border-2 border-black bg-[#FF6B6B] p-5 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">{error}</div>
       )}

@@ -14,7 +14,7 @@ export default function VocabStageMap({
 }: VocabStageMapProps) {
   if (stages.length === 0) {
     return (
-      <div className="border-2 border-black bg-[#1a1f2c] p-10 text-center shadow-[4px_4px_0px_0px_#000]">
+      <div className="border-2 border-black bg-[#151922] p-8 text-center shadow-[3px_3px_0px_0px_#000]">
         <p className="font-mono text-xs font-black uppercase tracking-wide text-neutral-400">
           No stages match this filter.
         </p>
@@ -23,7 +23,7 @@ export default function VocabStageMap({
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
       {stages.map((stage) => {
         const isAllLearned = stage.total_words > 0 && stage.learned_words === stage.total_words;
         const needsQuiz = isAllLearned && !stage.quiz_passed;
@@ -36,91 +36,88 @@ export default function VocabStageMap({
           <article
             key={`${stage.stage_number}-${stage.theme}`}
             onClick={() => onSelectStage(stage.stage_number)}
-            className="group relative flex min-h-[230px] cursor-pointer flex-col justify-between overflow-hidden border-2 border-black bg-[#FFDE59] p-5 text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[7px_7px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            className="group relative flex min-h-[200px] cursor-pointer flex-col justify-between overflow-hidden border-2 border-black bg-[#FFDE59] p-3.5 text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:min-h-[220px] sm:p-5 sm:shadow-[4px_4px_0px_0px_#000]"
           >
-            {/* BACKGROUND WATERMARK DECORATION */}
+            {/* WATERMARK */}
             <span
-              className="pointer-events-none absolute -right-2 -top-3 select-none font-mono text-7xl font-black text-black/[0.07] transition-transform group-hover:scale-110"
+              className="pointer-events-none absolute -right-1 -top-2 select-none font-mono text-6xl font-black text-black/[0.06] transition-transform group-hover:scale-105 sm:-right-2 sm:-top-3 sm:text-7xl"
               aria-hidden="true"
             >
               #{String(stage.stage_number).padStart(2, '0')}
             </span>
 
-            {/* TOP HEADER */}
+            {/* TOP BAR */}
             <div className="relative z-10">
-              <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="border-2 border-black bg-black px-2 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-[#FFDE59] shadow-[1.5px_1.5px_0px_0px_#000]">
+              <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-2.5 sm:pb-3">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <span className="border-2 border-black bg-black px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59] shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[10px]">
                     STAGE {String(stage.stage_number).padStart(2, '0')}
                   </span>
 
                   {stage.is_mastered ? (
-                    <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000]">
+                    <span className="border-2 border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                       ★ MASTERED
                     </span>
                   ) : stage.is_cleared ? (
-                    <span className="border-2 border-black bg-white px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000]">
+                    <span className="border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                       ✓ CLEARED
                     </span>
                   ) : needsQuiz ? (
-                    <span className="flex items-center gap-1 border-2 border-black bg-[#70CFF8] px-2 py-0.5 font-mono text-[9px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000]">
-                      <LightningBoltIcon className="h-3 w-3 text-black animate-pulse" />
+                    <span className="flex items-center gap-1 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
+                      <LightningBoltIcon className="h-2.5 w-2.5 text-black animate-pulse" />
                       QUIZ READY
                     </span>
                   ) : null}
                 </div>
 
-                {/* NAV INDICATOR ICON */}
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black bg-white shadow-[1.5px_1.5px_0px_0px_#000] transition-colors group-hover:bg-black group-hover:text-white">
-                  <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center border-2 border-black bg-white shadow-[1px_1px_0px_0px_#000] transition-colors group-hover:bg-black group-hover:text-white sm:h-7 sm:w-7">
+                  <ChevronRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
                 </div>
               </div>
 
-              {/* THEME TITLE */}
-              <div className="mt-4">
-                <span className="font-mono text-[9px] font-black uppercase tracking-widest text-black/60">
+              {/* TITLE */}
+              <div className="mt-2.5 sm:mt-3.5">
+                <span className="font-mono text-[8px] font-black uppercase tracking-widest text-black/60 sm:text-[9px]">
                   // THEME
                 </span>
-                <h3 className="mt-0.5 text-xl font-black uppercase tracking-tight text-black transition-colors group-hover:text-neutral-900 sm:text-2xl">
+                <h3 className="text-lg font-black uppercase tracking-tight text-black sm:text-2xl">
                   {stage.theme}
                 </h3>
               </div>
             </div>
 
-            {/* QUIZ READY PROMPT BANNER */}
+            {/* QUIZ PROMPT (IF ELIGIBLE) */}
             {needsQuiz && (
               <div
                 onClick={(e) => {
                   e.stopPropagation();
                   onStartQuiz?.(stage.stage_number);
                 }}
-                className="relative z-10 my-3 flex items-center justify-between border-2 border-black bg-white p-2.5 shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-neutral-50"
+                className="relative z-10 my-2 flex items-center justify-between border-2 border-black bg-white p-2 shadow-[2px_2px_0px_0px_#000]"
               >
-                <div className="flex items-center gap-1.5 font-mono text-[10px] font-black uppercase">
-                  <LightningBoltIcon className="h-3.5 w-3.5 text-black" />
-                  <span>Pass quiz to unlock badge</span>
-                </div>
+                <span className="font-mono text-[9px] font-black uppercase sm:text-[10px]">
+                  Pass quiz for badge
+                </span>
                 <button
                   type="button"
-                  className="border-2 border-black bg-[#A3E636] px-2.5 py-1 font-mono text-[9px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] hover:bg-[#8fe01a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                  className="border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[8px] font-black uppercase shadow-[1px_1px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[9px]"
                 >
-                  START QUIZ ⚡
+                  START ⚡
                 </button>
               </div>
             )}
 
-            {/* BOTTOM STATS & PROGRESS */}
-            <div className="relative z-10 mt-4 space-y-2">
-              <div className="flex items-center justify-between font-mono text-[10px] font-black uppercase">
-                <span className="text-black/80">{stage.total_words} Words Total</span>
+            {/* PROGRESS TRACK */}
+            <div className="relative z-10 mt-3 space-y-1.5 sm:space-y-2">
+              <div className="flex items-center justify-between font-mono text-[9px] font-black uppercase sm:text-[10px]">
+                <span className="text-black/80">{stage.total_words} Words</span>
                 <span>
-                  {stage.mastered_words} / {stage.total_words} Mastered
+                  {stage.mastered_words}/{stage.total_words} Mastered
                 </span>
               </div>
 
-              {/* DUAL SEGMENT PROGRESS TRACK */}
               <div
-                className="h-4 overflow-hidden border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000]"
+                className="h-3.5 overflow-hidden border-2 border-black bg-white shadow-[1.5px_1.5px_0px_0px_#000] sm:h-4"
                 aria-label={`${progress}% mastered`}
               >
                 <div
@@ -135,15 +132,14 @@ export default function VocabStageMap({
                 />
               </div>
 
-              {/* FOOTER META TAGS */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <span className="font-mono text-[9px] font-bold text-black/70">
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="font-mono text-[8px] font-bold text-black/70 sm:text-[9px]">
                   {stage.learned_words || 0} OF {stage.total_words} LEARNED
                 </span>
 
                 {stage.due_words > 0 && (
-                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#FF6B6B] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000]">
-                    <TimerIcon className="h-3 w-3" />
+                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#FF6B6B] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000] sm:text-[9px]">
+                    <TimerIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                     {stage.due_words} DUE
                   </span>
                 )}
