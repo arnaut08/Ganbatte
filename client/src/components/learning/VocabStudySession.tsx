@@ -2,21 +2,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { getVocabStage, reviewVocab } from '../../services/api';
 import type { VocabStudyItem } from '../../types';
 import VocabCard from './VocabCard';
+import VocabStageQuiz from './VocabStageQuiz';
 
 type VocabStudySessionProps = {
   level?: string;
   stageNumber: number;
   onBackToStageMap: () => void;
-  onTakeQuiz: () => void;
 };
 
 export default function VocabStudySession({
   level = 'N5',
   stageNumber,
   onBackToStageMap,
-  onTakeQuiz,
 }: VocabStudySessionProps) {
   const [queue, setQueue] = useState<VocabStudyItem[]>([]);
+  const [stageItems, setStageItems] = useState<VocabStudyItem[]>([]);
   const [totalCards, setTotalCards] = useState(0);
   const [completedCards, setCompletedCards] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +24,7 @@ export default function VocabStudySession({
   const [reviewError, setReviewError] = useState('');
   const [isRating, setIsRating] = useState(false);
   const [cardTurn, setCardTurn] = useState(0);
+  const [isQuizStarted, setIsQuizStarted] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -36,6 +37,7 @@ export default function VocabStudySession({
       .then((data) => {
         if (!isCurrent) return;
         const items = Array.isArray(data.items) ? data.items : [];
+        setStageItems(items);
         setQueue(items);
         setTotalCards(items.length);
       })
@@ -68,13 +70,21 @@ export default function VocabStudySession({
     if (rating !== 1) setCompletedCards((current) => current + 1);
 
     try {
-      await reviewVocab(card.id, rating);
+      const { progress } = await reviewVocab(card.id, rating);
+      const updatedStage = Number(progress.srs_stage);
+      setStageItems((current) => current.map((item) => item.id === card.id
+        ? { ...item, progress: { ...item.progress, srs_stage: updatedStage } }
+        : item));
     } catch {
       setReviewError('Review saved locally, but could not sync with the server.');
     } finally {
       setIsRating(false);
     }
   };
+
+  if (sessionComplete && isQuizStarted) {
+    return <VocabStageQuiz level={level} stageNumber={stageNumber} items={stageItems} onBackToStageMap={onBackToStageMap} />;
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-7 sm:py-8">
@@ -126,7 +136,7 @@ export default function VocabStudySession({
           <p className="mt-3 font-mono text-sm font-bold uppercase">{completedCards} cards reviewed and saved.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <button type="button" onClick={onBackToStageMap} className="border-2 border-black bg-white px-4 py-3 font-mono text-xs font-black uppercase shadow-[3px_3px_0px_0px_#000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">Return to Stage Map</button>
-            <button type="button" onClick={onTakeQuiz} className="border-2 border-black bg-[#70CFF8] px-4 py-3 font-mono text-xs font-black uppercase shadow-[3px_3px_0px_0px_#000] hover:bg-[#8bd9fa] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">Take a Quiz</button>
+            <button type="button" onClick={() => setIsQuizStarted(true)} className="border-2 border-black bg-[#70CFF8] px-4 py-3 font-mono text-xs font-black uppercase shadow-[3px_3px_0px_0px_#000] hover:bg-[#8bd9fa] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">Take a Quiz</button>
           </div>
         </section>
       )}

@@ -17,6 +17,14 @@ import type {
   VocabStudyItem,
 } from '../types';
 
+export type SaveStageQuizPayload = {
+  level: string;
+  stageNumber: number;
+  score: number;
+  totalQuestions: number;
+  passed: boolean;
+};
+
 const PROTECTED_PATH_PREFIXES = [
   '/api/friends',
   '/api/friend-requests',
@@ -174,6 +182,20 @@ export function reviewVocab(vocabId: string, rating: 1 | 2 | 3 | 4): Promise<{ p
   return request('/api/vocab/review', {
     method: 'POST',
     body: JSON.stringify({ vocab_id: vocabId, rating }),
+  });
+}
+
+export function markVocabAgain(vocabId: string): Promise<{ progress: ApiRecord }> {
+  return request('/api/vocab/mark-again', {
+    method: 'POST',
+    body: JSON.stringify({ vocab_id: vocabId }),
+  });
+}
+
+export function saveStageQuizResult(payload: SaveStageQuizPayload): Promise<{ result: ApiRecord }> {
+  return request('/api/vocab/quiz-results', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }
 

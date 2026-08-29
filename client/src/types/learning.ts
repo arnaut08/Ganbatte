@@ -73,8 +73,12 @@ export type VocabStage = {
   stage_number: number;
   theme: string;
   total_words: number;
+  learned_words: number;
   mastered_words: number;
   due_words: number;
+  quiz_passed: boolean;
+  is_cleared: boolean;
+  is_mastered: boolean;
 };
 
 export type VocabOverview = {

@@ -17,6 +17,14 @@ const reviewSchema = z.object({
   vocab_id: z.string().uuid(),
   rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
 });
+const markAgainSchema = z.object({ vocab_id: z.string().uuid() });
+const stageQuizResultSchema = z.object({
+  level: levelSchema,
+  stageNumber: z.number().int().positive(),
+  score: z.number().int().nonnegative(),
+  totalQuestions: z.number().int().positive(),
+  passed: z.boolean(),
+}).refine((value) => value.score <= value.totalQuestions, { message: 'Score cannot exceed total questions.' });
 
 type VocabRow = Record<string, unknown> & { id: string; stage_number: number; theme: string };
 type ProgressRow = Record<string, unknown> & { vocab_id: string; srs_stage: number };
@@ -57,25 +65,52 @@ export async function getVocabOverview(req: Request, res: Response): Promise<voi
   }
 
   try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.from('vocab_items').select('id, stage_number, theme').eq('jlpt_level', parsed.data.level);
+    const rpcClient = getSupabaseClient() as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown[] | null; error: Error | null }> };
+    const { data, error } = await rpcClient.rpc('get_vocab_stage_overview', { p_level: parsed.data.level, p_user_id: req.user!.id });
     if (error) throw error;
-    const items = (data || []) as unknown as VocabRow[];
-    const progress = await getProgressMap(req.user!.id, items.map((item) => item.id));
-    const stages = new Map<string, { stage_number: number; theme: string; total_words: number; mastered_words: number; due_words: number }>();
-    items.forEach((item) => {
-      const key = `${item.stage_number}:${item.theme}`;
-      const stage = stages.get(key) || { stage_number: item.stage_number, theme: item.theme, total_words: 0, mastered_words: 0, due_words: 0 };
-      stage.total_words += 1;
-      const itemProgress = progress.get(item.id);
-      if ((itemProgress?.srs_stage || 0) > 0) stage.mastered_words += 1;
-      if (itemProgress?.next_review_at && new Date(String(itemProgress.next_review_at)).getTime() <= Date.now()) stage.due_words += 1;
-      stages.set(key, stage);
-    });
-    res.json({ level: parsed.data.level, stages: [...stages.values()].sort((a, b) => a.stage_number - b.stage_number || a.theme.localeCompare(b.theme)) });
+    res.json({ level: parsed.data.level, stages: data || [] });
   } catch (error) {
     console.error('Vocabulary overview lookup failed:', error);
     res.status(500).json({ error: 'Unable to load vocabulary overview.' });
+  }
+}
+
+export async function saveStageQuizResult(req: Request, res: Response): Promise<void> {
+  const parsed = stageQuizResultSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid stage quiz result.' });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data: previousResult, error: previousResultError } = await supabase
+      .from('user_stage_quiz_results')
+      .select('passed')
+      .eq('user_id', req.user!.id)
+      .eq('jlpt_level', parsed.data.level)
+      .eq('stage_number', parsed.data.stageNumber)
+      .maybeSingle();
+    if (previousResultError) throw previousResultError;
+
+    const { data, error } = await getSupabaseClient()
+      .from('user_stage_quiz_results')
+      .upsert({
+        user_id: req.user!.id,
+        jlpt_level: parsed.data.level,
+        stage_number: parsed.data.stageNumber,
+        score: parsed.data.score,
+        total_questions: parsed.data.totalQuestions,
+        passed: parsed.data.passed || previousResult?.passed === true,
+        completed_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,jlpt_level,stage_number' })
+      .select('*')
+      .single();
+    if (error) throw error;
+    res.json({ result: data });
+  } catch (error) {
+    console.error('Stage quiz result save failed:', error);
+    res.status(500).json({ error: 'Unable to save stage quiz result.' });
   }
 }
 
@@ -145,5 +180,46 @@ export async function reviewVocab(req: Request, res: Response): Promise<void> {
   } catch (error) {
     console.error('Vocabulary review failed:', error);
     res.status(500).json({ error: 'Unable to record vocabulary review.' });
+  }
+}
+
+export async function markVocabAgain(req: Request, res: Response): Promise<void> {
+  const parsed = markAgainSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid vocabulary item.' });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data: vocab, error: vocabError } = await supabase
+      .from('vocab_items')
+      .select('id')
+      .eq('id', parsed.data.vocab_id)
+      .maybeSingle();
+    if (vocabError) throw vocabError;
+    if (!vocab) {
+      res.status(404).json({ error: 'Vocabulary item not found.' });
+      return;
+    }
+
+    const nextReviewAt = new Date().toISOString();
+    const { data: existingProgress, error: progressLookupError } = await supabase
+      .from('user_vocab_progress')
+      .select('id')
+      .eq('user_id', req.user!.id)
+      .eq('vocab_id', parsed.data.vocab_id)
+      .maybeSingle();
+    if (progressLookupError) throw progressLookupError;
+
+    const progressQuery = existingProgress
+      ? supabase.from('user_vocab_progress').update({ srs_stage: 1, next_review_at: nextReviewAt }).eq('id', String(existingProgress.id))
+      : supabase.from('user_vocab_progress').insert({ user_id: req.user!.id, vocab_id: parsed.data.vocab_id, srs_stage: 1, next_review_at: nextReviewAt });
+    const { data, error } = await progressQuery.select('*').single();
+    if (error) throw error;
+    res.json({ progress: data });
+  } catch (error) {
+    console.error('Vocabulary mark-again failed:', error);
+    res.status(500).json({ error: 'Unable to mark vocabulary for review.' });
   }
 }
