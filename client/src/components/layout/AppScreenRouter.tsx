@@ -18,6 +18,7 @@ const KanaRecall = lazy(() => import('../learning/KanaRecall'));
 const KanaIntro = lazy(() => import('../learning/KanaIntro'));
 const KanaFilterScreen = lazy(() => import('../learning/KanaFilterScreen'));
 const GrammarStudy = lazy(() => import('../learning/GrammarStudy'));
+const GrammarIntroScreen = lazy(() => import('../learning/GrammarIntroScreen'));
 const AssessmentHistory = lazy(() => import('../learning/AssessmentHistory'));
 const GrammarPractice = lazy(() => import('../practice/GrammarPractice'));
 const AssessmentLoadingScreen = lazy(() => import('../learning/AssessmentLoadingScreen'));
@@ -29,7 +30,7 @@ type ScreenRouterProps = AppContextValue & RoomContextValue;
 function LegacyAppScreenRouter({
   authLoading, authRequired, user, status, selectorScreen, appHomeKey, setSelectorScreen,
   handleCreateRoom, handleJoinRoom, handleOpenKanaStudy, handleOpenKanjiStudy, handleStartKanjiLearning,
-  handleOpenVocabStudy, handleStartVocabLearning, handleOpenGrammarStudy, handleOpenGrammarPractice, handleReturnToRoom,
+    handleOpenVocabStudy, handleStartVocabLearning, handleOpenGrammarStudy, handleStartGrammarStudy, handleStartGrammarPractice, handleOpenGrammarPractice, handleReturnToRoom,
   handleDeclineRoomResume, prefillRoomCode, isSocketReady, roomCode, currentSessionKey,
   username, friends, friendSearchResults, isFriendSearchLoading, handleSearchUsers,
   handleRemoveFriend, handleGoBack, handleContinueKanaIntro, handleOpenKanaFilter,
@@ -81,7 +82,7 @@ function LegacyAppScreenRouter({
               isSocketReady={isSocketReady}
               roomCode={roomCode}
             />
-          )}
+            )}
 
           {status === 'friends' && (
             <FriendsPanel
@@ -96,11 +97,11 @@ function LegacyAppScreenRouter({
               isSearching={isFriendSearchLoading}
               onBack={handleGoBack}
             />
-          )}
+            )}
 
           {status === 'kana-intro' && (
             <KanaIntro onBack={handleGoBack} onContinue={handleContinueKanaIntro} />
-          )}
+            )}
 
           {status === 'kana-filter' && (
             <KanaFilterScreen
@@ -109,7 +110,7 @@ function LegacyAppScreenRouter({
               onSelectionChange={handleKanaSelectionChange}
               initialSelectedKana={selectedKana}
             />
-          )}
+            )}
 
           {status === 'kana-study' && (
             <KanaRecall
@@ -117,20 +118,26 @@ function LegacyAppScreenRouter({
               onOpenFilter={handleOpenKanaFilter}
               selectedKana={selectedKana}
             />
-          )}
+            )}
 
           {status === 'kanji-intro' && (
             <KanjiIntroScreen onBack={handleGoBack} onStartLearning={handleStartKanjiLearning} />
-          )}
+            )}
 
           {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}
 
           {status === 'vocab-intro' && (
             <VocabIntroScreen onBack={handleGoBack} onStartLearning={handleStartVocabLearning} />
-          )}
+            )}
 
           {status === 'vocab-study' && <VocabScreen onBack={handleGoBack} />}
 
+          {status === 'grammar-intro' && (
+            <GrammarIntroScreen
+              onBack={handleGoBack}
+              onStartLearning={handleStartGrammarStudy}
+            />
+          )}
           {status === 'grammar-study' && (
             <GrammarStudy
               onBack={handleGoBack}
@@ -142,7 +149,7 @@ function LegacyAppScreenRouter({
 
           {status === 'grammar-practice' && (
             <GrammarPractice questions={grammarQuestions} onBack={handleGoBack} />
-          )}
+            )}
 
           {status === 'history' && <AssessmentHistory onBack={handleGoBack} />}
 
@@ -155,14 +162,14 @@ function LegacyAppScreenRouter({
               onOpenGrammarStudy={handleOpenGrammarStudy}
               onOpenHistory={handleOpenHistory}
             />
-          )}
+            )}
 
           {status === 'assessment-preparing' && room?.deckType === 'grammar' && (
             <AssessmentLoadingScreen
               title="Preparing the grammar deck"
               description="Generating the question set and getting both players ready."
             />
-          )}
+            )}
 
           {status === 'lobby' && room && (
             <RoomLobby
@@ -177,7 +184,7 @@ function LegacyAppScreenRouter({
               friends={friends}
               onInviteFriend={handleInviteFriend}
             />
-          )}
+            )}
 
           {status === 'assessment' && room && (
             room.deckType === 'grammar' ? (
@@ -201,7 +208,7 @@ function LegacyAppScreenRouter({
                 username={username}
               />
             )
-          )}
+            )}
 
           {status === 'results' && results && room?.deckType === 'grammar' && (
             <GrammarPractice
@@ -215,7 +222,7 @@ function LegacyAppScreenRouter({
               onSubmitAnswer={handleSubmitAnswer}
               forceShowResults
             />
-          )}
+            )}
 
           {status === 'results' && results && room?.deckType !== 'grammar' && (
             <Results
@@ -230,7 +237,7 @@ function LegacyAppScreenRouter({
               onStartNewSession={handleStartNewSession}
               onRequestHost={handleRequestHost}
             />
-          )}
+            )}
         </>
       )}
     </Suspense>

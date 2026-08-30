@@ -15,6 +15,7 @@ export type AppStatus =
   | 'kanji-study'
   | 'vocab-intro'
   | 'vocab-study'
+| 'grammar-intro'
   | 'grammar-study'
   | 'grammar-practice'
   | 'history'
