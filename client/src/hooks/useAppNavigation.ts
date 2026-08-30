@@ -7,7 +7,7 @@ import { ROOM_VIEW_STATUSES as roomStatuses } from '../types';
 import { pushScreenHistory, replaceScreenHistory } from '../utils/navigation';
 
 const screenPriority: Record<AppStatus, number> = {
-  selector: 0, friends: 0, 'kana-intro': 0, 'kana-filter': 0, 'kana-study': 0,
+  selector: 0, friends: 0, passport: 0, 'kana-intro': 0, 'kana-filter': 0, 'kana-study': 0,
   'kanji-intro': 0,
   'kanji-study': 0, 'vocab-intro': 0, 'vocab-study': 0, 'grammar-study': 0, 'grammar-practice': 0, history: 0,
   lobby: 0, assessment: 1, results: 1, 'assessment-preparing': 0,
@@ -117,6 +117,7 @@ export default function useAppNavigation({ socketRef, roomCodeRef, setGrammarQue
     handleOpenGrammarPractice,
     handleOpenHistory: () => navigateToScreen('history'),
     handleOpenFriends: () => navigateToScreen('friends'),
+    handleOpenPassport: () => navigateToScreen('passport'),
   }), [
     appHomeKey,
     handleBackToPractice,

@@ -5,6 +5,8 @@ import {
   recordCharacterAttempt,
 } from '../../services/api';
 import { buildKanaAttempt } from '../../utils/kanaRecall';
+import useActivityRecorder from '../../hooks/useActivityRecorder';
+import { useCelebrations } from '../../contexts/CelebrationContext';
 import type { KanaCard } from '../../types';
 
 type KanaRecallCard = KanaCard & { id: string };
@@ -55,6 +57,9 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
   const [error, setError] = useState('');
   const [saveError, setSaveError] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { recordActivity } = useActivityRecorder();
+  const { hasActiveCelebration } = useCelebrations();
+  const hasRecordedActivity = useRef(false);
 
   useEffect(() => {
     Promise.all([getKanaCards(), getCharacterAttempts('kana')])
@@ -118,6 +123,12 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
     };
     setMasteryById((current) => ({ ...current, [card.id]: optimistic }));
 
+    // Cross-device streak/tier tracking fires on the first correct recall.
+    if (nextAttempt.correct && !hasRecordedActivity.current) {
+      hasRecordedActivity.current = true;
+      void recordActivity();
+    }
+
     try {
       const result = await recordCharacterAttempt(nextAttempt);
       const savedAttempt = result?.attempt as { character_id?: string; correct_streak?: number; total_attempts?: number } | undefined;
@@ -166,6 +177,9 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
   useEffect(() => {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Enter') return;
+      // While a celebration popup is open it owns Enter; never advance cards
+      // or navigate on the same keypress that dismisses it.
+      if (hasActiveCelebration) return;
       if (isComplete) {
         onOpenFilter();
         return;
@@ -178,7 +192,7 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [attempt, isComplete, cardIndex, activeCards.length]);
+  }, [attempt, isComplete, cardIndex, activeCards.length, hasActiveCelebration]);
 
   const streak = card ? Number(masteryById[card.id]?.correct_streak ?? 0) : 0;
   const totalAttempts = card ? Number(masteryById[card.id]?.total_attempts ?? 0) : 0;

@@ -22,6 +22,7 @@ const AssessmentHistory = lazy(() => import('../learning/AssessmentHistory'));
 const GrammarPractice = lazy(() => import('../practice/GrammarPractice'));
 const AssessmentLoadingScreen = lazy(() => import('../learning/AssessmentLoadingScreen'));
 const FriendsPanel = lazy(() => import('../social/FriendsPanel'));
+const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScreen'));
 
 type ScreenRouterProps = AppContextValue & RoomContextValue;
 
@@ -37,6 +38,7 @@ function LegacyAppScreenRouter({
   grammarQuestions, room, isPreparingAssessment, handleStartAssessment, handleLeaveRoom,
   socket, handleInviteFriend, handleNextCard, handleSubmitAnswer, kanaCards, handleUseHint,
   results, isCurrentPlayerHost, handleReplayAssessment, handleStartNewSession, handleRequestHost,
+  handleOpenHistory,
 }: ScreenRouterProps) {
   // Server rooms carry the live session payload in `cards` (study cards for
   // kana/kanji decks, grammar questions otherwise); narrow it once here.
@@ -143,6 +145,17 @@ function LegacyAppScreenRouter({
           )}
 
           {status === 'history' && <AssessmentHistory onBack={handleGoBack} />}
+
+          {status === 'passport' && (
+            <MasteryPassportScreen
+              onBack={handleGoBack}
+              onOpenKanaStudy={handleOpenKanaStudy}
+              onOpenKanjiStudy={handleOpenKanjiStudy}
+              onOpenVocabStudy={handleOpenVocabStudy}
+              onOpenGrammarStudy={handleOpenGrammarStudy}
+              onOpenHistory={handleOpenHistory}
+            />
+          )}
 
           {status === 'assessment-preparing' && room?.deckType === 'grammar' && (
             <AssessmentLoadingScreen

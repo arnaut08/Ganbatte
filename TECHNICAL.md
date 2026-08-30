@@ -344,7 +344,29 @@ The current dataset is generated from independent beginner vocabulary dimensions
 - `GET /api/kanji-cards` - Returns grouped Kanji study cards.
 - `POST /api/generate-cards?count=10` - Generates a random deck with 1-25 cards.
 - `GET /api/rooms/:code` - Returns the current room state.
+- `GET /api/pvp-record` - Returns the authenticated player's aggregated multiplayer 1v1 record (`totalMatches`, `wins`, `losses`, `ties`, `winRate`) computed by pairing their `assessment_results` rows (those with a `companion_user_id`) against the opponent's counterpart rows, which RLS hides from the client.
+- `POST /api/activity` - Records a key learning action for the authenticated user through the `record_user_activity` RPC (migration `017`). Returns `{ activity: { current_streak, streak_extended, previous_tier } }`. The client calls it on the first correct Kana recall, a cleared Vocab stage, a completed Kanji session, and the end of a PvP match.
 - Assessment history is stored in Supabase by the authenticated client after a completed assessment.
+
+## Streaks & Account Tiers
+
+Profiles carry cross-device learning bookkeeping (migration `017_add_profile_streaks_and_tier.sql`): `current_streak`, `longest_streak`, `last_active_date`, and `account_tier` (default `N5 NOVICE`). The `record_user_activity(user_id)` RPC is idempotent per calendar day: it extends the streak when the last activity was yesterday, resets it to 1 after a missed day, keeps `longest_streak` up to date, and returns the new `current_streak`, whether a new activity day was recorded, the tier stored before the call. `streak_extended` is true for every first action of a day (streak started, extended, or restarted) so the client can celebrate it, and false only for same-day repeats. Authenticated callers are pinned to their own profile (`auth.uid()` wins over the passed id); only the service role may target an arbitrary user.
+
+The client evaluates the account tier dynamically in `client/src/utils/accountTier.ts` from live progress:
+
+| Tier | Milestone |
+| --- | --- |
+| N5 NOVICE | Base tier |
+| KANA SCHOLAR | 46 Kana mastered |
+| N5 APPRENTICE | 46 Kana + 2 Kanji groups or 5 Vocab stages |
+| N5 JOURNEYMAN | 5 Kanji groups + 14 Vocab stages |
+| N5 MASTER | 8 Kanji groups + 28 Vocab stages |
+| N5 SENSEI | All N5 mastered + 10 PvP wins |
+
+`CelebrationProvider` (mounted in `App.tsx`) owns a FIFO queue exposed as `queueCelebration()`. After each recorded action, `useActivityRecorder` queues a yellow streak popup when `streak_extended` is true, and when the evaluated tier outranks the stored `account_tier` it persists the promotion to `profiles` and queues the lime `RANK PROMOTION` popup. Both render through the Neo-Brutalist `CelebrationModal` (`border-3 border-black shadow-[8px_8px_0px_0px_#000]`), dismissed with Enter, Escape, the confirm button, or a backdrop click. The Mastery Passport displays the same evaluated tier instead of a hardcoded value.
+
+The current streak is surfaced in the UI on the Mastery Passport's top stats strip and the home-screen Player Progression HUD through `client/src/hooks/useProfileStreak.ts`, which reads the signed-in user's own `profiles` row (current/longest streak) via RLS.
+
 
 ## Socket Events
 

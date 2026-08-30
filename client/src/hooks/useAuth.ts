@@ -13,13 +13,22 @@ export default function useAuth() {
       return undefined;
     }
 
+    // Keep the previous User object identity whenever the id is unchanged:
+    // auth events like TOKEN_REFRESHED (fired when a hidden tab regains
+    // focus) deliver a fresh object for the same user, and swapping it in
+    // needlessly re-renders every `user` consumer.
+    const mergeUser = (current: User | null, nextUser: User | null) =>
+      (current?.id ?? null) === (nextUser?.id ?? null) ? current : nextUser;
+
     supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user || null);
+      const nextUser = data.session?.user || null;
+      setUser((current) => mergeUser(current, nextUser));
       setAuthLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+      const nextUser = session?.user || null;
+      setUser((current) => mergeUser(current, nextUser));
       setAuthLoading(false);
     });
 

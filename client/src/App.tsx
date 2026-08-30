@@ -18,6 +18,7 @@ import useFriends from './hooks/useFriends';
 import useAppNavigation from './hooks/useAppNavigation';
 import { AppProvider } from './contexts/AppContext';
 import { RoomProvider } from './contexts/RoomContext';
+import { CelebrationProvider } from './contexts/CelebrationContext';
 
 function App() {
   const [selectedKana, setSelectedKana] = useState<Set<string>>(new Set());
@@ -150,29 +151,32 @@ function App() {
 
   return (
     <div className="app-container min-h-screen">
-      <AppToast
-        toast={toast}
-        onAction={(action) => {
-          action.onClick();
-          clearToast();
-        }}
-      />
+      <CelebrationProvider>
+        <AppToast
+          toast={toast}
+          onAction={(action) => {
+            action.onClick();
+            clearToast();
+          }}
+        />
 
-      <AppHeader
-        onHome={navigation.handleBackToPractice}
-        onOpenFriends={navigation.handleOpenFriends}
-        onLogout={handleLogout}
-        onOpenHistory={navigation.handleOpenHistory}
-        isAuthenticated={Boolean(user)}
-        user={user}
-        pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
-      />
+        <AppHeader
+          onHome={navigation.handleBackToPractice}
+          onOpenFriends={navigation.handleOpenFriends}
+          onLogout={handleLogout}
+          onOpenHistory={navigation.handleOpenHistory}
+          onOpenPassport={navigation.handleOpenPassport}
+          isAuthenticated={Boolean(user)}
+          user={user}
+          pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
+        />
 
-      <AppProvider value={appContextValue}>
-        <RoomProvider value={roomContextValue}>
-          <AppScreenRouter />
-        </RoomProvider>
-      </AppProvider>
+        <AppProvider value={appContextValue}>
+          <RoomProvider value={roomContextValue}>
+            <AppScreenRouter />
+          </RoomProvider>
+        </AppProvider>
+      </CelebrationProvider>
     </div>
   );
 }

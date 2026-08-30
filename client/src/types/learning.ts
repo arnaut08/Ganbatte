@@ -243,3 +243,21 @@ export type AssessmentHistoryRecord = {
   details?: AssessmentHistoryDetails | null;
   profile?: { display_name?: string | null } | null;
 };
+
+/** Aggregated multiplayer 1v1 record shown on the Mastery Passport. */
+export type PvpRecord = {
+  totalMatches: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  /** Rounded percentage of decided matches (wins / wins + losses + ties). */
+  winRate: number;
+};
+
+/** Streak bookkeeping returned after a key learning action is recorded. */
+export type UserActivity = {
+  current_streak: number;
+  streak_extended: boolean;
+  /** Tier stored on the profile before this activity was recorded. */
+  previous_tier: string;
+};

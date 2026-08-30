@@ -12,7 +12,9 @@ import type {
   KanaCard,
   KanjiCard,
   KanjiGroupOverview,
+  PvpRecord,
   Room,
+  UserActivity,
   VocabOverview,
   VocabFilterItem,
   VocabStudyItem,
@@ -27,6 +29,7 @@ export type SaveStageQuizPayload = {
 };
 
 const PROTECTED_PATH_PREFIXES = [
+  '/api/activity',
   '/api/friends',
   '/api/friend-requests',
   '/api/users/search',
@@ -36,6 +39,7 @@ const PROTECTED_PATH_PREFIXES = [
   '/api/kanji-cards',
   '/api/character-attempts',
   '/api/kanji-attempts',
+  '/api/pvp-record',
   '/api/rooms',
   '/api/generate-cards',
   '/api/vocab',
@@ -257,6 +261,20 @@ export function recordCharacterAttempt(attempt: AttemptInput): Promise<ApiRecord
 
 export function getCharacterAttempts(characterType: string): Promise<{ attempts: CharacterAttempt[] }> {
   return request(`/api/character-attempts?type=${encodeURIComponent(characterType)}`);
+}
+
+/** Aggregated multiplayer 1v1 record for the Mastery Passport snapshot. */
+export function getPvpRecord(): Promise<{ record: PvpRecord }> {
+  return request('/api/pvp-record');
+}
+
+/**
+ * Records a key learning action (first correct Kana recall, Vocab stage
+ * clear, Kanji session completion, PvP match end). The server-side RPC keeps
+ * streaks/tiers consistent across devices.
+ */
+export function recordUserActivity(): Promise<{ activity: UserActivity }> {
+  return request('/api/activity', { method: 'POST' });
 }
 
 export function updateCharacterConfidenceBatch(updates: AttemptInput[]): Promise<ApiRecord> {
