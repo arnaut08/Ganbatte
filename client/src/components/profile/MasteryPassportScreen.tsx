@@ -1,6 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getKanjiOverview, getCharacterAttempts, getKanaCards, getVocabOverview, getPvpRecord } from '../../services/api';
 import type { KanjiGroupOverview, VocabOverview, CharacterAttempt, PvpRecord } from '../../types';
+import { evaluateAccountTier } from '../../utils/accountTier';
+import { FlameIcon } from '@/components/ui/flameIcon';
+import useProfileStreak from '../../hooks/useProfileStreak';
+import { LightningBoltIcon } from '@radix-ui/react-icons';
+import { MasteryPassportSkeleton } from './MasteryPassportSkeleton';
 
 type MasteryPassportScreenProps = {
   onBack: () => void;
@@ -171,17 +176,25 @@ export default function MasteryPassportScreen({
     [kanjiStats.dueCharacters, vocabStats.dueWords]
   );
 
+  const accountTier = useMemo(
+    () =>
+      evaluateAccountTier({
+        kanaMastered: kanaMastery.total,
+        kanaTotal: kanaTotals.total,
+        kanjiGroupsMastered: kanjiStats.masteredGroups,
+        kanjiGroupsTotal: kanjiStats.totalGroups,
+        vocabStagesMastered: vocabStats.masteredStages,
+        vocabStagesTotal: vocabStats.totalStages,
+        pvpWins: pvpRecord.wins,
+      }),
+    [kanaMastery.total, kanaTotals.total, kanjiStats, vocabStats, pvpRecord.wins]
+  );
+
+  const profileStreak = useProfileStreak();
+
   if (isLoading) {
     return (
-      <main className="container mx-auto max-w-5xl px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="border-2 border-black bg-[#151922] p-6 text-center shadow-[4px_4px_0px_0px_#000000]">
-            <span className="font-mono text-sm font-black uppercase text-white animate-pulse">
-              Loading Mastery Passport...
-            </span>
-          </div>
-        </div>
-      </main>
+      <MasteryPassportSkeleton />
     );
   }
 
@@ -209,32 +222,114 @@ export default function MasteryPassportScreen({
       </div>
 
       {/* Top Stats Strip */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="border-2 border-black bg-[#252c3d] p-2.5 sm:p-4 shadow-[3px_3px_0px_0px_#000000]">
-          <span className="font-mono text-[8px] font-black uppercase tracking-wider text-[#FFDE59] sm:text-[10px]">
-            ACCOUNT TIER
-          </span>
-          <p className="mt-1 font-mono text-[10px] font-black uppercase text-white sm:text-xs">
-            N5 APPRENTICE
-          </p>
+      {/* Top Stats Strip */}
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
+        {/* 01 // Account Tier Card */}
+        <div className="flex flex-col justify-between border-2 border-black bg-[#252c3d] p-3 sm:p-4 shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px]">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59] sm:text-[10px]">
+              ACCOUNT TIER
+            </span>
+            <span className="border border-black bg-black px-1.5 py-0.2 font-mono text-[8px] font-black uppercase tracking-wider text-[#FFDE59]">
+              RANK
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline justify-between gap-1">
+            <p className="font-mono text-base font-black uppercase text-white sm:text-xl truncate">
+              {accountTier || 'N5 NOVICE'}
+            </p>
+          </div>
+          <div className="mt-1 flex items-center justify-between border-t border-black/40 pt-1.5 font-mono text-[8px] font-bold uppercase text-neutral-400 sm:text-[9px]">
+            <span>N5 PROGRESS</span>
+            <span className="font-mono font-black text-[#A3E636]">
+              {Math.round(
+                (((kanaMastery.total / (kanaTotals.total || 1)) +
+                  (kanjiStats.masteredGroups / kanjiStats.totalGroups) +
+                  (vocabStats.clearedStages / vocabStats.totalStages)) / 3) * 100
+              )}% COMPLETE
+            </span>
+          </div>
         </div>
 
-        <div className="border-2 border-black bg-[#252c3d] p-2.5 sm:p-4 shadow-[3px_3px_0px_0px_#000000]">
-          <span className="font-mono text-[8px] font-black uppercase tracking-wider text-white sm:text-[10px]">
-            🔥 STREAK
-          </span>
-          <p className="mt-1 font-mono text-[10px] font-black uppercase text-white sm:text-xs">
-            ACTIVE
-          </p>
+        {/* 02 // Streak Card */}
+        <div className="flex flex-col justify-between border-2 border-black bg-[#252c3d] p-3 sm:p-4 shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 font-mono text-[9px] font-black uppercase tracking-wider text-white sm:text-[10px]">
+              <FlameIcon
+                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
+                active={(profileStreak?.currentStreak ?? 0) > 0}
+              />
+              <span>DAILY STREAK</span>
+            </div>
+            <span className="border border-black bg-black px-1.5 py-0.2 font-mono text-[8px] font-black uppercase tracking-wider text-[#FF6B6B]">
+              MOMENTUM
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <p className="font-mono text-lg font-black uppercase text-[##FF6B6B] sm:text-2xl leading-none">
+              {profileStreak?.currentStreak ?? 0}
+            </p>
+            <span className="font-mono text-[10px] font-black uppercase text-neutral-300 sm:text-xs">
+              {(profileStreak?.currentStreak ?? 0) === 1 ? 'DAY' : 'DAYS'}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center justify-between border-t border-black/40 pt-1.5 font-mono text-[8px] font-bold uppercase text-neutral-400 sm:text-[9px]">
+            <span>LONGEST</span>
+            <span className="text-white">
+              {profileStreak?.longestStreak ? `${profileStreak.longestStreak} DAYS` : '—'}
+            </span>
+          </div>
         </div>
 
-        <div className={`border-2 border-black p-2.5 sm:p-4 shadow-[3px_3px_0px_0px_#000000] ${totalDueReviews > 0 ? 'bg-[#FF6B6B]' : 'bg-[#252c3d]'}`}>
-          <span className={`font-mono text-[8px] font-black uppercase tracking-wider sm:text-[10px] ${totalDueReviews > 0 ? 'text-black' : 'text-[#A3E636]'}`}>
-            ⚡ DUE
-          </span>
-          <p className={`mt-1 font-mono text-sm font-black sm:text-lg ${totalDueReviews > 0 ? 'text-black' : 'text-white'}`}>
-            {totalDueReviews}
-          </p>
+        {/* 03 // Due Reviews Card */}
+        <div
+          className={`flex flex-col justify-between border-2 border-black p-3 sm:p-4 shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] ${totalDueReviews > 0 ? 'bg-[#FF6B6B]' : 'bg-[#252c3d]'
+            }`}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`flex items-center gap-1 font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px] ${totalDueReviews > 0 ? 'text-black' : 'text-[#A3E636]'
+                }`}
+            >
+              <LightningBoltIcon
+                className={`h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 ${
+                  totalDueReviews > 0 ? 'text-black' : 'text-[#A3E636]'
+                }`}
+              />
+              REVIEWS DUE
+            </span>
+            <span
+              className={`border border-black px-1.5 py-0.2 font-mono text-[8px] font-black uppercase tracking-wider ${totalDueReviews > 0 ? 'bg-black text-[#FF6B6B]' : 'bg-black text-[#A3E636]'
+                }`}
+            >
+              QUEUE
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <p
+              className={`font-mono text-lg font-black uppercase sm:text-2xl leading-none ${totalDueReviews > 0 ? 'text-black' : 'text-white'
+                }`}
+            >
+              {totalDueReviews}
+            </p>
+            <span
+              className={`font-mono text-[10px] font-black uppercase sm:text-xs ${totalDueReviews > 0 ? 'text-black/80' : 'text-neutral-400'
+                }`}
+            >
+              PENDING
+            </span>
+          </div>
+          <div
+            className={`mt-1 flex items-center justify-between border-t pt-1.5 font-mono text-[8px] font-bold uppercase sm:text-[9px] ${totalDueReviews > 0
+              ? 'border-black/30 text-black/90'
+              : 'border-black/40 text-neutral-400'
+              }`}
+          >
+            <span>BREAKDOWN</span>
+            <span className={totalDueReviews > 0 ? 'font-black text-black' : 'text-white'}>
+              {kanjiStats.dueCharacters} Kanji · {vocabStats.dueWords} Vocab
+            </span>
+          </div>
         </div>
       </div>
 

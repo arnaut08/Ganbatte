@@ -7,8 +7,10 @@ import {
 } from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FlameIcon } from '@/components/ui/flameIcon';
 import LearningScreen from './learning/LearningScreen';
 import PracticeScreen from './practice/PracticeScreen';
+import useProfileStreak from '../hooks/useProfileStreak';
 import { getKanjiCards, getKanjiOverview, getCharacterAttempts, getVocabOverview } from '../services/api';
 import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview } from '../types';
 
@@ -48,6 +50,7 @@ export default function AppHome({
   roomCode = '',
 }: AppHomeProps) {
   const [internalScreen, setInternalScreen] = useState<SelectorScreen>(controlledScreen || 'home');
+  const profileStreak = useProfileStreak();
 
   const DEFAULT_VOCAB_TOTAL_STAGES = 28;
   const DEFAULT_VOCAB_STAGE_STATS = {
@@ -221,19 +224,41 @@ export default function AppHome({
                   </span>
                 </div>
 
-                {/* Combined Reviews Badge */}
-                <div
-                  className={`shrink-0 flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${
-                    totalDueReviews > 0
-                      ? 'bg-[#FF6B6B] text-black'
-                      : 'bg-[#252c3d] text-neutral-400'
-                  }`}
-                >
-                  <TimerIcon className={`h-3 w-3 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'}`} />
-                  <span className="hidden xs:inline">TOTAL DUE:</span>
-                  <span className={totalDueReviews > 0 ? 'text-black' : 'text-white'}>
-                    {totalDueReviews}
-                  </span>
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                  {/* Daily Streak Badge */}
+                  <div
+                    className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${(profileStreak?.currentStreak ?? 0) > 0
+                        ? 'bg-[#FFDE59] text-black'
+                        : 'bg-[#252c3d] text-neutral-400'
+                      }`}
+                    title={profileStreak?.longestStreak ? `Longest streak: ${profileStreak.longestStreak} days` : undefined}
+                  >
+                    <FlameIcon
+                      className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${(profileStreak?.currentStreak ?? 0) > 0 ? 'text-black' : 'text-neutral-500'
+                        }`}
+                    />
+                    <span className="hidden xs:inline">STREAK:</span>
+                    <span className={(profileStreak?.currentStreak ?? 0) > 0 ? 'text-black' : 'text-white'}>
+                      {profileStreak?.currentStreak ?? 0}
+                    </span>
+                  </div>
+
+                  {/* Combined Reviews Badge */}
+                  <div
+                    className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${totalDueReviews > 0
+                        ? 'bg-[#FF6B6B] text-black'
+                        : 'bg-[#252c3d] text-neutral-400'
+                      }`}
+                  >
+                    <TimerIcon
+                      className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'
+                        }`}
+                    />
+                    <span className="hidden xs:inline">TOTAL DUE:</span>
+                    <span className={totalDueReviews > 0 ? 'text-black' : 'text-white'}>
+                      {totalDueReviews}
+                    </span>
+                  </div>
                 </div>
               </div>
 

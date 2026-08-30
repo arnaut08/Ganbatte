@@ -3,6 +3,7 @@ import { CheckCircledIcon, ExclamationTriangleIcon, SpeakerLoudIcon } from '@rad
 import { markVocabAgain, saveStageQuizResult, type SaveStageQuizPayload } from '../../services/api';
 import type { VocabStudyItem } from '../../types';
 import { generateVocabQuiz, type VocabQuizQuestion } from '../../utils/quizGenerator';
+import useActivityRecorder from '../../hooks/useActivityRecorder';
 
 function renderFurigana(text: string): ReactNode {
   const nodes: ReactNode[] = [];
@@ -81,6 +82,7 @@ function formatElapsed(seconds: number) {
 }
 
 export default function VocabStageQuiz({ level, stageNumber, items, onBackToStageMap }: VocabStageQuizProps) {
+  const { recordActivity } = useActivityRecorder();
   const [questions, setQuestions] = useState<VocabQuizQuestion[]>(() => generateVocabQuiz(items));
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -140,6 +142,8 @@ export default function VocabStageQuiz({ level, stageNumber, items, onBackToStag
       const payload = { level, stageNumber, score: finalScore, totalQuestions: questions.length, passed: finalPassed };
       cacheResult(payload);
       void syncResult(payload);
+      // Vocab stage clear — record cross-device activity for streaks/tiers.
+      if (finalPassed) void recordActivity();
       setIsComplete(true);
       return;
     }

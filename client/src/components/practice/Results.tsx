@@ -6,6 +6,7 @@ import {
   scoreRomajiAnswer,
 } from '../../utils/romaji';
 import { supabase } from '../../config/supabase';
+import useActivityRecorder from '../../hooks/useActivityRecorder';
 import type { AssessmentResult, DiffSegment, KanaCard, KanjiCard } from '../../types';
 
 type ResultPlayer = Partial<AssessmentResult>;
@@ -53,6 +54,7 @@ function renderDifference(answer: string, expected: string, side: 'given' | 'exp
 function Results({ results = [], roomCode, kanaCards = [], username, user, room, isHost, onReplaySet, onStartNewSession, onRequestHost }: ResultsProps) {
   const [requestedAction, setRequestedAction] = useState<string | null>(null);
   const savedResult = useRef(false);
+  const { recordActivity } = useActivityRecorder();
   const isKanjiDeck = kanaCards.some((card) => card?.groupId || card?.groupName);
   const selectedDeckGroups = Array.isArray(room?.selectedGroups)
     ? room.selectedGroups
@@ -180,10 +182,15 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
       }
 
       sessionStorage.setItem(storageKey, 'true');
+
+      // PvP match finished — record cross-device activity for streaks/tiers.
+      if (companionUserId) {
+        void recordActivity();
+      }
     };
 
     saveCurrentAssessmentResult();
-  }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey, isKanjiDeck, selectedDeckGroups]);
+  }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey, isKanjiDeck, selectedDeckGroups, recordActivity]);
 
   // Determine top score for winner podium
   const maxScore = Math.max(

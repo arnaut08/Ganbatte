@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircledIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import { getKanjiGroup, saveKanjiQuizResult } from '../../services/api';
 import type { KanjiCard } from '../../types';
+import useActivityRecorder from '../../hooks/useActivityRecorder';
 
 type Card = KanjiCard & { id: string; reading?: string; meaning?: string };
 type Question = { card: Card; options: string[] };
@@ -70,6 +71,7 @@ function createQuestions(items: Card[]): Question[] {
 }
 
 export default function KanjiGroupQuiz({ groupId, groupName, onBack, onComplete }: Props) {
+  const { recordActivity } = useActivityRecorder();
   const [cards, setCards] = useState<Card[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -132,6 +134,8 @@ export default function KanjiGroupQuiz({ groupId, groupName, onBack, onComplete 
       setElapsedSeconds(finalElapsedSeconds);
       cacheResult(payload);
       void syncResult(payload);
+      // Kanji session complete — record cross-device activity for streaks/tiers.
+      void recordActivity();
       setIsComplete(true);
       return;
     }

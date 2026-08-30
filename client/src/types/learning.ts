@@ -253,3 +253,11 @@ export type PvpRecord = {
   /** Rounded percentage of decided matches (wins / wins + losses + ties). */
   winRate: number;
 };
+
+/** Streak bookkeeping returned after a key learning action is recorded. */
+export type UserActivity = {
+  current_streak: number;
+  streak_extended: boolean;
+  /** Tier stored on the profile before this activity was recorded. */
+  previous_tier: string;
+};

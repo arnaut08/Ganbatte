@@ -4,6 +4,7 @@ import { PORT } from './config/env.js';
 import friendRoutes from './routes/friend-routes.js';
 import gameRoutes from './routes/game-routes.js';
 import assessmentRoutes from './routes/assessment-routes.js';
+import activityRoutes from './routes/activity-routes.js';
 import grammarLessonRoutes from './routes/grammar-lesson-routes.js';
 import vocabRoutes from './routes/vocab-routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
@@ -15,6 +16,7 @@ const server = createServer(app);
 app.use('/api', friendRoutes);
 app.use('/api', gameRoutes);
 app.use('/api', assessmentRoutes);
+app.use('/api', activityRoutes);
 app.use('/api', grammarLessonRoutes);
 app.use('/api', vocabRoutes);
 
