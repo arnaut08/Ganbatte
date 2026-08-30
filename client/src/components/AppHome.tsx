@@ -238,65 +238,55 @@ export default function AppHome({
             </div>
 
             {/* --- PLAYER PASSPORT & STATS HUD --- */}
-            <section className="mx-auto max-w-4xl border-2 border-black bg-[#151922] p-3.5 sm:p-5 shadow-[4px_4px_0px_0px_#000000] text-white space-y-3 sm:space-y-4">
+            <section className="mx-auto w-full max-w-4xl border-2 border-black bg-[#151922] p-2.5 sm:p-4 text-white shadow-[3px_3px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] space-y-2 sm:space-y-3">
               {/* Header Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-white/20 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]">
+              <div className="flex items-center justify-between gap-2 border-b-2 border-white/20 pb-2">
+                <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                  <span className="shrink-0 border border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]">
                     PASSPORT
                   </span>
-                  <span className="font-mono text-xs font-black uppercase tracking-tight text-white">
-      // PLAYER PROGRESSION
+                  <span className="truncate font-mono text-[10px] sm:text-xs font-black uppercase tracking-tight text-white">
+                  // PLAYER PROGRESSION
                   </span>
                 </div>
 
-                {/* Real-time Combined Reviews Badge */}
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`flex items-center gap-1.5 border-2 border-black px-2.5 py-0.5 font-mono text-[10px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] ${totalDueReviews > 0
-                      ? 'bg-[#FF6B6B] text-black animate-pulse'
+                {/* Combined Reviews Badge */}
+                <div
+                  className={`shrink-0 flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${totalDueReviews > 0
+                      ? 'bg-[#FF6B6B] text-black'
                       : 'bg-[#252c3d] text-neutral-400'
-                      }`}
-                  >
-                    <TimerIcon className={`h-3.5 w-3.5 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'}`} />
-                    <span>TOTAL DUE:</span>
-                    <span className={totalDueReviews > 0 ? 'text-black' : 'text-white'}>
-                      {totalDueReviews}
-                    </span>
-                  </div>
-
-                  {/* Breakdown tooltip/sub-badges if reviews are pending */}
-                  {totalDueReviews > 0 && (
-                    <div className="hidden xs:flex sm:flex items-center gap-1 font-mono text-[9px] font-bold text-neutral-400">
-                      <span>({totalKanjiDue} Kanji · {vocabDueCount || 0} Vocab)</span>
-                    </div>
-                  )}
+                    }`}
+                >
+                  <TimerIcon className={`h-3 w-3 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'}`} />
+                  <span className="hidden xs:inline">TOTAL DUE:</span>
+                  <span className={totalDueReviews > 0 ? 'text-black' : 'text-white'}>
+                    {totalDueReviews}
+                  </span>
                 </div>
               </div>
 
-              {/* 3 Pillar Cards */}
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
-                {/* 01 // KANA CARD (PURE YELLOW THEME) */}
+              {/* 3 Pillar Cards: Compact rows on mobile, 3-column grid on tablet/desktop */}
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-3">
+                {/* 01 // KANA */}
                 <div
                   onClick={onOpenKanaStudy}
-                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-3 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:bg-[#2e374d] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-2 sm:p-3 transition-all hover:bg-[#2e374d] active:translate-x-[1px] active:translate-y-[1px]"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59]">
+                    <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#FFDE59]">
                       01 // KANA
                     </span>
-                    <RocketIcon className="h-3 w-3 text-[#FFDE59] transition-transform group-hover/card:scale-110" />
+                    <RocketIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-[#FFDE59]" />
                   </div>
 
-                  <div className="mt-1 flex items-baseline justify-between font-mono text-xs">
-                    <span className="text-[10px] font-black uppercase text-white">Mastered</span>
-                    <span className="font-black text-[#FFDE59]">
+                  <div className="mt-0.5 sm:mt-1 flex items-baseline justify-between font-mono">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase text-white">Mastered</span>
+                    <span className="font-mono text-[10px] sm:text-xs font-black text-[#FFDE59]">
                       {kanaMasteredCount.hiragana + kanaMasteredCount.katakana} / 92
                     </span>
                   </div>
 
-                  {/* Yellow Progress Bar */}
-                  <div className="mt-2 h-2 w-full overflow-hidden border border-black bg-[#151922]">
+                  <div className="mt-1 sm:mt-1.5 h-1.5 sm:h-2 w-full overflow-hidden border border-black bg-[#151922]">
                     <div
                       className="h-full bg-[#FFDE59] transition-all"
                       style={{
@@ -306,27 +296,26 @@ export default function AppHome({
                   </div>
                 </div>
 
-                {/* 02 // KANJI CARD (PURE CYAN/BLUE THEME) */}
+                {/* 02 // KANJI */}
                 <div
                   onClick={onOpenKanjiStudy}
-                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-3 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:bg-[#2e374d] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-2 sm:p-3 transition-all hover:bg-[#2e374d] active:translate-x-[1px] active:translate-y-[1px]"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#70CFF8]">
+                    <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#70CFF8]">
                       02 // KANJI
                     </span>
-                    <CheckCircledIcon className="h-3 w-3 text-[#70CFF8] transition-transform group-hover/card:scale-110" />
+                    <CheckCircledIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-[#70CFF8]" />
                   </div>
 
-                  <div className="mt-1 flex items-baseline justify-between font-mono text-xs">
-                    <span className="text-[10px] font-black uppercase text-white">Groups Mastered</span>
-                    <span className="font-black text-[#70CFF8]">
+                  <div className="mt-0.5 sm:mt-1 flex items-baseline justify-between font-mono">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase text-white">Groups</span>
+                    <span className="font-mono text-[10px] sm:text-xs font-black text-[#70CFF8]">
                       {masteredKanjiGroups} / {kanjiOverview.length || 8}
                     </span>
                   </div>
 
-                  {/* Cyan Progress Bar */}
-                  <div className="mt-2 h-2 w-full overflow-hidden border border-black bg-[#151922]">
+                  <div className="mt-1 sm:mt-1.5 h-1.5 sm:h-2 w-full overflow-hidden border border-black bg-[#151922]">
                     <div
                       className="h-full bg-[#70CFF8] transition-all"
                       style={{
@@ -336,37 +325,34 @@ export default function AppHome({
                   </div>
                 </div>
 
-                {/* 03 // VOCAB SRS CARD (GREEN THEME: SOLID MASTERED + SLASHED CLEARED) */}
+                {/* 03 // VOCAB SRS */}
                 <div
                   onClick={onOpenVocabStudy}
-                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-3 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:bg-[#2e374d] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-2 sm:p-3 transition-all hover:bg-[#2e374d] active:translate-x-[1px] active:translate-y-[1px]"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
+                    <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
                       03 // VOCAB SRS
                     </span>
-                    <LightningBoltIcon className="h-3 w-3 text-[#A3E636] transition-transform group-hover/card:scale-110" />
+                    <LightningBoltIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-[#A3E636]" />
                   </div>
 
-                  <div className="mt-1 flex items-baseline justify-between font-mono text-xs">
-                    <span className="text-[10px] font-black uppercase text-white">Stages Cleared</span>
-                    <span className="font-black text-[#A3E636]">
-                      {vocabStageStats.clearedStages} / 28 STAGES
+                  <div className="mt-0.5 sm:mt-1 flex items-baseline justify-between font-mono">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase text-white">Stages</span>
+                    <span className="font-mono text-[10px] sm:text-xs font-black text-[#A3E636]">
+                      {vocabStageStats.clearedStages} / 28
                     </span>
                   </div>
 
-                  {/* Segmented Bar: Solid Green for Mastered + Slashed/Striped Green for Cleared */}
-                  <div className="mt-2 flex h-2 w-full overflow-hidden border border-black bg-[#151922]">
-                    {/* Solid Filled Green (Mastered) */}
+                  <div className="mt-1 sm:mt-1.5 flex h-1.5 sm:h-2 w-full overflow-hidden border border-black bg-[#151922]">
+                    {/* Mastered solid */}
                     <div
                       className="h-full bg-[#A3E636] transition-all"
                       style={{
                         width: `${Math.min(100, (vocabStageStats.masteredStages / 28) * 100)}%`,
                       }}
-                      title={`${vocabStageStats.masteredStages} Mastered Stages`}
                     />
-
-                    {/* Slashed/Striped Green (Cleared but not yet Mastered) */}
+                    {/* Cleared striped */}
                     <div
                       className="h-full transition-all"
                       style={{
@@ -377,14 +363,13 @@ export default function AppHome({
                         backgroundImage:
                           'repeating-linear-gradient(45deg, #A3E636, #A3E636 2px, #151922 2px, #151922 4px)',
                       }}
-                      title={`${vocabStageStats.clearedStages} Cleared Stages`}
                     />
                   </div>
 
                   {/* Sub-label breakdown */}
-                  <div className="mt-1.5 flex justify-between font-mono text-[8px] font-black uppercase">
-                    <span className="text-[#A3E636]">★ {vocabStageStats.masteredStages} Mastered</span>
-                    <span className="text-[#A3E636]/80">✓ {vocabStageStats.clearedStages} Cleared</span>
+                  <div className="mt-0.5 sm:mt-1 flex justify-between font-mono text-[7px] sm:text-[8px] font-black uppercase">
+                    <span className="text-[#A3E636]">★ {vocabStageStats.masteredStages} M</span>
+                    <span className="text-[#A3E636]/80">✓ {vocabStageStats.clearedStages} C</span>
                   </div>
                 </div>
               </div>
