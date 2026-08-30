@@ -4,6 +4,7 @@ import {
   TimerIcon,
   CheckCircledIcon,
   LightningBoltIcon,
+  BookmarkIcon,
 } from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,13 @@ import { FlameIcon } from '@/components/ui/flameIcon';
 import LearningScreen from './learning/LearningScreen';
 import PracticeScreen from './practice/PracticeScreen';
 import useProfileStreak from '../hooks/useProfileStreak';
-import { getKanjiCards, getKanjiOverview, getCharacterAttempts, getVocabOverview } from '../services/api';
+import {
+  getKanjiCards,
+  getKanjiOverview,
+  getCharacterAttempts,
+  getVocabOverview,
+  getGrammarOverview,
+} from '../services/api';
 import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview } from '../types';
 
 type LegacyProps = {
@@ -61,6 +68,15 @@ export default function AppHome({
   const [vocabStageStats, setVocabStageStats] = useState(DEFAULT_VOCAB_STAGE_STATS);
   const [vocabDueCount, setVocabDueCount] = useState(0);
 
+  // Grammar Stats State
+  const DEFAULT_GRAMMAR_TOTAL_LESSONS = 12;
+  const DEFAULT_GRAMMAR_STATS = {
+    clearedLessons: 0,
+    masteredLessons: 0,
+    totalLessons: DEFAULT_GRAMMAR_TOTAL_LESSONS,
+  };
+  const [grammarStats, setGrammarStats] = useState(DEFAULT_GRAMMAR_STATS);
+
   useEffect(() => {
     getVocabOverview('N5')
       .then((overview) => {
@@ -88,6 +104,20 @@ export default function AppHome({
         } catch (cacheError) {
           console.error('Failed to load cached vocab stats from localStorage:', cacheError);
         }
+      });
+
+    // Fetch Grammar Overview
+    getGrammarOverview()
+      .then((overview) => {
+        const lessons = overview?.lessons || [];
+        setGrammarStats({
+          clearedLessons: lessons.filter((lesson) => lesson.is_cleared).length,
+          masteredLessons: lessons.filter((lesson) => lesson.is_mastered).length,
+          totalLessons: overview?.total_lessons || DEFAULT_GRAMMAR_TOTAL_LESSONS,
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to fetch grammar overview:', error);
       });
   }, []);
 
@@ -132,12 +162,16 @@ export default function AppHome({
   }, [prefillRoomCode, roomCode]);
 
   useEffect(() => {
-    getKanjiCards().then((data) => setKanjiGroups(data.groups || [])).catch((error) => {
-      console.error('Failed to fetch kanji cards:', error);
-    });
-    getKanjiOverview().then((data) => setKanjiOverview(data.groups || [])).catch((error) => {
-      console.error('Failed to fetch kanji overview:', error);
-    });
+    getKanjiCards()
+      .then((data) => setKanjiGroups(data.groups || []))
+      .catch((error) => {
+        console.error('Failed to fetch kanji cards:', error);
+      });
+    getKanjiOverview()
+      .then((data) => setKanjiOverview(data.groups || []))
+      .catch((error) => {
+        console.error('Failed to fetch kanji overview:', error);
+      });
 
     getCharacterAttempts('kana')
       .then((res) => {
@@ -228,14 +262,14 @@ export default function AppHome({
                   {/* Daily Streak Badge */}
                   <div
                     className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${(profileStreak?.currentStreak ?? 0) > 0
-                        ? 'bg-[#FFDE59] text-black'
-                        : 'bg-[#252c3d] text-neutral-400'
-                      }`}
+                      ? 'bg-[#FFDE59] text-black'
+                      : 'bg-[#252c3d] text-neutral-400'
+                    }`}
                     title={profileStreak?.longestStreak ? `Longest streak: ${profileStreak.longestStreak} days` : undefined}
                   >
                     <FlameIcon
                       className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${(profileStreak?.currentStreak ?? 0) > 0 ? 'text-black' : 'text-neutral-500'
-                        }`}
+                      }`}
                     />
                     <span className="hidden xs:inline">STREAK:</span>
                     <span className={(profileStreak?.currentStreak ?? 0) > 0 ? 'text-black' : 'text-white'}>
@@ -246,13 +280,13 @@ export default function AppHome({
                   {/* Combined Reviews Badge */}
                   <div
                     className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${totalDueReviews > 0
-                        ? 'bg-[#FF6B6B] text-black'
-                        : 'bg-[#252c3d] text-neutral-400'
-                      }`}
+                      ? 'bg-[#FF6B6B] text-black'
+                      : 'bg-[#252c3d] text-neutral-400'
+                    }`}
                   >
                     <TimerIcon
                       className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'
-                        }`}
+                      }`}
                     />
                     <span className="hidden xs:inline">TOTAL DUE:</span>
                     <span className={totalDueReviews > 0 ? 'text-black' : 'text-white'}>
@@ -262,8 +296,8 @@ export default function AppHome({
                 </div>
               </div>
 
-              {/* 3 Pillar Cards */}
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-3">
+              {/* 4 Pillar Cards */}
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-4 sm:gap-3">
                 {/* 01 // KANA */}
                 <div
                   onClick={onOpenKanaStudy}
@@ -364,6 +398,51 @@ export default function AppHome({
                   <div className="mt-0.5 sm:mt-1 flex justify-between font-mono text-[7px] sm:text-[8px] font-black uppercase">
                     <span className="text-[#A3E636]">★ {vocabStageStats.masteredStages} M</span>
                     <span className="text-[#A3E636]/80">✓ {vocabStageStats.clearedStages} C</span>
+                  </div>
+                </div>
+
+                {/* 04 // GRAMMAR */}
+                <div
+                  onClick={onOpenGrammarStudy}
+                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-2 sm:p-3 transition-all hover:bg-[#2e374d] active:translate-x-[1px] active:translate-y-[1px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#C084FC]">
+                      04 // GRAMMAR
+                    </span>
+                    <BookmarkIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-[#C084FC]" />
+                  </div>
+
+                  <div className="mt-0.5 sm:mt-1 flex items-baseline justify-between font-mono">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase text-white">Lessons</span>
+                    <span className="font-mono text-[10px] sm:text-xs font-black text-[#C084FC]">
+                      {grammarStats.clearedLessons} / {grammarStats.totalLessons}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 sm:mt-1.5 flex h-1.5 sm:h-2 w-full overflow-hidden border border-black bg-[#151922]">
+                    <div
+                      className="h-full bg-[#C084FC] transition-all"
+                      style={{
+                        width: `${Math.min(100, (grammarStats.masteredLessons / grammarStats.totalLessons) * 100)}%`,
+                      }}
+                    />
+                    <div
+                      className="h-full transition-all"
+                      style={{
+                        width: `${Math.min(
+                          100 - (grammarStats.masteredLessons / grammarStats.totalLessons) * 100,
+                          ((grammarStats.clearedLessons - grammarStats.masteredLessons) / grammarStats.totalLessons) * 100
+                        )}%`,
+                        backgroundImage:
+                          'repeating-linear-gradient(45deg, #C084FC, #C084FC 2px, #151922 2px, #151922 4px)',
+                      }}
+                    />
+                  </div>
+
+                  <div className="mt-0.5 sm:mt-1 flex justify-between font-mono text-[7px] sm:text-[8px] font-black uppercase">
+                    <span className="text-[#C084FC]">★ {grammarStats.masteredLessons} M</span>
+                    <span className="text-[#C084FC]/80">✓ {grammarStats.clearedLessons} C</span>
                   </div>
                 </div>
               </div>

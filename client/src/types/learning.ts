@@ -187,6 +187,21 @@ export type GrammarAssessment = {
   count: number;
   questions: GrammarQuestion[];
 };
+
+/** Per-lesson grammar aggregates returned by the `get_grammar_overview` RPC. */
+export interface GrammarLessonOverview {
+  lesson_number: number;
+  is_cleared: boolean;
+  is_mastered: boolean;
+  best_score: number;
+  total_attempts: number;
+}
+
+/** Aggregated Genki grammar progress for the Mastery Passport. */
+export interface GrammarOverviewResponse {
+  total_lessons: number;
+  lessons: GrammarLessonOverview[];
+}
 /** An example sentence inside a grammar point. */
 export type GrammarExample = {
   japanese: string;

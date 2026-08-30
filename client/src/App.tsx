@@ -103,6 +103,8 @@ function App() {
     handleOpenVocabStudy: navigation.handleOpenVocabStudy,
     handleStartVocabLearning: navigation.handleStartVocabLearning,
     handleOpenGrammarStudy: navigation.handleOpenGrammarStudy,
+    handleStartGrammarStudy: navigation.handleStartGrammarStudy,
+    handleStartGrammarPractice: navigation.handleStartGrammarPractice,
     handleOpenGrammarPractice: navigation.handleOpenGrammarPractice,
     selectedKana,
     handleContinueKanaIntro: navigation.handleContinueKanaIntro,

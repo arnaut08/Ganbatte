@@ -41,6 +41,8 @@ Ganbatte/
 │       │   ├── learning/
 │       │   │   ├── LearningScreen.tsx
 │       │   │   ├── KanjiStudy.tsx
+│       │   │   ├── GrammarStudy.tsx
+│       │   │   ├── GrammarIntroScreen.tsx
 │       │   │   ├── AssessmentHistory.tsx
 │       │   │   └── AssessmentLoadingScreen.tsx
 │       │   ├── practice/
@@ -274,6 +276,14 @@ npm run generate:genki-lessons -- --lesson 5 --force
 The generator processes lessons sequentially and persists each successful lesson immediately. It skips existing lessons by default, so interrupted runs can resume without regenerating completed lessons. `--dry-run` validates and prints content without writing to Supabase. Invalid Gemini JSON, out-of-scope content, provider failures, and database failures stop the process with a non-zero exit code.
 
 Generated records should be reviewed before production release. When content is corrected, increment the content version and rerun the relevant lesson with `--force`.
+
+### Grammar Progress Tracking
+
+Apply `server/database/migrations/018_create_grammar_quiz_results.sql`. It creates `public.grammar_quiz_results` (one row per completed practice quiz, `lesson_number` 0–12) with an index on `(user_id, lesson_number)`, RLS limiting rows to their owners, and the `get_grammar_overview(user_id_input)` RPC that aggregates per-lesson `is_cleared` (`BOOL_OR(passed)`), `best_score`, and `total_attempts` for lessons 1–12. A lesson is `is_mastered` when any attempt scores 100% **or** two consecutive attempts passed (≥ 80%) on consecutive UTC calendar days — the RPC pairs attempts with `LAG` window functions per lesson, so a failed attempt or a day gap breaks the streak.
+
+When a practice session finishes, `GrammarPractice` computes `score_percentage` and `passed = score >= 80`, inserts the result through `saveGrammarQuizResult()` (`client/src/services/api.ts`), and — for passed quizzes only — calls `recordUserActivity()` for the daily streak (failed attempts show the retry prompt without streak progression). The solo results screen renders a mastery banner: perfect scores show "Mastered (Perfect Score)!", passes in the 80–99% band re-read the overview to distinguish an already-completed consecutive-day streak from a first pass ("Pass again tomorrow to achieve mastery"). Solo practice quizzes are scoped to a single Genki lesson; multiplayer room sessions mix lessons and are stored under `lesson_number` 0 so they never skew per-lesson aggregates. The Mastery Passport fetches `getGrammarOverview()` alongside the Kana, Kanji, and Vocab overviews to fill the `04 // GRAMMAR` card.
+
+**Intro flow**: Grammar study now goes through `GrammarIntroScreen.tsx` (`'grammar-intro'` status) before `GrammarStudy` — the "Study Now →" buttons on the Learning screen and Mastery Passport both open the intro, which explains the curriculum (12 Genki Volume 1 lessons) and routes to the quiz setup via `handleStartGrammarPractice`. The `AppStatus` union and `screenPriority` map include the new `'grammar-intro'` entry.
 
 ### Server on Render
 

@@ -20,6 +20,8 @@ export type AppContextValue = {
   handleOpenVocabStudy: () => void;
   handleStartVocabLearning: () => void;
   handleOpenGrammarStudy: () => void;
+  handleStartGrammarStudy: () => void;
+  handleStartGrammarPractice: (maxLesson?: number, count?: number) => void;
   handleOpenGrammarPractice: (maxLesson?: number, count?: number, mode?: string) => Promise<void>;
   selectedKana: Set<string>;
   handleContinueKanaIntro: () => void;

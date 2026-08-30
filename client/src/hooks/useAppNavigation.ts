@@ -9,7 +9,8 @@ import { pushScreenHistory, replaceScreenHistory } from '../utils/navigation';
 const screenPriority: Record<AppStatus, number> = {
   selector: 0, friends: 0, passport: 0, 'kana-intro': 0, 'kana-filter': 0, 'kana-study': 0,
   'kanji-intro': 0,
-  'kanji-study': 0, 'vocab-intro': 0, 'vocab-study': 0, 'grammar-study': 0, 'grammar-practice': 0, history: 0,
+    'kanji-study': 0, 'vocab-intro': 0, 'vocab-study': 0, 'grammar-intro': 0,
+  'grammar-study': 0, 'grammar-practice': 0, history: 0,
   lobby: 0, assessment: 1, results: 1, 'assessment-preparing': 0,
 };
 
@@ -113,7 +114,9 @@ export default function useAppNavigation({ socketRef, roomCodeRef, setGrammarQue
     handleStartKanjiLearning: () => navigateToScreen('kanji-study'),
     handleOpenVocabStudy: () => navigateToScreen('vocab-intro'),
     handleStartVocabLearning: () => navigateToScreen('vocab-study'),
-    handleOpenGrammarStudy: () => navigateToScreen('grammar-study'),
+    handleOpenGrammarStudy: () => navigateToScreen('grammar-intro'),
+    handleStartGrammarStudy: () => navigateToScreen('grammar-study'),
+    handleStartGrammarPractice: (maxLesson = 12, count = 10) => handleOpenGrammarPractice(maxLesson, count, 'practice'),
     handleOpenGrammarPractice,
     handleOpenHistory: () => navigateToScreen('history'),
     handleOpenFriends: () => navigateToScreen('friends'),
