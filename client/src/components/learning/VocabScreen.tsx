@@ -6,7 +6,7 @@ import DeckFilterBar, { type DeckCategory } from './DeckFilterBar';
 import VocabStageMap from './VocabStageMap';
 import VocabStudySession from './VocabStudySession';
 import VocabStageQuiz from './VocabStageQuiz';
-import VocabStageSkeleton from './VocabStageSkeleton';
+import GroupMapSkeleton from './GroupMapSkeleton';
 
 type VocabScreenProps = {
   onBack: () => void;
@@ -188,7 +188,7 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
           onToggleDueOnly={() => setShowDueOnly((prev) => !prev)}
         />
 
-        {vocabLoading && <VocabStageSkeleton count={6} />}
+        {vocabLoading && <GroupMapSkeleton count={6} />}
 
         {vocabError && !vocabLoading && (
           <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">

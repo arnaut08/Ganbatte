@@ -16,6 +16,7 @@ export type AppContextValue = {
   handleGoBack: () => void;
   handleOpenKanaStudy: () => void;
   handleOpenKanjiStudy: () => void;
+  handleStartKanjiLearning: () => void;
   handleOpenVocabStudy: () => void;
   handleStartVocabLearning: () => void;
   handleOpenGrammarStudy: () => void;

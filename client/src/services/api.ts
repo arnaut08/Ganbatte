@@ -11,6 +11,7 @@ import type {
   GrammarQuestion,
   KanaCard,
   KanjiCard,
+  KanjiGroupOverview,
   Room,
   VocabOverview,
   VocabFilterItem,
@@ -154,6 +155,25 @@ async function request<T>(path: string, options: RequestInit = {}, retryCount = 
 
 export function getKanjiCards(): Promise<CardDeck<KanjiCard>> {
   return request('/api/kanji-cards');
+}
+
+export function getKanjiOverview(): Promise<{ groups: KanjiGroupOverview[] }> {
+  return request('/api/kanji/overview');
+}
+
+export function getKanjiGroup(groupId: string): Promise<{ group_id: string; items: KanjiCard[] }> {
+  return request(`/api/kanji/group/${encodeURIComponent(groupId)}`);
+}
+
+export function saveKanjiQuizResult(payload: { groupId: string; score: number; totalQuestions: number; passed: boolean }): Promise<{ result: ApiRecord }> {
+  return request('/api/kanji/quiz-results', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function reviewKanji(characterId: string, rating: 1 | 2 | 3 | 4): Promise<{ progress: ApiRecord }> {
+  return request('/api/kanji/review', {
+    method: 'POST',
+    body: JSON.stringify({ character_id: characterId, rating }),
+  });
 }
 
 export function generateCards(count = 10): Promise<CardDeck<KanaCard | KanjiCard>> {

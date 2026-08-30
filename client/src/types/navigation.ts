@@ -10,6 +10,7 @@ export type AppStatus =
   | 'kana-intro'
   | 'kana-filter'
   | 'kana-study'
+  | 'kanji-intro'
   | 'kanji-study'
   | 'vocab-intro'
   | 'vocab-study'

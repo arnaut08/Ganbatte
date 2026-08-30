@@ -3,7 +3,7 @@ import { getVocabStage, reviewVocab } from '../../services/api';
 import type { VocabStudyItem } from '../../types';
 import VocabCard from './VocabCard';
 import VocabStageQuiz from './VocabStageQuiz';
-import VocabStudySkeleton from './VocabStudySkeleton';
+import StudySkeleton from './StudySkeleton';
 
 type VocabStudySessionProps = {
   level?: string;
@@ -110,7 +110,7 @@ export default function VocabStudySession({
         </div>
       </header>
 
-      {isLoading && <VocabStudySkeleton />}
+      {isLoading && <StudySkeleton />}
       
       {error && !isLoading && (
         <div className="border-2 border-black bg-[#FF6B6B] p-5 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">{error}</div>

@@ -136,7 +136,7 @@ export default function VocabIntroScreen({
           <button
             type="button"
             onClick={onStartLearning}
-            className="flex w-full items-center justify-center gap-2 border-2 border-black bg-black py-3 font-mono text-xs font-black uppercase text-white shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:w-auto sm:px-6"
+            className="flex w-full items-center justify-center gap-2 border-2 border-black bg-black py-3 font-mono text-xs font-black uppercase text-white shadow-[3px_3px_0px_0px_#000000] transition-all transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:w-auto sm:px-6"
           >
             CHOOSE STAGE →
           </button>

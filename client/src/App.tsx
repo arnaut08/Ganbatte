@@ -98,6 +98,7 @@ function App() {
     handleGoBack: navigation.handleGoBack,
     handleOpenKanaStudy: navigation.handleOpenKanaStudy,
     handleOpenKanjiStudy: navigation.handleOpenKanjiStudy,
+    handleStartKanjiLearning: navigation.handleStartKanjiLearning,
     handleOpenVocabStudy: navigation.handleOpenVocabStudy,
     handleStartVocabLearning: navigation.handleStartVocabLearning,
     handleOpenGrammarStudy: navigation.handleOpenGrammarStudy,
