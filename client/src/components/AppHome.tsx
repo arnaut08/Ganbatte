@@ -48,8 +48,8 @@ export default function AppHome({
   roomCode = '',
 }: AppHomeProps) {
   const [internalScreen, setInternalScreen] = useState<SelectorScreen>(controlledScreen || 'home');
-  // Inside AppHome component
-  const DEFAULT_VOCAB_TOTAL_STAGES = 28; // Standard Genki 1 / N5 stage count
+
+  const DEFAULT_VOCAB_TOTAL_STAGES = 28;
   const DEFAULT_VOCAB_STAGE_STATS = {
     clearedStages: 0,
     masteredStages: 0,
@@ -59,11 +59,6 @@ export default function AppHome({
   const [vocabDueCount, setVocabDueCount] = useState(0);
 
   useEffect(() => {
-    // Pull live vocab stage progress from the overview endpoint. Every stage
-    // carries `is_cleared` (passed the 80% quiz) and `is_mastered` (all words
-    // at high recall); count the booleans straight from the API so the HUD
-    // always reflects the latest server state. If the endpoint is unavailable,
-    // fall back to the previously cached stats so the HUD keeps its last state.
     getVocabOverview('N5')
       .then((overview) => {
         const stages = overview.stages || [];
@@ -77,7 +72,6 @@ export default function AppHome({
         try {
           localStorage.setItem('ganbatte_vocab_stage_stats', JSON.stringify(nextStats));
         } catch (storageError) {
-          // Storage may be unavailable; stats still display for this session.
           console.error('Failed to cache vocab stage stats to localStorage:', storageError);
         }
       })
@@ -89,7 +83,6 @@ export default function AppHome({
             setVocabStageStats({ ...DEFAULT_VOCAB_STAGE_STATS, ...JSON.parse(cachedStats) });
           }
         } catch (cacheError) {
-          // Fallback default state
           console.error('Failed to load cached vocab stats from localStorage:', cacheError);
         }
       });
@@ -171,7 +164,7 @@ export default function AppHome({
     [kanjiOverview]
   );
 
-  // Combined due reviews across Kanji + Vocab for the passport HUD badge.
+  // Combined due reviews across Kanji + Vocab
   const totalDueReviews = useMemo(
     () => totalKanjiDue + (vocabDueCount || 0),
     [totalKanjiDue, vocabDueCount]
@@ -214,31 +207,9 @@ export default function AppHome({
     <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-3 sm:p-4">
       <div className="w-full max-w-5xl">
         {screen === 'home' ? (
-          <div className="space-y-5 sm:space-y-8">
-            {/* --- HERO SECTION --- */}
-            <div className="text-center space-y-2 sm:space-y-3">
-              <div className="inline-flex items-center gap-1.5 sm:gap-2 border-2 border-black bg-[#FFDE59] px-2.5 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000]">
-                <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#A3E636] opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-[#A3E636]" />
-                </span>
-                <span>CO-OP READY // KANA · KANJI · GRAMMAR</span>
-              </div>
-
-              <h1 className="text-2xl sm:text-5xl font-black uppercase tracking-tight text-white leading-tight">
-                Master Japanese{' '}
-                <span className="border-b-[3px] sm:border-b-4 border-[#A3E636] text-[#A3E636]">
-                  Together
-                </span>
-              </h1>
-
-              <p className="mx-auto max-w-xl font-mono text-[11px] sm:text-sm font-bold text-white/70 leading-snug sm:leading-normal">
-                Build your character and grammar foundation, then team up in live co-op rooms to practice together.
-              </p>
-            </div>
-
+          <div className="space-y-4 sm:space-y-6">
             {/* --- PLAYER PASSPORT & STATS HUD --- */}
-            <section className="mx-auto w-full max-w-4xl border-2 border-black bg-[#151922] p-2.5 sm:p-4 text-white shadow-[3px_3px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] space-y-2 sm:space-y-3">
+            <section className="mx-auto w-full max-w-4xl border-2 border-black bg-[#151922] p-2.5 sm:p-4 text-white shadow-[3px_3px_0px_0px_#000] sm:shadow-[5px_5px_0px_0px_#000] space-y-2 sm:space-y-3">
               {/* Header Bar */}
               <div className="flex items-center justify-between gap-2 border-b-2 border-white/20 pb-2">
                 <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
@@ -246,16 +217,17 @@ export default function AppHome({
                     PASSPORT
                   </span>
                   <span className="truncate font-mono text-[10px] sm:text-xs font-black uppercase tracking-tight text-white">
-                  // PLAYER PROGRESSION
+                    // PLAYER PROGRESSION
                   </span>
                 </div>
 
                 {/* Combined Reviews Badge */}
                 <div
-                  className={`shrink-0 flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${totalDueReviews > 0
+                  className={`shrink-0 flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${
+                    totalDueReviews > 0
                       ? 'bg-[#FF6B6B] text-black'
                       : 'bg-[#252c3d] text-neutral-400'
-                    }`}
+                  }`}
                 >
                   <TimerIcon className={`h-3 w-3 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'}`} />
                   <span className="hidden xs:inline">TOTAL DUE:</span>
@@ -265,7 +237,7 @@ export default function AppHome({
                 </div>
               </div>
 
-              {/* 3 Pillar Cards: Compact rows on mobile, 3-column grid on tablet/desktop */}
+              {/* 3 Pillar Cards */}
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-3">
                 {/* 01 // KANA */}
                 <div
@@ -345,14 +317,12 @@ export default function AppHome({
                   </div>
 
                   <div className="mt-1 sm:mt-1.5 flex h-1.5 sm:h-2 w-full overflow-hidden border border-black bg-[#151922]">
-                    {/* Mastered solid */}
                     <div
                       className="h-full bg-[#A3E636] transition-all"
                       style={{
                         width: `${Math.min(100, (vocabStageStats.masteredStages / 28) * 100)}%`,
                       }}
                     />
-                    {/* Cleared striped */}
                     <div
                       className="h-full transition-all"
                       style={{
@@ -366,7 +336,6 @@ export default function AppHome({
                     />
                   </div>
 
-                  {/* Sub-label breakdown */}
                   <div className="mt-0.5 sm:mt-1 flex justify-between font-mono text-[7px] sm:text-[8px] font-black uppercase">
                     <span className="text-[#A3E636]">★ {vocabStageStats.masteredStages} M</span>
                     <span className="text-[#A3E636]/80">✓ {vocabStageStats.clearedStages} C</span>
@@ -376,15 +345,15 @@ export default function AppHome({
             </section>
 
             {/* --- CORE ACTION CARDS --- */}
-            <div className="grid gap-4 sm:gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 max-w-4xl mx-auto">
               {/* Card 1: Study & Recall */}
               <Card className="relative overflow-hidden bg-[#FFDE59] border-2 border-black shadow-[4px_4px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] p-4 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000000]">
                 <span className="absolute -right-3 -bottom-4 sm:-right-4 sm:-bottom-6 text-[100px] sm:text-[140px] font-black text-black/[0.07] pointer-events-none select-none leading-none font-mono">
                   学
                 </span>
 
-                <CardHeader className="p-0 pb-3 sm:pb-6 relative z-10">
-                  <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                <CardHeader className="p-0 pb-3 sm:pb-5 relative z-10">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
                     <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#FFDE59]">
                       01 // SOLO DRILL
                     </span>
@@ -397,7 +366,7 @@ export default function AppHome({
                     Study &amp; Recall
                   </CardTitle>
 
-                  <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 sm:mt-2 leading-snug sm:leading-relaxed">
+                  <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 leading-snug sm:leading-relaxed">
                     Practice Kana, Kanji, and Genki Grammar points through active recall and flashcards at your own pace.
                   </CardDescription>
                 </CardHeader>
@@ -406,7 +375,7 @@ export default function AppHome({
                   <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('learning')}
-                    className="w-full py-3 sm:py-6 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    className="w-full py-3 sm:py-5 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
                     Start Study Deck →
                   </LegacyButton>
@@ -419,8 +388,8 @@ export default function AppHome({
                   試
                 </span>
 
-                <CardHeader className="p-0 pb-3 sm:pb-6 relative z-10">
-                  <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                <CardHeader className="p-0 pb-3 sm:pb-5 relative z-10">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
                     <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#70CFF8]">
                       02 // MULTIPLAYER
                     </span>
@@ -433,7 +402,7 @@ export default function AppHome({
                     Live Co-Op Room
                   </CardTitle>
 
-                  <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 sm:mt-2 leading-snug sm:leading-relaxed">
+                  <CardDescription className="text-xs sm:text-sm font-bold text-black/80 mt-1.5 leading-snug sm:leading-relaxed">
                     Create a live room, challenge friends with custom decks, and test accuracy and speed head-to-head.
                   </CardDescription>
                 </CardHeader>
@@ -442,7 +411,7 @@ export default function AppHome({
                   <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('practice')}
-                    className="w-full py-3 sm:py-6 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    className="w-full py-3 sm:py-5 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
                     Enter Match Lobby →
                   </LegacyButton>
