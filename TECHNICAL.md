@@ -275,6 +275,12 @@ The generator processes lessons sequentially and persists each successful lesson
 
 Generated records should be reviewed before production release. When content is corrected, increment the content version and rerun the relevant lesson with `--force`.
 
+### Grammar Progress Tracking
+
+Apply `server/database/migrations/018_create_grammar_quiz_results.sql`. It creates `public.grammar_quiz_results` (one row per completed practice quiz, `lesson_number` 0–12) with an index on `(user_id, lesson_number)`, RLS limiting rows to their owners, and the `get_grammar_overview(user_id_input)` RPC that aggregates per-lesson `is_cleared` (`BOOL_OR(passed)`), `best_score`, and `total_attempts` for lessons 1–12. A lesson is `is_mastered` when any attempt scores 100% **or** two consecutive attempts passed (≥ 80%) on consecutive UTC calendar days — the RPC pairs attempts with `LAG` window functions per lesson, so a failed attempt or a day gap breaks the streak.
+
+When a practice session finishes, `GrammarPractice` computes `score_percentage` and `passed = score >= 80`, inserts the result through `saveGrammarQuizResult()` (`client/src/services/api.ts`), and — for passed quizzes only — calls `recordUserActivity()` for the daily streak (failed attempts show the retry prompt without streak progression). The solo results screen renders a mastery banner: perfect scores show "Mastered (Perfect Score)!", passes in the 80–99% band re-read the overview to distinguish an already-completed consecutive-day streak from a first pass ("Pass again tomorrow to achieve mastery"). Solo practice quizzes are scoped to a single Genki lesson; multiplayer room sessions mix lessons and are stored under `lesson_number` 0 so they never skew per-lesson aggregates. The Mastery Passport fetches `getGrammarOverview()` alongside the Kana, Kanji, and Vocab overviews to fill the `04 // GRAMMAR` card.
+
 ### Server on Render
 
 Configure a Render web service with:

@@ -8,6 +8,7 @@ import type {
   Friend,
   FriendRequest,
   GrammarAssessment,
+  GrammarOverviewResponse,
   GrammarQuestion,
   KanaCard,
   KanjiCard,
@@ -232,6 +233,59 @@ export function generateGrammarAssessment(
   const safeCount = Number.isFinite(Number(count)) ? Number(count) : 10;
 
   return request(`/api/assessments/generate?type=grammar&maxLesson=${safeMaxLesson}&count=${safeCount}&mode=${mode}`);
+}
+
+export type SaveGrammarQuizPayload = {
+  /** Genki lesson the quiz covered; 0 marks a mixed-lesson (bridging) session. */
+  lessonNumber: number;
+  totalQuestions: number;
+  correctCount: number;
+  scorePercentage: number;
+  passed: boolean;
+};
+
+/**
+ * Persists one completed Genki grammar practice quiz in the
+ * `grammar_quiz_results` table. `lessonNumber` 0 is reserved for
+ * mixed-lesson sessions, which the overview RPC ignores when aggregating
+ * per-lesson progress for the Mastery Passport.
+ */
+export async function saveGrammarQuizResult(payload: SaveGrammarQuizPayload): Promise<ApiRecord> {
+  if (!supabase) throw new Error('Supabase is not configured.');
+
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session?.user?.id) {
+    throw new Error('Authentication required. Please sign in again.');
+  }
+
+  const { data, error } = await supabase
+    .from('grammar_quiz_results')
+    .insert({
+      user_id: session.user.id,
+      lesson_number: payload.lessonNumber,
+      total_questions: payload.totalQuestions,
+      correct_count: payload.correctCount,
+      score_percentage: payload.scorePercentage,
+      passed: payload.passed,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as ApiRecord;
+}
+
+/** Aggregated Genki grammar progress via the `get_grammar_overview` RPC. */
+export async function getGrammarOverview(): Promise<GrammarOverviewResponse> {
+  if (!supabase) throw new Error('Supabase is not configured.');
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error('Authentication required. Please sign in again.');
+
+  const { data, error } = await supabase.rpc('get_grammar_overview', { user_id_input: userId });
+  if (error) throw error;
+  return (data ?? { total_lessons: 12, lessons: [] }) as GrammarOverviewResponse;
 }
 
 export function recordKanjiAttempt(attempt: AttemptInput): Promise<ApiRecord> {

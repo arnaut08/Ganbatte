@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { getMatchingResultScore, isQuestionCorrect, kanaToRomaji, summarizeResults } from '@/utils/grammarScoring';
 import { mergePlayerAnswers } from '@/utils/grammarRoomSync';
-import type { AnswerMap, GrammarAnswer, GrammarQuestion, MatchingAnswerState, MatchingPair } from '@/types';
+import { getGrammarResultFeedback } from '@/utils/grammarFeedback';
+import { getGrammarOverview, saveGrammarQuizResult } from '../../services/api';
+import useActivityRecorder from '../../hooks/useActivityRecorder';
+import type { AnswerMap, GrammarAnswer, GrammarOverviewResponse, GrammarQuestion, MatchingAnswerState, MatchingPair } from '@/types';
 import { supabase } from '../../config/supabase';
 import GrammarPracticeSetup from './GrammarPracticeSetup';
 import GrammarPracticeHeader from './GrammarPracticeHeader';
@@ -41,9 +44,12 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [showResults, setShowResults] = useState(Boolean(forceShowResults));
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
+  const [grammarMastery, setGrammarMastery] = useState<GrammarOverviewResponse | null>(null);
+  const [isGeneratingSet, setIsGeneratingSet] = useState(false);
   const savedResult = useRef(false);
   const isRoomMode = Boolean(room?.players && room.players.length > 0);
   const sessionLabel = isRoomMode ? 'Assessment' : 'Practice';
+  const { recordActivity } = useActivityRecorder();
 
   useEffect(() => {
     setShowResults(Boolean(forceShowResults));
@@ -111,6 +117,57 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         console.error('Unable to save grammar assessment result:', error);
         sessionStorage.removeItem(storageKey);
         savedResult.current = false;
+        return;
+      }
+
+      // Record lesson-level progress for the Mastery Passport. Solo practice is
+      // scoped to a single Genki lesson; room sessions mix lessons and are
+      // stored under lesson 0 ("bridging") so the per-lesson RPC aggregates
+      // (lessons 1-12) never see mixed-lesson scores.
+      let quizResultSaved = false;
+      let lessonNumber = 0;
+      if (summary.totalCount > 0) {
+        const lessonNumbers = new Set(
+          questions
+            .map((question) => Number(question?.lesson))
+            .filter((lesson) => Number.isInteger(lesson) && lesson > 0),
+        );
+        lessonNumber = lessonNumbers.size === 1 ? Number([...lessonNumbers][0]) : 0;
+
+        try {
+          await saveGrammarQuizResult({
+            lessonNumber,
+            totalQuestions: summary.totalCount,
+            correctCount: summary.correctCount,
+            scorePercentage: summary.scorePercent,
+            passed: summary.scorePercent >= 80,
+          });
+          quizResultSaved = true;
+        } catch (quizResultError) {
+          console.warn('Unable to save grammar quiz result:', quizResultError);
+        }
+      }
+
+      // Failed quizzes stay on the retry prompt with no streak progression.
+      if (summary.scorePercent >= 80) {
+        // A 80-99% pass only masters through the consecutive-day rule, so
+        // re-read the overview right after the fresh insert to label the
+        // results banner accurately.
+        if (quizResultSaved && summary.scorePercent < 100 && lessonNumber > 0) {
+          try {
+            const overview = await getGrammarOverview();
+            setGrammarMastery(overview);
+          } catch (overviewError) {
+            console.warn('Unable to load grammar mastery state:', overviewError);
+          }
+        }
+
+        // Update the daily streak through the same recorder the other modules use.
+        try {
+          await recordActivity();
+        } catch (activityError) {
+          console.warn('Unable to record grammar practice activity:', activityError);
+        }
       }
     };
 
@@ -266,6 +323,23 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
     savedResult.current = false;
   };
 
+  // Shown while "Try Another Set" fetches a fresh deck so the finished
+  // session's questions can never be replayed in the meantime.
+  if (isGeneratingSet) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-4 sm:py-4">
+        <div className="border-2 border-black bg-[#1a1f2c] p-8 text-center shadow-[4px_4px_0px_0px_#000000] sm:p-12 sm:shadow-[6px_6px_0px_0px_#000000]">
+          <span className="font-mono text-xs font-black uppercase tracking-widest text-[#A3E636] sm:text-sm">
+            // GENERATING NEW SET...
+          </span>
+          <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-400 sm:text-xs">
+            Fresh questions are on the way
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (showResults) {
     const roomPlayers: GrammarRoomPlayer[] = Array.isArray(room?.players) && room.players.length > 0
       ? room.players
@@ -285,6 +359,41 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         answers: normalizedAnswers,
       };
     });
+
+    // Solo practice banner: a perfect score masters immediately, otherwise a
+    // pass masters once the lesson shows the consecutive-day streak. The
+    // mastery lookup is refreshed right after the fresh result is saved, so a
+    // pass that just completed the streak flips the banner to "Mastered".
+    const feedbackLessonNumbers = new Set(
+      questions
+        .map((question) => Number(question?.lesson))
+        .filter((lesson) => Number.isInteger(lesson) && lesson > 0),
+    );
+    const feedbackLessonNumber = feedbackLessonNumbers.size === 1 ? Number([...feedbackLessonNumbers][0]) : 0;
+    const feedbackMastered = feedbackLessonNumber > 0
+      && Boolean(grammarMastery?.lessons.find((lesson) => lesson.lesson_number === feedbackLessonNumber)?.is_mastered);
+    const grammarFeedback = getGrammarResultFeedback(results.scorePercent, feedbackMastered);
+
+    // "Try Another Set" requests a brand-new deck for the same lesson scope
+    // instead of replaying the finished one. The wired window generator calls
+    // the server for fresh questions and swaps them into the shared grammar
+    // state; clearAnswers() already reset this session so the new deck starts
+    // clean when it arrives.
+    const handleTryAnotherSet = async () => {
+      if (isGeneratingSet) return;
+      setIsGeneratingSet(true);
+      clearAnswers();
+      try {
+        const generateNext = (window as Window & {
+          generateGrammarAssessment?: (lesson: number, questionCount: number) => Promise<void> | void;
+        }).generateGrammarAssessment;
+        // Falls back to replaying the current deck when the generator is not
+        // wired into the window (e.g. isolated renders outside the app shell).
+        await generateNext?.(feedbackLessonNumber || 12, questions.length || 10);
+      } finally {
+        setIsGeneratingSet(false);
+      }
+    };
 
     const normalizeMatchingPairs = (value: unknown): MatchingPair[] => {
       if (Array.isArray(value)) return value as MatchingPair[];
@@ -492,6 +601,17 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           </div>
         )}
 
+        {/* 2b. Mastery Feedback Banner (solo practice) */}
+        {roomPlayers.length <= 1 && (
+          <div
+            className={`border-2 border-black p-3 sm:p-4 font-mono text-[10px] font-black uppercase tracking-wider text-black shadow-[2.5px_2.5px_0px_0px_#000000] sm:text-xs sm:shadow-[4px_4px_0px_0px_#000000] ${
+              grammarFeedback.kind === 'mastered' ? 'bg-[#C084FC]' : grammarFeedback.kind === 'passed' ? 'bg-[#A3E636]' : 'bg-[#FF6B6B]'
+            }`}
+          >
+            {grammarFeedback.message}
+          </div>
+        )}
+
         {/* 3. Detailed Question Breakdown */}
         <div className="space-y-2.5 sm:space-y-4 pt-1 sm:pt-2">
           <div className="flex items-center justify-between border-b-2 border-neutral-700 pb-1.5 sm:pb-2">
@@ -604,13 +724,14 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
           ))}
         </div>
 
-        {/* Solo Try Another Set Button */}
+        {/* Solo Try Another Set Button — generates a fresh deck and restarts */}
         {(!roomPlayers.length || roomPlayers.length === 1) && (
           <LegacyButton
-            onClick={clearAnswers}
-            className="w-full border-2 border-black bg-[#A3E636] py-3 sm:py-5 font-black uppercase tracking-wider text-xs sm:text-sm text-black shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            onClick={handleTryAnotherSet}
+            disabled={isGeneratingSet}
+            className="w-full border-2 border-black bg-[#A3E636] py-3 sm:py-5 font-black uppercase tracking-wider text-xs sm:text-sm text-black shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Try Another Set →
+            {isGeneratingSet ? 'Generating New Set...' : 'Try Another Set →'}
           </LegacyButton>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getKanjiOverview, getCharacterAttempts, getKanaCards, getVocabOverview, getPvpRecord } from '../../services/api';
-import type { KanjiGroupOverview, VocabOverview, CharacterAttempt, PvpRecord } from '../../types';
+import { getKanjiOverview, getCharacterAttempts, getKanaCards, getVocabOverview, getPvpRecord, getGrammarOverview } from '../../services/api';
+import type { KanjiGroupOverview, VocabOverview, CharacterAttempt, PvpRecord, GrammarOverviewResponse } from '../../types';
 import { evaluateAccountTier } from '../../utils/accountTier';
 import { FlameIcon } from '@/components/ui/flameIcon';
 import useProfileStreak from '../../hooks/useProfileStreak';
@@ -75,6 +75,7 @@ export default function MasteryPassportScreen({
 }: MasteryPassportScreenProps) {
   const [kanjiOverview, setKanjiOverview] = useState<KanjiGroupOverview[]>([]);
   const [vocabOverview, setVocabOverview] = useState<VocabOverview | null>(null);
+  const [grammarOverview, setGrammarOverview] = useState<GrammarOverviewResponse | null>(null);
   const [kanaMastery, setKanaMastery] = useState<KanaMasteryStats>({
     hiraganaBasic: 0,
     katakanaBasic: 0,
@@ -97,18 +98,20 @@ export default function MasteryPassportScreen({
 
     const loadData = async () => {
       try {
-        const [kanjiData, vocabData, kanaDeckData, kanaData, pvpData] = await Promise.all([
+        const [kanjiData, vocabData, kanaDeckData, kanaData, pvpData, grammarData] = await Promise.all([
           getKanjiOverview().catch(() => ({ groups: [] })),
           getVocabOverview('N5').catch(() => ({ level: 'N5', stages: [] })),
           getKanaCards().catch(() => ({ cards: [], groups: [], matrices: [] })),
           getCharacterAttempts('kana').catch(() => ({ attempts: [] })),
           getPvpRecord().catch(() => null),
+          getGrammarOverview().catch(() => ({ total_lessons: TOTAL_GENKI_LESSONS, lessons: [] })),
         ]);
 
         if (cancelled) return;
 
         setKanjiOverview(kanjiData.groups || []);
         setVocabOverview(vocabData);
+        setGrammarOverview(grammarData);
         if (pvpData?.record) {
           setPvpRecord(pvpData.record);
         }
@@ -170,6 +173,13 @@ export default function MasteryPassportScreen({
     const masteredCharacters = kanjiOverview.reduce((acc, curr) => acc + (curr.mastered_characters || 0), 0);
     return { totalGroups, masteredGroups, clearedGroups, dueCharacters, totalCharacters, masteredCharacters };
   }, [kanjiOverview]);
+
+  const grammarStats = useMemo(() => {
+    const lessons = grammarOverview?.lessons || [];
+    const masteredLessons = lessons.filter((lesson) => lesson.is_mastered).length;
+    const clearedLessons = lessons.filter((lesson) => lesson.is_cleared).length;
+    return { masteredLessons, clearedLessons };
+  }, [grammarOverview]);
 
   const totalDueReviews = useMemo(
     () => kanjiStats.dueCharacters + vocabStats.dueWords,
@@ -519,7 +529,7 @@ export default function MasteryPassportScreen({
         </div>
 
         {/* Card 04 // Genki 1 Grammar Progress */}
-        <div className="border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000000] overflow-hidden">
+        <div className="flex flex-col border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000000] overflow-hidden">
           <div className="bg-[#C084FC] p-3 sm:p-4 border-b-2 border-black">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-xs">
@@ -531,29 +541,54 @@ export default function MasteryPassportScreen({
             </div>
           </div>
 
-          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-            <div className="h-3 w-full overflow-hidden border-2 border-black bg-[#252c3d]">
+          <div className="flex flex-1 flex-col p-3 sm:p-4 space-y-3 sm:space-y-4">
+            {/* Dual-color progress bar: solid = mastered, striped = cleared */}
+            <div className="flex h-3 w-full overflow-hidden border-2 border-black bg-[#252c3d]">
               <div
                 className="h-full bg-[#C084FC] transition-all"
-                style={{ width: `${Math.min(100, (TOTAL_GENKI_LESSONS / TOTAL_GENKI_LESSONS) * 100)}%` }}
+                style={{ width: `${Math.min(100, (grammarStats.masteredLessons / TOTAL_GENKI_LESSONS) * 100)}%` }}
+                title={`${grammarStats.masteredLessons} Mastered Lessons`}
+              />
+              <div
+                className="h-full transition-all"
+                style={{
+                  width: `${Math.min(
+                    100 - (grammarStats.masteredLessons / TOTAL_GENKI_LESSONS) * 100,
+                    ((grammarStats.clearedLessons - grammarStats.masteredLessons) / TOTAL_GENKI_LESSONS) * 100
+                  )}%`,
+                  backgroundImage: 'repeating-linear-gradient(45deg, #C084FC, #C084FC 2px, #151922 2px, #151922 4px)',
+                }}
+                title={`${grammarStats.clearedLessons} Cleared Lessons`}
               />
             </div>
 
+            {/* 2x2 Stats Grid (Matches Kana, Kanji & Vocab cards) */}
             <div className="grid grid-cols-2 gap-2">
               <div className="border border-black/40 bg-[#252c3d] p-2">
-                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">Total Lessons</span>
-                <p className="font-mono text-xs font-black text-[#C084FC]">{TOTAL_GENKI_LESSONS}</p>
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">★ Mastered</span>
+                <p className="font-mono text-xs font-black text-[#C084FC]">{grammarStats.masteredLessons}/{TOTAL_GENKI_LESSONS} Lessons</p>
               </div>
               <div className="border border-black/40 bg-[#252c3d] p-2">
-                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">Level</span>
-                <p className="font-mono text-xs font-black text-[#C084FC]">GENKI 1</p>
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">✓ Cleared</span>
+                <p className="font-mono text-xs font-black text-[#C084FC]">{grammarStats.clearedLessons}/{TOTAL_GENKI_LESSONS} Lessons</p>
+              </div>
+              <div className="border border-black/40 bg-[#252c3d] p-2">
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">Curriculum</span>
+                <p className="font-mono text-xs font-black text-[#C084FC]">GENKI VOL 1</p>
+              </div>
+              <div className="border border-black/40 bg-[#252c3d] p-2">
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">Next Target</span>
+                <p className="font-mono text-xs font-black text-[#C084FC]">
+                  {grammarStats.clearedLessons >= TOTAL_GENKI_LESSONS ? 'ALL CLEAR' : `LESSON ${grammarStats.clearedLessons + 1}`}
+                </p>
               </div>
             </div>
 
+            {/* CTA Button pinned to bottom */}
             <button
               type="button"
               onClick={onOpenGrammarStudy}
-              className="w-full border-2 border-black bg-[#C084FC] py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              className="mt-auto w-full border-2 border-black bg-[#C084FC] py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               Study Grammar →
             </button>
