@@ -203,9 +203,7 @@ export default function MasteryPassportScreen({
   const profileStreak = useProfileStreak();
 
   if (isLoading) {
-    return (
-      <MasteryPassportSkeleton />
-    );
+    return <MasteryPassportSkeleton />;
   }
 
   return (
@@ -231,7 +229,6 @@ export default function MasteryPassportScreen({
         </div>
       </div>
 
-      {/* Top Stats Strip */}
       {/* Top Stats Strip */}
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
         {/* 01 // Account Tier Card */}
@@ -276,7 +273,7 @@ export default function MasteryPassportScreen({
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <p className="font-mono text-lg font-black uppercase text-[##FF6B6B] sm:text-2xl leading-none">
+            <p className="font-mono text-lg font-black uppercase text-[#FF6B6B] sm:text-2xl leading-none">
               {profileStreak?.currentStreak ?? 0}
             </p>
             <span className="font-mono text-[10px] font-black uppercase text-neutral-300 sm:text-xs">
@@ -293,13 +290,15 @@ export default function MasteryPassportScreen({
 
         {/* 03 // Due Reviews Card */}
         <div
-          className={`flex flex-col justify-between border-2 border-black p-3 sm:p-4 shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] ${totalDueReviews > 0 ? 'bg-[#FF6B6B]' : 'bg-[#252c3d]'
-            }`}
+          className={`flex flex-col justify-between border-2 border-black p-3 sm:p-4 shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] ${
+            totalDueReviews > 0 ? 'bg-[#FF6B6B]' : 'bg-[#252c3d]'
+          }`}
         >
           <div className="flex items-center justify-between">
             <span
-              className={`flex items-center gap-1 font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px] ${totalDueReviews > 0 ? 'text-black' : 'text-[#A3E636]'
-                }`}
+              className={`flex items-center gap-1 font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px] ${
+                totalDueReviews > 0 ? 'text-black' : 'text-[#A3E636]'
+              }`}
             >
               <LightningBoltIcon
                 className={`h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 ${
@@ -309,31 +308,33 @@ export default function MasteryPassportScreen({
               REVIEWS DUE
             </span>
             <span
-              className={`border border-black px-1.5 py-0.2 font-mono text-[8px] font-black uppercase tracking-wider ${totalDueReviews > 0 ? 'bg-black text-[#FF6B6B]' : 'bg-black text-[#A3E636]'
-                }`}
+              className={`border border-black px-1.5 py-0.2 font-mono text-[8px] font-black uppercase tracking-wider ${
+                totalDueReviews > 0 ? 'bg-black text-[#FF6B6B]' : 'bg-black text-[#A3E636]'
+              }`}
             >
               QUEUE
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <p
-              className={`font-mono text-lg font-black uppercase sm:text-2xl leading-none ${totalDueReviews > 0 ? 'text-black' : 'text-white'
-                }`}
+              className={`font-mono text-lg font-black uppercase sm:text-2xl leading-none ${
+                totalDueReviews > 0 ? 'text-black' : 'text-white'
+              }`}
             >
               {totalDueReviews}
             </p>
             <span
-              className={`font-mono text-[10px] font-black uppercase sm:text-xs ${totalDueReviews > 0 ? 'text-black/80' : 'text-neutral-400'
-                }`}
+              className={`font-mono text-[10px] font-black uppercase sm:text-xs ${
+                totalDueReviews > 0 ? 'text-black/80' : 'text-neutral-400'
+              }`}
             >
               PENDING
             </span>
           </div>
           <div
-            className={`mt-1 flex items-center justify-between border-t pt-1.5 font-mono text-[8px] font-bold uppercase sm:text-[9px] ${totalDueReviews > 0
-              ? 'border-black/30 text-black/90'
-              : 'border-black/40 text-neutral-400'
-              }`}
+            className={`mt-1 flex items-center justify-between border-t pt-1.5 font-mono text-[8px] font-bold uppercase sm:text-[9px] ${
+              totalDueReviews > 0 ? 'border-black/30 text-black/90' : 'border-black/40 text-neutral-400'
+            }`}
           >
             <span>BREAKDOWN</span>
             <span className={totalDueReviews > 0 ? 'font-black text-black' : 'text-white'}>
@@ -346,7 +347,7 @@ export default function MasteryPassportScreen({
       {/* Core Learning Modules Grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Card 01 // Kana Mastery Matrix */}
-        <div className="border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000000] overflow-hidden">
+        <div className="flex flex-col border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000000] overflow-hidden">
           <div className="bg-[#FFDE59] p-3 sm:p-4 border-b-2 border-black">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-xs">
@@ -358,7 +359,7 @@ export default function MasteryPassportScreen({
             </div>
           </div>
 
-          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+          <div className="flex flex-1 flex-col justify-between p-3 sm:p-4 space-y-3 sm:space-y-4">
             <div className="h-3 w-full overflow-hidden border-2 border-black bg-[#252c3d]">
               <div
                 className="h-full bg-[#FFDE59] transition-all"
@@ -388,16 +389,15 @@ export default function MasteryPassportScreen({
             <button
               type="button"
               onClick={onOpenKanaStudy}
-              className="w-full border-2 border-black bg-[#FFDE59] py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              className="mt-auto w-full border-2 border-black bg-[#FFDE59] py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               Review Kana Deck →
             </button>
           </div>
         </div>
 
-        {/* Card 02 // N5 Kanji Groups (Standardized 2x2 Grid) */}
+        {/* Card 02 // N5 Kanji Groups */}
         <div className="flex flex-col border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000000] overflow-hidden">
-          {/* Card Header */}
           <div className="bg-[#70CFF8] p-3 sm:p-4 border-b-2 border-black">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-xs">
@@ -409,9 +409,7 @@ export default function MasteryPassportScreen({
             </div>
           </div>
 
-          {/* Card Body */}
           <div className="flex flex-1 flex-col justify-between p-3 sm:p-4 space-y-3 sm:space-y-4">
-            {/* Segmented Progress Bar */}
             <div className="flex h-3 w-full overflow-hidden border-2 border-black bg-[#252c3d]">
               <div
                 className="h-full bg-[#70CFF8] transition-all"
@@ -431,7 +429,6 @@ export default function MasteryPassportScreen({
               />
             </div>
 
-            {/* 2x2 Stats Grid (Matches Kana & Grammar cards) */}
             <div className="grid grid-cols-2 gap-2">
               <div className="border border-black/40 bg-[#252c3d] p-2">
                 <span className="font-mono text-[8px] font-black uppercase text-neutral-400">★ Mastered Groups</span>
@@ -459,7 +456,6 @@ export default function MasteryPassportScreen({
               </div>
             </div>
 
-            {/* CTA Button pinned to bottom */}
             <button
               type="button"
               onClick={onOpenKanjiStudy}
@@ -470,8 +466,8 @@ export default function MasteryPassportScreen({
           </div>
         </div>
 
-        {/* Card 03 // Vocab SRS Curriculum */}
-        <div className="border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000000] overflow-hidden">
+        {/* Card 03 // Vocab SRS Curriculum (Standardized 2x2 Grid) */}
+        <div className="flex flex-col border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000000] overflow-hidden">
           <div className="bg-[#A3E636] p-3 sm:p-4 border-b-2 border-black">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-xs">
@@ -483,7 +479,7 @@ export default function MasteryPassportScreen({
             </div>
           </div>
 
-          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+          <div className="flex flex-1 flex-col justify-between p-3 sm:p-4 space-y-3 sm:space-y-4">
             <div className="flex h-3 w-full overflow-hidden border-2 border-black bg-[#252c3d]">
               <div
                 className="h-full bg-[#A3E636] transition-all"
@@ -503,25 +499,37 @@ export default function MasteryPassportScreen({
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="border border-black/40 bg-[#252c3d] p-2 text-center">
-                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">★ Mastered</span>
-                <p className="font-mono text-sm font-black text-[#A3E636]">{vocabStats.masteredStages}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="border border-black/40 bg-[#252c3d] p-2">
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">★ Mastered Stages</span>
+                <p className="font-mono text-xs font-black text-[#A3E636]">
+                  {vocabStats.masteredStages}/{vocabStats.totalStages}
+                </p>
               </div>
-              <div className="border border-black/40 bg-[#252c3d] p-2 text-center">
-                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">✓ Cleared</span>
-                <p className="font-mono text-sm font-black text-[#A3E636]">{vocabStats.clearedStages}</p>
+              <div className="border border-black/40 bg-[#252c3d] p-2">
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">✓ Cleared Stages</span>
+                <p className="font-mono text-xs font-black text-[#A3E636]">
+                  {vocabStats.clearedStages}/{vocabStats.totalStages}
+                </p>
               </div>
-              <div className="border border-black/40 bg-[#252c3d] p-2 text-center">
-                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">⏱ Due</span>
-                <p className="font-mono text-sm font-black text-[#A3E636]">{vocabStats.dueWords}</p>
+              <div className="border border-black/40 bg-[#252c3d] p-2">
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">⏱ Due Reviews</span>
+                <p className="font-mono text-xs font-black text-[#A3E636]">
+                  {vocabStats.dueWords}
+                </p>
+              </div>
+              <div className="border border-black/40 bg-[#252c3d] p-2">
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">Next Target</span>
+                <p className="font-mono text-xs font-black text-[#A3E636]">
+                  {vocabStats.clearedStages >= vocabStats.totalStages ? 'ALL CLEAR' : `STAGE ${vocabStats.clearedStages + 1}`}
+                </p>
               </div>
             </div>
 
             <button
               type="button"
               onClick={onOpenVocabStudy}
-              className="w-full border-2 border-black bg-[#A3E636] py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              className="mt-auto w-full border-2 border-black bg-[#A3E636] py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               Drill Vocabulary →
             </button>
@@ -536,13 +544,12 @@ export default function MasteryPassportScreen({
                 04 // GRAMMAR
               </span>
               <span className="font-mono text-xs font-black text-black sm:text-sm">
-                N5 LESSONS
+                {grammarStats.masteredLessons}/{TOTAL_GENKI_LESSONS} LESSONS
               </span>
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col p-3 sm:p-4 space-y-3 sm:space-y-4">
-            {/* Dual-color progress bar: solid = mastered, striped = cleared */}
+          <div className="flex flex-1 flex-col justify-between p-3 sm:p-4 space-y-3 sm:space-y-4">
             <div className="flex h-3 w-full overflow-hidden border-2 border-black bg-[#252c3d]">
               <div
                 className="h-full bg-[#C084FC] transition-all"
@@ -562,15 +569,14 @@ export default function MasteryPassportScreen({
               />
             </div>
 
-            {/* 2x2 Stats Grid (Matches Kana, Kanji & Vocab cards) */}
             <div className="grid grid-cols-2 gap-2">
               <div className="border border-black/40 bg-[#252c3d] p-2">
-                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">★ Mastered</span>
-                <p className="font-mono text-xs font-black text-[#C084FC]">{grammarStats.masteredLessons}/{TOTAL_GENKI_LESSONS} Lessons</p>
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">★ Mastered Lessons</span>
+                <p className="font-mono text-xs font-black text-[#C084FC]">{grammarStats.masteredLessons}/{TOTAL_GENKI_LESSONS}</p>
               </div>
               <div className="border border-black/40 bg-[#252c3d] p-2">
-                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">✓ Cleared</span>
-                <p className="font-mono text-xs font-black text-[#C084FC]">{grammarStats.clearedLessons}/{TOTAL_GENKI_LESSONS} Lessons</p>
+                <span className="font-mono text-[8px] font-black uppercase text-neutral-400">✓ Cleared Lessons</span>
+                <p className="font-mono text-xs font-black text-[#C084FC]">{grammarStats.clearedLessons}/{TOTAL_GENKI_LESSONS}</p>
               </div>
               <div className="border border-black/40 bg-[#252c3d] p-2">
                 <span className="font-mono text-[8px] font-black uppercase text-neutral-400">Curriculum</span>
@@ -584,7 +590,6 @@ export default function MasteryPassportScreen({
               </div>
             </div>
 
-            {/* CTA Button pinned to bottom */}
             <button
               type="button"
               onClick={onOpenGrammarStudy}
