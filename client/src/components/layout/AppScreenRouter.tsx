@@ -32,7 +32,7 @@ function LegacyAppScreenRouter({
   handleDeclineRoomResume, prefillRoomCode, isSocketReady, roomCode, currentSessionKey,
   username, friends, friendSearchResults, isFriendSearchLoading, handleSearchUsers,
   handleRemoveFriend, handleGoBack, handleContinueKanaIntro, handleOpenKanaFilter,
-  handleApplyKanaFilters, selectedKana, handleKanaReviewComplete, friendRequests,
+  handleApplyKanaFilters, handleKanaSelectionChange, selectedKana, friendRequests,
   handleSendFriendRequest, handleAcceptFriendRequest, handleRejectFriendRequest,
   grammarQuestions, room, isPreparingAssessment, handleStartAssessment, handleLeaveRoom,
   socket, handleInviteFriend, handleNextCard, handleSubmitAnswer, kanaCards, handleUseHint,
@@ -104,6 +104,7 @@ function LegacyAppScreenRouter({
             <KanaFilterScreen
               onBack={handleGoBack}
               onApplyFilters={handleApplyKanaFilters}
+              onSelectionChange={handleKanaSelectionChange}
               initialSelectedKana={selectedKana}
             />
           )}
@@ -112,7 +113,6 @@ function LegacyAppScreenRouter({
             <KanaRecall
               onBack={handleGoBack}
               onOpenFilter={handleOpenKanaFilter}
-              onReviewComplete={handleKanaReviewComplete}
               selectedKana={selectedKana}
             />
           )}

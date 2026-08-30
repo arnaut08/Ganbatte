@@ -4,7 +4,7 @@ import type { Socket } from 'socket.io-client';
 import { generateGrammarAssessment } from '../services/api';
 import type { AppStatus, GrammarQuestion, SelectorScreen, ToastType } from '../types';
 import { ROOM_VIEW_STATUSES as roomStatuses } from '../types';
-import { pushScreenHistory } from '../utils/navigation';
+import { pushScreenHistory, replaceScreenHistory } from '../utils/navigation';
 
 const screenPriority: Record<AppStatus, number> = {
   selector: 0, friends: 0, 'kana-intro': 0, 'kana-filter': 0, 'kana-study': 0,
@@ -49,6 +49,19 @@ export default function useAppNavigation({ socketRef, roomCodeRef, setGrammarQue
     setStatus(nextStatus);
   }, [roomCodeRef, socketRef]);
 
+  /** Like {@link navigateToScreen} but swaps the current stack top instead of
+   * appending, for "return to parent" flows (e.g. study session → filter). */
+  const navigateToScreenReplacing = useCallback((nextStatus: AppStatus) => {
+    if (!nextStatus) return;
+    const socket = socketRef.current;
+    const roomCode = roomCodeRef.current;
+    if (socket?.connected && roomCode) {
+      socket.emit('set-player-presence', roomCode, nextStatus === 'lobby' ? 'in_lobby' : 'away');
+    }
+    setScreenHistory((history) => replaceScreenHistory(history, nextStatus) as AppStatus[]);
+    setStatus(nextStatus);
+  }, [roomCodeRef, socketRef]);
+
   const handleGoBack = useCallback(() => {
     setScreenHistory((history) => {
       const safeHistory: AppStatus[] = history.length ? history : ['selector'];
@@ -88,9 +101,14 @@ export default function useAppNavigation({ socketRef, roomCodeRef, setGrammarQue
     handleGoBack, handleBackToPractice,
     handleOpenKanaStudy: () => navigateToScreen('kana-intro'),
     handleContinueKanaIntro: () => navigateToScreen('kana-filter'),
-    handleOpenKanaFilter: () => navigateToScreen('kana-filter'),
+    // Returning to the filter from a study session swaps the session entry out
+    // so the back button goes to the intro instead of resuming the session.
+    handleOpenKanaFilter: () => navigateToScreenReplacing('kana-filter'),
+    // Live-sync the filter's in-progress selection to the shared source of
+    // truth so unselected characters stay unselected when the user leaves and
+    // re-enters the filter screen without pressing "Start Practice" first.
+    handleKanaSelectionChange: (cells: Set<string>) => setSelectedKana(new Set(cells)),
     handleApplyKanaFilters: (selectedKana: Set<string>) => { setSelectedKana(selectedKana); navigateToScreen('kana-study'); },
-    handleKanaReviewComplete: () => navigateToScreen('kana-intro'),
     handleOpenKanjiStudy: () => navigateToScreen('kanji-intro'),
     handleStartKanjiLearning: () => navigateToScreen('kanji-study'),
     handleOpenVocabStudy: () => navigateToScreen('vocab-intro'),
@@ -105,10 +123,12 @@ export default function useAppNavigation({ socketRef, roomCodeRef, setGrammarQue
     handleGoBack,
     handleOpenGrammarPractice,
     navigateToScreen,
+    navigateToScreenReplacing,
     screenHistory,
     selectorScreen,
     status,
     statusRef,
+    setSelectedKana,
     transitionToStatus,
   ]);
 }

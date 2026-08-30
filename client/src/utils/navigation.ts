@@ -49,6 +49,21 @@ export function getBackStatus(history: ScreenStatus[] = []): ScreenStatus {
   return previous;
 }
 
+/**
+ * Replaces the current screen with `nextStatus` instead of appending a new one.
+ * Meant for "return to parent" flows (e.g. leaving a study session back to its
+ * filter screen) so the back button skips the screen being exited rather than
+ * resuming it. The root `selector` entry is preserved and adjacent duplicate
+ * screens are collapsed.
+ */
+export function replaceScreenHistory(history: ScreenStatus[] = [], nextStatus?: ScreenStatus): ScreenStatus[] {
+  const safeHistory = Array.isArray(history) && history.length > 0 ? [...history] : [DEFAULT_STATUS];
+  if (!nextStatus || nextStatus === DEFAULT_STATUS) return safeHistory;
+  if (safeHistory.length > 1) safeHistory.pop();
+  if (safeHistory[safeHistory.length - 1] !== nextStatus) safeHistory.push(nextStatus);
+  return safeHistory;
+}
+
 // Completed rooms should take users who are still in the room flow to results.
 // Other screens (home, friends, history, etc.) are intentionally unaffected.
 export function shouldRedirectToCompletedRoomResults(currentStatus: ScreenStatus, roomStatus: string): boolean {

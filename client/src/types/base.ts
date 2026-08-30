@@ -17,6 +17,10 @@ export type Deck = 'kana' | 'kanji' | 'grammar';
 export type CharacterAttempt = ApiRecord & {
   character?: string;
   confidence?: string | null;
+  /** Consecutive correct answers for this character (>= 3 means mastered). */
+  correct_streak?: number;
+  /** Lifetime number of attempts recorded for this character. */
+  total_attempts?: number;
 };
 
 /** Raw input used when recording a character/kanji attempt. */

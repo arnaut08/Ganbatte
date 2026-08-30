@@ -127,7 +127,33 @@ export async function recordKanjiAttempt(req: Request, res: Response): Promise<v
       if (lookupError) throw lookupError;
       characterId = String(character.id);
     }
-    const { data, error } = await supabase.from('character_attempts').upsert({
+
+    // Streak-based mastery: a correct answer bumps the streak by one, any miss
+    // resets it to zero, and total_attempts always grows by one. The columns are
+    // added by migration 016; if it hasn't run yet we fall back to the legacy
+    // record shape so existing deployments keep working.
+    let current: { correct_streak?: number; total_attempts?: number } | null = null;
+    try {
+      const { data: currentRow, error: currentError } = await supabase
+        .from('character_attempts')
+        .select('correct_streak, total_attempts')
+        .eq('user_id', req.user!.id)
+        .eq('character_id', characterId)
+        .eq('character_type', parsed.data.characterType)
+        .maybeSingle();
+      if (currentError) throw currentError;
+      const currentRowValue = (currentRow || null) as { correct_streak?: number; total_attempts?: number } | null;
+      current = currentRowValue;
+    } catch {
+      current = null;
+    }
+
+    const correctStreak = parsed.data.correct
+      ? Number(current?.correct_streak ?? 0) + 1
+      : 0;
+    const totalAttempts = Number(current?.total_attempts ?? 0) + 1;
+
+    const attemptRow = {
       user_id: req.user!.id,
       character_id: characterId,
       character: parsed.data.character,
@@ -137,10 +163,40 @@ export async function recordKanjiAttempt(req: Request, res: Response): Promise<v
       is_correct: parsed.data.correct,
       confidence: parsed.data.confidence ?? null,
       used_hint: parsed.data.usedHint,
-    }, { onConflict: 'user_id,character_id,character_type' }).select('character, character_id, character_type, confidence').single();
+      correct_streak: correctStreak,
+      total_attempts: totalAttempts,
+    };
 
-    if (error) throw error;
-    res.status(200).json({ recorded: true, attempt: data });
+    const trySaveAttempt = async (row: Record<string, unknown>, columns: string) => {
+      const supabaseClient = getSupabaseClient();
+      const result = await supabaseClient
+        .from('character_attempts')
+        .upsert(row, { onConflict: 'user_id,character_id,character_type' })
+        .select(columns)
+        .single();
+      return result as unknown as { data: Record<string, unknown> | null; error: unknown };
+    };
+
+    const WITH_STREAK_COLUMNS = 'character, character_id, character_type, correct_streak, total_attempts';
+    const LEGACY_COLUMNS = 'character, character_id, character_type, confidence';
+    let saved = await trySaveAttempt(attemptRow, WITH_STREAK_COLUMNS);
+
+    if (saved.error && isMissingColumnError(saved.error)) {
+      saved = await trySaveAttempt({
+        user_id: req.user!.id,
+        character_id: characterId,
+        character: parsed.data.character,
+        character_type: parsed.data.characterType,
+        prompt_mode: parsed.data.promptMode,
+        answer: parsed.data.answer,
+        is_correct: parsed.data.correct,
+        confidence: parsed.data.confidence ?? null,
+        used_hint: parsed.data.usedHint,
+      }, LEGACY_COLUMNS);
+    }
+
+    if (saved.error) throw saved.error;
+    res.status(200).json({ recorded: true, attempt: saved.data });
   } catch (error) {
     console.error('Kanji attempt recording failed:', error);
     res.status(500).json({ error: 'Unable to record Kanji attempt' });
@@ -149,14 +205,45 @@ export async function recordKanjiAttempt(req: Request, res: Response): Promise<v
 
 export const recordCharacterAttempt = recordKanjiAttempt;
 
+/** True when a Supabase/Postgres error means the streak columns from migration
+ * 016 are missing (older databases that haven't applied it yet). */
+function isMissingColumnError(error: unknown): boolean {
+  const message = String(
+    error && typeof error === 'object' && 'message' in error
+      ? error.message
+      : error || '',
+  );
+  return /column .* does not exist|no such column|undefined column/i.test(message);
+}
+
+const ATTEMPT_COLUMNS_WITH_STREAK =
+  'character, character_id, character_type, confidence, is_correct, prompt_mode, created_at, correct_streak, total_attempts';
+const ATTEMPT_COLUMNS_LEGACY =
+  'character, character_id, character_type, confidence, is_correct, prompt_mode, created_at';
+
+type AttemptListResult = { data: Record<string, unknown>[] | null; error: unknown };
+
+async function selectAttemptsForUser(userId: string, characterType: 'kana' | 'kanji'): Promise<AttemptListResult> {
+  const supabase = getSupabaseClient();
+  const queryFor = async (columns: string): Promise<AttemptListResult> => {
+    const result = await supabase
+      .from('character_attempts')
+      .select(columns)
+      .eq('user_id', userId)
+      .eq('character_type', characterType);
+    return result as unknown as AttemptListResult;
+  };
+
+  const result = await queryFor(ATTEMPT_COLUMNS_WITH_STREAK);
+  if (result.error && isMissingColumnError(result.error)) {
+    return queryFor(ATTEMPT_COLUMNS_LEGACY);
+  }
+  return result;
+}
+
 export async function getKanjiAttempts(req: Request, res: Response): Promise<void> {
   try {
-    const { data, error } = await getSupabaseClient()
-      .from('character_attempts')
-      .select('character, character_id, character_type, confidence, is_correct, prompt_mode, created_at')
-      .eq('user_id', req.user!.id)
-      .eq('character_type', 'kanji');
-
+    const { data, error } = await selectAttemptsForUser(req.user!.id, 'kanji');
     if (error) throw error;
     res.json({ attempts: data || [] });
   } catch (error) {
@@ -168,11 +255,7 @@ export async function getKanjiAttempts(req: Request, res: Response): Promise<voi
 export async function getCharacterAttempts(req: Request, res: Response): Promise<void> {
   if (req.query.type !== 'kana') return getKanjiAttempts(req, res);
   try {
-    const { data, error } = await getSupabaseClient()
-      .from('character_attempts')
-      .select('character, character_id, character_type, confidence, is_correct, prompt_mode, created_at')
-      .eq('user_id', req.user!.id)
-      .eq('character_type', 'kana');
+    const { data, error } = await selectAttemptsForUser(req.user!.id, 'kana');
     if (error) throw error;
     res.json({ attempts: data || [] });
   } catch (error) {
