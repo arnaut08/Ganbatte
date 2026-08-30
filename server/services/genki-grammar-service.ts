@@ -278,10 +278,17 @@ export function createGeminiPrompt({ maxLesson = 12, count = 10, mode = 'assessm
     ? `Generate exactly ${ASSESSMENT_QUESTION_TOTAL} questions total in valid JSON only: 4 multiple-choice, 4 fill-in-the-blank, 2 matching, 4 translation, and 4 comprehension questions.`
     : `Generate exactly ${count} questions total in valid JSON only, using all five question types when the requested count allows it.`;
 
+  // Recency weighting only applies to assessments spanning multiple lessons.
+  // Practice mode targets a single lesson, so including this line would force
+  // Gemini to pull in earlier lessons despite the lessonScope instruction.
+  const recencyWeighting = mode === 'assessment'
+    ? `Weight the distribution of questions strictly in descending order of recency: Lesson L must have strictly more questions than Lesson L-1 across the entire range from Lesson 1 up to ${maxLesson}.`
+    : '';
+
   return [
     'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1',
     lessonScope,
-    `Weight the distribution of questions strictly in descending order of recency: Lesson L must have strictly more questions than Lesson L-1 across the entire range from Lesson 1 up to ${maxLesson}.`,
+    recencyWeighting,
     questionInstructions,
     'Please do not use Kanji characters in any of the questions.',
     'If the correctAnswer is in Japanese, please provide correctAnswerRomaji for each question which contains the romaji representation of the correctAnswer.',
@@ -389,11 +396,18 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10, mod
     const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
     const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
     const questions = parseGeminiAssessment(text);
+    // In practice mode the prompt already scoped content to the target lesson,
+    // but Gemini may tag questions with different lesson numbers internally.
+    // Override the lesson rather than filtering, so no valid questions are dropped.
     const scopedQuestions = mode === 'practice'
-      ? questions.filter((question) => question.lesson === safeMaxLesson)
+      ? questions.map((question) => ({ ...question, lesson: safeMaxLesson }))
       : questions.filter((question) => question.lesson <= safeMaxLesson);
 
-    if (scopedQuestions.length === 0 || (mode === 'assessment' && !hasAssessmentQuestionDistribution(scopedQuestions))) {
+    if (
+      scopedQuestions.length === 0
+      || (mode === 'practice' && scopedQuestions.length < questionCount)
+      || (mode === 'assessment' && !hasAssessmentQuestionDistribution(scopedQuestions))
+    ) {
       return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: questionCount, mode });
     }
 
