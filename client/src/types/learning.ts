@@ -243,3 +243,13 @@ export type AssessmentHistoryRecord = {
   details?: AssessmentHistoryDetails | null;
   profile?: { display_name?: string | null } | null;
 };
+
+/** Aggregated multiplayer 1v1 record shown on the Mastery Passport. */
+export type PvpRecord = {
+  totalMatches: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  /** Rounded percentage of decided matches (wins / wins + losses + ties). */
+  winRate: number;
+};

@@ -163,6 +163,7 @@ function App() {
         onOpenFriends={navigation.handleOpenFriends}
         onLogout={handleLogout}
         onOpenHistory={navigation.handleOpenHistory}
+        onOpenPassport={navigation.handleOpenPassport}
         isAuthenticated={Boolean(user)}
         user={user}
         pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}

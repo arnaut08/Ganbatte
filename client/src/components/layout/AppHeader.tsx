@@ -19,6 +19,7 @@ type AppHeaderProps = {
   onOpenFriends: () => void;
   onLogout: () => void;
   onOpenHistory: () => void;
+  onOpenPassport: () => void;
   isAuthenticated: boolean;
   user?: User | null;
   pendingFriendRequestCount?: number;
@@ -29,6 +30,7 @@ function AppHeader({
   onOpenFriends,
   onLogout,
   onOpenHistory,
+  onOpenPassport,
   isAuthenticated,
   user = null,
   pendingFriendRequestCount = 0,
@@ -109,6 +111,10 @@ function AppHeader({
                     <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-[#A3E636]"><span className="h-1.5 w-1.5 bg-[#A3E636]" /> ONLINE</span>
                   </div>
                 </div>
+
+                <TypedDropdownMenuItem onSelect={onOpenPassport} className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#252c3d] hover:text-white focus:border-black focus:bg-[#252c3d] focus:text-white sm:px-3 sm:py-2">
+                  <span>Mastery Passport</span><span className="text-sm font-bold">&rarr;</span>
+                </TypedDropdownMenuItem>
 
                 <TypedDropdownMenuItem onSelect={onOpenHistory} className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#FFDE59] hover:text-black focus:border-black focus:bg-[#FFDE59] focus:text-black sm:px-3 sm:py-2">
                   <span>Assessment History</span><span className="text-sm font-bold">&rarr;</span>

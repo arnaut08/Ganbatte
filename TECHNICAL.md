@@ -344,6 +344,7 @@ The current dataset is generated from independent beginner vocabulary dimensions
 - `GET /api/kanji-cards` - Returns grouped Kanji study cards.
 - `POST /api/generate-cards?count=10` - Generates a random deck with 1-25 cards.
 - `GET /api/rooms/:code` - Returns the current room state.
+- `GET /api/pvp-record` - Returns the authenticated player's aggregated multiplayer 1v1 record (`totalMatches`, `wins`, `losses`, `ties`, `winRate`) computed by pairing their `assessment_results` rows (those with a `companion_user_id`) against the opponent's counterpart rows, which RLS hides from the client.
 - Assessment history is stored in Supabase by the authenticated client after a completed assessment.
 
 ## Socket Events

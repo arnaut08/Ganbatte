@@ -12,6 +12,7 @@ import type {
   KanaCard,
   KanjiCard,
   KanjiGroupOverview,
+  PvpRecord,
   Room,
   VocabOverview,
   VocabFilterItem,
@@ -36,6 +37,7 @@ const PROTECTED_PATH_PREFIXES = [
   '/api/kanji-cards',
   '/api/character-attempts',
   '/api/kanji-attempts',
+  '/api/pvp-record',
   '/api/rooms',
   '/api/generate-cards',
   '/api/vocab',
@@ -257,6 +259,11 @@ export function recordCharacterAttempt(attempt: AttemptInput): Promise<ApiRecord
 
 export function getCharacterAttempts(characterType: string): Promise<{ attempts: CharacterAttempt[] }> {
   return request(`/api/character-attempts?type=${encodeURIComponent(characterType)}`);
+}
+
+/** Aggregated multiplayer 1v1 record for the Mastery Passport snapshot. */
+export function getPvpRecord(): Promise<{ record: PvpRecord }> {
+  return request('/api/pvp-record');
 }
 
 export function updateCharacterConfidenceBatch(updates: AttemptInput[]): Promise<ApiRecord> {

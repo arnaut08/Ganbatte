@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { getSupabaseClient } from '../config/supabase.js';
 import { calculateSrsUpdate } from '../services/vocab-progress-service.js';
+import { computePvpRecord, type PvpResultRow } from '../services/pvp-record-service.js';
 import type { Request, Response } from 'express';
 
 const assessmentQuerySchema = z.object({
@@ -302,3 +303,52 @@ export async function updateKanjiConfidenceBatch(req: Request, res: Response): P
 }
 
 export const updateCharacterConfidenceBatch = updateKanjiConfidenceBatch;
+
+const PVP_RESULT_COLUMNS =
+  'id, assessment_type, score_percentage, total_questions, created_at, companion_user_id';
+
+/**
+ * Aggregated multiplayer 1v1 record for the Mastery Passport.
+ *
+ * Each player of a match saves their own `assessment_results` row, and RLS
+ * hides other players' rows from the client, so the win pairing (comparing
+ * the user's score against the opponent's counterpart row) must happen here
+ * with the service-role client.
+ */
+export async function getPvpRecord(req: Request, res: Response): Promise<void> {
+  try {
+    const supabase = getSupabaseClient();
+    const userId = req.user!.id;
+
+    const { data: myRows, error: myError } = await supabase
+      .from('assessment_results')
+      .select(PVP_RESULT_COLUMNS)
+      .eq('user_id', userId)
+      .not('companion_user_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (myError) throw myError;
+
+    const rows = ((myRows || []) as unknown as PvpResultRow[]).filter(
+      (row): row is PvpResultRow & { companion_user_id: string } => Boolean(row.companion_user_id),
+    );
+
+    let opponentRows: PvpResultRow[] = [];
+    const opponentIds = [...new Set(rows.map((row) => row.companion_user_id))];
+    if (opponentIds.length > 0) {
+      const { data, error: opponentError } = await supabase
+        .from('assessment_results')
+        .select(PVP_RESULT_COLUMNS)
+        .in('user_id', opponentIds)
+        .eq('companion_user_id', userId)
+        .limit(1000);
+      if (opponentError) throw opponentError;
+      opponentRows = (data || []) as unknown as PvpResultRow[];
+    }
+
+    res.json({ record: computePvpRecord(rows, opponentRows) });
+  } catch (error) {
+    console.error('PvP record lookup failed:', error);
+    res.status(500).json({ error: 'Unable to load multiplayer record' });
+  }
+}
