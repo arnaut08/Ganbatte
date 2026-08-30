@@ -24,8 +24,8 @@ export type AppContextValue = {
   selectedKana: Set<string>;
   handleContinueKanaIntro: () => void;
   handleOpenKanaFilter: () => void;
+  handleKanaSelectionChange: (cells: Set<string>) => void;
   handleApplyKanaFilters: (selectedKana: Set<string>) => void;
-  handleKanaReviewComplete: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);

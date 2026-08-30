@@ -106,8 +106,8 @@ function App() {
     selectedKana,
     handleContinueKanaIntro: navigation.handleContinueKanaIntro,
     handleOpenKanaFilter: navigation.handleOpenKanaFilter,
+    handleKanaSelectionChange: navigation.handleKanaSelectionChange,
     handleApplyKanaFilters: navigation.handleApplyKanaFilters,
-    handleKanaReviewComplete: navigation.handleKanaReviewComplete,
   }), [authLoading, authRequired, appHomeKey, navigation, selectedKana, selectorScreen, status, user]);
 
   const roomContextValue = useMemo(() => ({

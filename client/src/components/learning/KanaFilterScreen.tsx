@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getKanaCards } from '../../services/api';
+import { useEffect, useMemo, useState } from 'react';
+import { getCharacterAttempts, getKanaCards } from '../../services/api';
 import type { ApiRecord } from '../../types';
 
 const MATRIX_TYPE_LABELS = {
@@ -36,9 +36,52 @@ type KanaData = {
   matrices: KanaMatrixData[];
 };
 
+type KanaMastery = {
+  correct_streak: number;
+  total_attempts: number;
+};
+
+type KanaFilterTab = 'basic' | 'dakuten' | 'combined';
+
+const KANA_TABS: Array<{ id: KanaFilterTab; label: string; count: number }> = [
+  { id: 'basic', label: 'Basic', count: 46 },
+  { id: 'dakuten', label: 'Dakuten / Handakuten', count: 25 },
+  { id: 'combined', label: 'Combos / Yōon', count: 33 },
+];
+
+function matrixMatchesTab(matrix: KanaMatrixData, tab: KanaFilterTab): boolean {
+  if (tab === 'basic') return matrix.type === 'basic';
+  if (tab === 'dakuten') return matrix.type === 'dakuten' || matrix.type === 'handakuten';
+  return matrix.type === 'combined';
+}
+
+/** Compact corner badge reflecting streak-based mastery for one tile. */
+function MasteryCornerBadge({ streak }: { streak: number }) {
+  if (streak >= 3) {
+    return (
+      <span
+        className="pointer-events-none absolute right-0.5 top-0.5 flex h-3 w-3 sm:h-3.5 sm:w-3.5 items-center justify-center border border-black bg-[#A3E636] font-mono text-[7px] sm:text-[8px] font-black leading-none text-black shadow-[0.5px_0.5px_0px_0px_#000]"
+        title="Mastered (3+ streak)"
+      >
+        ✓
+      </span>
+    );
+  }
+  if (streak >= 1) {
+    return (
+      <span
+        className="pointer-events-none absolute right-1 top-1 h-1.5 w-1.5 rounded-full border border-black bg-[#70CFF8] shadow-[0.5px_0.5px_0px_0px_#000]"
+        title={`Practicing (streak ${streak})`}
+      />
+    );
+  }
+  return null;
+}
+
 type KanaMatrixProps = {
   matrix: KanaMatrixData;
   selectedCells: Set<string>;
+  masteryByCell: Record<string, KanaMastery>;
   onToggleCell: (matrixId: string, cell: string) => void;
   onToggleRow: (matrixId: string, rowId: string) => void;
   onToggleColumn: (matrixId: string, columnIndex: number) => void;
@@ -48,6 +91,7 @@ type KanaMatrixProps = {
 function KanaMatrix({
   matrix,
   selectedCells,
+  masteryByCell,
   onToggleCell,
   onToggleRow,
   onToggleColumn,
@@ -79,13 +123,20 @@ function KanaMatrix({
     );
   };
 
+  const tileClasses = (isSelected: boolean) =>
+    `kana-font relative flex h-8 sm:h-12 items-center justify-center border-2 text-sm sm:text-xl font-black transition-all ${
+      isSelected
+        ? 'border-black bg-[#FFDE59] text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
+        : 'border-black bg-white text-neutral-900 shadow-none hover:bg-neutral-100'
+    } active:translate-x-[1px] active:translate-y-[1px] active:shadow-none`;
+
   return (
-    <div className="flex flex-col border-2 border-black bg-[#1a1f2c] p-2.5 sm:p-5 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
-      {/* Matrix Top Header */}
-      <div className="mb-2 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3 border-b-2 border-black/40 pb-2 sm:pb-3">
+    <div className="flex flex-col border-2 border-black bg-[#151922] p-2.5 sm:p-5 shadow-[3px_3px_0px_0px_#000] sm:shadow-[5px_5px_0px_0px_#000]">
+      {/* Matrix Header */}
+      <div className="mb-2 sm:mb-4 flex items-center justify-between gap-2 border-b-2 border-black/40 pb-2 sm:pb-3">
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           <span
-            className="shrink-0 border border-black bg-black px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider"
+            className="shrink-0 border-2 border-black bg-black px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider"
             style={{ color: themeColor }}
           >
             {MATRIX_TYPE_LABELS[type as keyof typeof MATRIX_TYPE_LABELS] || type}
@@ -101,17 +152,18 @@ function KanaMatrix({
         <button
           type="button"
           onClick={() => onToggleGroup(id)}
-          className={`shrink-0 whitespace-nowrap border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${isGroupSelected
-            ? 'bg-[#FF6B6B] text-black hover:bg-[#ff8585]'
-            : 'bg-[#FFDE59] text-black hover:bg-[#ffe77f]'
-            }`}
+          className={`shrink-0 border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+            isGroupSelected
+              ? 'bg-[#FF6B6B] text-black hover:bg-[#ff8585]'
+              : 'bg-[#FFDE59] text-black hover:bg-[#ffe77f]'
+          }`}
         >
           {isGroupSelected ? 'Clear' : 'Select'}
         </button>
       </div>
 
-      {/* Matrix Grid */}
-      <div className="w-full overflow-x-auto pb-0.5">
+      {/* Grid */}
+      <div className="w-full overflow-x-auto pb-1">
         <div
           className="grid gap-1 sm:gap-1.5 min-w-[200px]"
           style={{
@@ -119,7 +171,7 @@ function KanaMatrix({
           }}
         >
           {/* Top Left Blank Corner */}
-          <div className="flex h-6 sm:h-8 items-center justify-center border-2 border-transparent" />
+          <div className="flex h-7 sm:h-9 items-center justify-center" />
 
           {/* Vowel Column Triggers */}
           {columns.map((col, colIndex) => {
@@ -129,10 +181,11 @@ function KanaMatrix({
                 key={col}
                 type="button"
                 onClick={() => onToggleColumn(id, colIndex)}
-                className={`flex h-6 sm:h-8 items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all active:translate-x-[1px] active:translate-y-[1px] ${isColActive
-                  ? 'bg-[#A3E636] text-black shadow-[1px_1px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]'
-                  : 'bg-[#252c3d] text-neutral-300 hover:bg-[#323b52] hover:text-white'
-                  }`}
+                className={`flex h-7 sm:h-9 items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all active:translate-x-[1px] active:translate-y-[1px] ${
+                  isColActive
+                    ? 'bg-[#A3E636] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                    : 'bg-[#252c3d] text-neutral-300 hover:bg-[#323b52] hover:text-white'
+                }`}
                 title={`Toggle entire '${col}' column`}
               >
                 {col}
@@ -141,7 +194,7 @@ function KanaMatrix({
           })}
 
           {extras.length > 0 && (
-            <div className="flex h-6 sm:h-8 items-center justify-center border-2 border-dashed border-neutral-600 font-mono text-[9px] sm:text-xs font-bold text-neutral-500">
+            <div className="flex h-7 sm:h-9 items-center justify-center border-2 border-dashed border-neutral-600 font-mono text-[9px] sm:text-xs font-bold text-neutral-500">
               +
             </div>
           )}
@@ -155,10 +208,11 @@ function KanaMatrix({
                 <button
                   type="button"
                   onClick={() => onToggleRow(id, row.id)}
-                  className={`flex h-7 sm:h-11 items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all active:translate-x-[1px] active:translate-y-[1px] ${isRowActive
-                    ? 'bg-[#A3E636] text-black shadow-[1px_1px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]'
-                    : 'bg-[#252c3d] text-neutral-300 hover:bg-[#323b52] hover:text-white'
-                    }`}
+                  className={`flex h-8 sm:h-12 items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all active:translate-x-[1px] active:translate-y-[1px] ${
+                    isRowActive
+                      ? 'bg-[#A3E636] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                      : 'bg-[#252c3d] text-neutral-300 hover:bg-[#323b52] hover:text-white'
+                  }`}
                   title={`Toggle entire '${row.label || 'V'}' row`}
                 >
                   {row.label || 'V'}
@@ -170,22 +224,22 @@ function KanaMatrix({
                     return (
                       <div
                         key={`${row.id}-${colIndex}`}
-                        className="h-7 sm:h-11 border border-dashed border-neutral-700/40 bg-[#121620]"
+                        className="h-8 sm:h-12 border border-dashed border-neutral-700/40 bg-[#0f131a]"
                       />
                     );
                   }
                   const isSelected = selectedCells.has(cell);
+                  const streak = Number(masteryByCell[cell]?.correct_streak ?? 0);
                   return (
                     <button
                       key={`${row.id}-${colIndex}`}
                       type="button"
                       onClick={() => onToggleCell(id, cell)}
-                      className={`kana-font flex h-7 sm:h-11 items-center justify-center border-2 border-black text-sm sm:text-xl font-black transition-all active:translate-x-[0.5px] active:translate-y-[0.5px] ${isSelected
-                        ? 'bg-[#A3E636] text-black shadow-[1px_1px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]'
-                        : 'bg-white text-black hover:bg-neutral-100'
-                        }`}
+                      className={tileClasses(isSelected)}
+                      title={streak >= 3 ? `${cell} – mastered` : `${cell} – streak ${streak}`}
                     >
                       {cell}
+                      <MasteryCornerBadge streak={streak} />
                     </button>
                   );
                 })}
@@ -196,17 +250,17 @@ function KanaMatrix({
                     {extras.map((extra) => {
                       const extraCell = extra.cells[0];
                       const isSelected = selectedCells.has(extraCell);
+                      const streak = Number(masteryByCell[extraCell]?.correct_streak ?? 0);
                       return (
                         <button
                           key={extra.id}
                           type="button"
                           onClick={() => onToggleCell(id, extraCell)}
-                          className={`flex h-7 sm:h-11 w-full items-center justify-center border-2 border-black text-sm sm:text-xl font-black transition-all active:translate-x-[0.5px] active:translate-y-[0.5px] ${isSelected
-                            ? 'bg-[#A3E636] text-black shadow-[1px_1px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]'
-                            : 'bg-white text-black hover:bg-neutral-100'
-                            }`}
+                          className={`w-full ${tileClasses(isSelected)}`}
+                          title={streak >= 3 ? `${extraCell} – mastered` : `${extraCell} – streak ${streak}`}
                         >
                           {extraCell}
+                          <MasteryCornerBadge streak={streak} />
                         </button>
                       );
                     })}
@@ -224,27 +278,82 @@ function KanaMatrix({
 type KanaFilterScreenProps = {
   onBack: () => void;
   onApplyFilters: (selectedCells: Set<string>) => void;
+  onSelectionChange?: (selectedCells: Set<string>) => void;
   initialSelectedKana?: Iterable<string>;
 };
 
-function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaFilterScreenProps) {
+const EMPTY_MASTERY: Record<string, KanaMastery> = {};
+
+function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSelectedKana }: KanaFilterScreenProps) {
   const [kanaData, setKanaData] = useState<KanaData>({ cards: [], groups: [], matrices: [] });
   const [selectedCells, setSelectedCells] = useState<Set<string>>(() => new Set(initialSelectedKana ?? []));
+  const [masteryByCell, setMasteryByCell] = useState<Record<string, KanaMastery>>(EMPTY_MASTERY);
+  const [activeTab, setActiveTab] = useState<KanaFilterTab>('basic');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Keep the shared App-level selectedKana in sync with every local selection
+  // change. Without this, unselecting characters and leaving the filter without
+  // pressing "Start Practice" would re-show the unselected characters when the
+  // filter is mounted again from the stale App-level set.
   useEffect(() => {
-    getKanaCards()
-      .then((data) => {
+    if (!onSelectionChange) return;
+    const initial = new Set(initialSelectedKana ?? []);
+    const hasChanged =
+      selectedCells.size !== initial.size ||
+      [...selectedCells].some((cell) => !initial.has(cell));
+    if (hasChanged) onSelectionChange(new Set(selectedCells));
+  }, [selectedCells, onSelectionChange, initialSelectedKana]);
+
+  useEffect(() => {
+    Promise.all([getKanaCards(), getCharacterAttempts('kana')])
+      .then(([cardsData, attemptsData]) => {
         setKanaData({
-          cards: Array.isArray(data?.cards) ? data.cards : [],
-          groups: Array.isArray(data?.groups) ? data.groups : [],
-          matrices: Array.isArray(data?.matrices) ? data.matrices as KanaMatrixData[] : [],
+          cards: Array.isArray(cardsData?.cards) ? cardsData.cards : [],
+          groups: Array.isArray(cardsData?.groups) ? cardsData.groups : [],
+          matrices: Array.isArray(cardsData?.matrices) ? (cardsData.matrices as KanaMatrixData[]) : [],
         });
+        const mastery: Record<string, KanaMastery> = {};
+        ((attemptsData?.attempts as unknown[]) || []).forEach((item) => {
+          const attempt = item as { character?: string; correct_streak?: number; total_attempts?: number };
+          if (!attempt.character) return;
+          mastery[attempt.character] = {
+            correct_streak: Number(attempt.correct_streak ?? 0),
+            total_attempts: Number(attempt.total_attempts ?? 0),
+          };
+        });
+        setMasteryByCell(mastery);
       })
       .catch(() => setError('Unable to load Kana cards. Please try again.'))
       .finally(() => setIsLoading(false));
   }, []);
+
+  const visibleMatrices = useMemo(
+    () => kanaData.matrices.filter((matrix) => matrixMatchesTab(matrix, activeTab)),
+    [activeTab, kanaData.matrices]
+  );
+
+  const basicCellsByScript = useMemo(() => {
+    const map: Record<string, Set<string>> = { hiragana: new Set(), katakana: new Set() };
+    kanaData.matrices
+      .filter((matrix) => matrix.type === 'basic')
+      .forEach((matrix) =>
+        matrix.rows.forEach((row) =>
+          row.cells.forEach((cell) => {
+            if (cell) map[matrix.script]?.add(cell);
+          })
+        )
+      );
+    return map;
+  }, [kanaData.matrices]);
+
+  const masteredCounts = useMemo(() => {
+    const count = (script: 'hiragana' | 'katakana') =>
+      [...(basicCellsByScript[script] ?? [])].filter(
+        (cell) => Number(masteryByCell[cell]?.correct_streak ?? 0) >= 3
+      ).length;
+    return { hiragana: count('hiragana'), katakana: count('katakana') };
+  }, [basicCellsByScript, masteryByCell]);
 
   const toggleCell = (_matrixId: string, cell: string) => {
     setSelectedCells((current) => {
@@ -310,7 +419,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaF
 
   const handleSelectAll = () => {
     const allCells = new Set<string>();
-    kanaData.matrices.forEach((matrix) => {
+    visibleMatrices.forEach((matrix) => {
       matrix.rows.forEach((row) => row.cells.filter(Boolean).forEach((c) => allCells.add(c)));
       matrix.extras.forEach((extra) => extra.cells.filter(Boolean).forEach((c) => allCells.add(c)));
     });
@@ -319,53 +428,80 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaF
 
   return (
     <>
-      <main className="container mx-auto max-w-6xl space-y-2.5 sm:space-y-4 px-3 py-3 pb-24 sm:px-4 sm:py-6 sm:pb-28">
-        {/* Top Header Lockup & Controls */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
+      <main className="mx-auto w-full max-w-6xl space-y-3 px-3 py-4 pb-24 sm:space-y-4 sm:px-4 sm:py-6 sm:pb-28">
+        {/* Top Header */}
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-4">
             <button
               type="button"
               onClick={onBack}
-              className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
               title="Back to Setup"
             >
-              <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
+              <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
             </button>
-            <div>
-              <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-            // STUDY SETUP: CHARACTER SELECTION
+            <div className="min-w-0">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59] sm:text-xs">
+                // STUDY SETUP: CHARACTER SELECTION
               </span>
-              <h1 className="text-base sm:text-3xl font-black uppercase tracking-tight text-white leading-tight">
+              <h1 className="text-lg font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
                 Select Kana to Study
               </h1>
             </div>
           </div>
 
-          {/* Compact Global Select/Clear Buttons */}
-          <div className="flex items-center gap-1.5 self-start sm:self-auto">
+          {/* Action & Mastery Bar */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="border-2 border-black bg-[#FFDE59] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
+              Hiragana {masteredCounts.hiragana}/{basicCellsByScript.hiragana?.size ?? 0}
+            </span>
+            <span className="border-2 border-black bg-[#70CFF8] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
+              Katakana {masteredCounts.katakana}/{basicCellsByScript.katakana?.size ?? 0}
+            </span>
             <button
               type="button"
               onClick={handleSelectAll}
-              className="border-2 border-black bg-[#A3E636] px-2.5 py-1 sm:px-4 sm:py-2 font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+              className="border-2 border-black bg-[#A3E636] px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:px-3 sm:py-1 sm:text-xs"
             >
               Select All
             </button>
             <button
               type="button"
               onClick={handleClearAll}
-              className="border-2 border-black bg-white px-2.5 py-1 sm:px-4 sm:py-2 font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+              className="border-2 border-black bg-white px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:px-3 sm:py-1 sm:text-xs"
             >
               Clear All
             </button>
           </div>
         </div>
 
+        {/* Tab Filters */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {KANA_TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase tracking-wider transition-all sm:px-3.5 sm:py-1.5 sm:text-xs ${
+                  isActive
+                    ? 'bg-[#FFDE59] text-black shadow-[2px_2px_0px_0px_#000]'
+                    : 'bg-white text-neutral-800 shadow-[1.5px_1.5px_0px_0px_#000] hover:bg-neutral-100'
+                } active:translate-x-[1px] active:translate-y-[1px] active:shadow-none`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            );
+          })}
+        </div>
+
         {/* Instructions / Tip Box */}
-        <div className="flex items-start sm:items-center gap-2 sm:gap-3 border-2 border-black bg-[#1a1f2c] p-2 sm:p-3 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
-          <span className="font-mono text-[9px] sm:text-xs font-black uppercase tracking-wider text-[#FFDE59] shrink-0">
-        // TIP:
+        <div className="flex items-start sm:items-center gap-2 border-2 border-black bg-[#151922] p-2.5 shadow-[2.5px_2.5px_0px_0px_#000] sm:p-3 sm:shadow-[3px_3px_0px_0px_#000]">
+          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59] shrink-0 sm:text-xs">
+            // TIP:
           </span>
-          <p className="text-[10px] sm:text-sm font-semibold text-neutral-300 leading-snug sm:leading-relaxed">
+          <p className="text-[10px] font-semibold leading-tight text-neutral-300 sm:text-xs sm:leading-relaxed">
             Click any <span className="font-bold text-white">Consonant (Row)</span> or{' '}
             <span className="font-bold text-white">Vowel (Column)</span> header to toggle whole lines, or click individual tiles.
           </p>
@@ -374,26 +510,27 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaF
         {/* Loading Skeleton */}
         {isLoading && (
           <div className="grid gap-3.5 sm:gap-6 lg:grid-cols-2">
-            <div className="h-64 sm:h-96 border-2 border-black bg-[#1a1f2c] animate-pulse" />
-            <div className="h-64 sm:h-96 border-2 border-black bg-[#1a1f2c] animate-pulse" />
+            <div className="h-64 sm:h-96 border-2 border-black bg-[#151922] animate-pulse shadow-[3px_3px_0px_0px_#000]" />
+            <div className="h-64 sm:h-96 border-2 border-black bg-[#151922] animate-pulse shadow-[3px_3px_0px_0px_#000]" />
           </div>
         )}
 
         {/* Error Banner */}
         {error && (
-          <div className="border-2 border-black bg-[#FF6B6B] p-2.5 sm:p-4 font-mono text-xs sm:text-sm font-black uppercase text-black shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+          <div className="border-2 border-black bg-[#FF6B6B] p-3 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000] sm:text-sm">
             {error}
           </div>
         )}
 
         {/* 2-Column Matrix Grid */}
         {!isLoading && !error && (
-          <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
-            {kanaData.matrices.map((matrix) => (
+          <div className="grid gap-3.5 sm:gap-6 lg:grid-cols-2">
+            {visibleMatrices.map((matrix) => (
               <KanaMatrix
                 key={matrix.id}
                 matrix={matrix}
                 selectedCells={selectedCells}
+                masteryByCell={masteryByCell}
                 onToggleCell={toggleCell}
                 onToggleRow={toggleRow}
                 onToggleColumn={toggleColumn}
@@ -404,10 +541,10 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaF
         )}
       </main>
 
-      {/* Pinned Sticky Bottom Status & Action Bar */}
-      <footer className="fixed -bottom-2 inset-x-0 z-50 border-t-2 border-black bg-[#1a1f2c] px-3 pt-2.5 pb-[calc(0.5rem+8px+env(safe-area-inset-bottom,0px))] shadow-[0px_-3px_0px_0px_#000000] sm:px-4 sm:pt-3 sm:pb-3 sm:bottom-0">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2.5 sm:gap-4">
-          <span className="border-2 border-black bg-[#FFDE59] px-2 py-1 sm:px-3.5 sm:py-1.5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
+      {/* Sticky Bottom Status & Action Bar */}
+      <footer className="fixed bottom-0 inset-x-0 z-50 border-t-2 border-black bg-[#151922] px-3 py-2.5 shadow-[0px_-3px_0px_0px_#000000] sm:px-4 sm:py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+          <span className="border-2 border-black bg-[#FFDE59] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-3.5 sm:py-1.5 sm:text-xs">
             {selectedCells.size} SELECTED
           </span>
 
@@ -415,7 +552,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, initialSelectedKana }: KanaF
             type="button"
             onClick={handleApply}
             disabled={selectedCells.size === 0}
-            className="border-2 border-black bg-[#A3E636] px-4 py-1.5 sm:px-7 sm:py-2.5 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-600 disabled:opacity-50 disabled:shadow-none"
+            className="border-2 border-black bg-[#A3E636] px-4 py-1.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-600 disabled:opacity-50 disabled:shadow-none sm:px-6 sm:py-2 sm:text-sm sm:shadow-[3px_3px_0px_0px_#000]"
           >
             Start Practice →
           </button>

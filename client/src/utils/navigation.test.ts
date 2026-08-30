@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   pushScreenHistory,
+  replaceScreenHistory,
   getPreviousStatus,
   getBackStatus,
   shouldRedirectToCompletedRoomResults,
@@ -40,4 +41,24 @@ test('completed room results only auto-redirect while the user remains on room f
   assert.equal(shouldRedirectToCompletedRoomResults('lobby', 'completed'), true);
   assert.equal(shouldRedirectToCompletedRoomResults('history', 'completed'), false);
   assert.equal(shouldRedirectToCompletedRoomResults('selector', 'active'), false);
+});
+
+test('replaceScreenHistory swaps the current screen instead of appending', () => {
+  const afterDone = replaceScreenHistory(['selector', 'kana-intro', 'kana-filter', 'kana-study'], 'kana-filter');
+  assert.deepEqual(afterDone, ['selector', 'kana-intro', 'kana-filter']);
+});
+
+test('replaceScreenHistory preserves the selector root and tolerates degenerate stacks', () => {
+  assert.deepEqual(replaceScreenHistory(['selector'], 'kana-filter'), ['selector', 'kana-filter']);
+  assert.deepEqual(replaceScreenHistory(['selector', 'kana-filter'], 'kana-filter'), ['selector', 'kana-filter']);
+  assert.deepEqual(replaceScreenHistory([], 'kana-intro'), ['selector', 'kana-intro']);
+  assert.deepEqual(replaceScreenHistory(['selector', 'kana-study'], undefined), ['selector', 'kana-study']);
+  assert.deepEqual(replaceScreenHistory(['selector', 'kana-study'], 'selector'), ['selector', 'kana-study']);
+});
+
+test('kana done flow replaces the session so back returns to the intro', () => {
+  // intro -> filter -> study -> DONE (return to filter replaces the session entry)
+  const afterDone = replaceScreenHistory(['selector', 'kana-intro', 'kana-filter', 'kana-study'], 'kana-filter');
+  assert.deepEqual(afterDone, ['selector', 'kana-intro', 'kana-filter']);
+  assert.equal(getBackStatus(afterDone), 'kana-intro');
 });
