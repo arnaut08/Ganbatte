@@ -1,10 +1,16 @@
-import { useEffect, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from 'react';
+import {
+  RocketIcon,
+  TimerIcon,
+  CheckCircledIcon,
+  LightningBoltIcon,
+} from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import LearningScreen from './learning/LearningScreen';
 import PracticeScreen from './practice/PracticeScreen';
-import { getKanjiCards } from '../services/api';
-import type { ApiRecord, Deck, DeckOptions, SelectorScreen } from '../types';
+import { getKanjiCards, getKanjiOverview, getCharacterAttempts, getVocabOverview } from '../services/api';
+import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview } from '../types';
 
 type LegacyProps = {
   children?: ReactNode;
@@ -28,7 +34,7 @@ type AppHomeProps = {
   roomCode?: string;
 };
 
-function AppHome({
+export default function AppHome({
   onCreateRoom,
   onJoinRoom,
   onOpenKanaStudy,
@@ -42,7 +48,55 @@ function AppHome({
   roomCode = '',
 }: AppHomeProps) {
   const [internalScreen, setInternalScreen] = useState<SelectorScreen>(controlledScreen || 'home');
+  // Inside AppHome component
+  const DEFAULT_VOCAB_TOTAL_STAGES = 28; // Standard Genki 1 / N5 stage count
+  const DEFAULT_VOCAB_STAGE_STATS = {
+    clearedStages: 0,
+    masteredStages: 0,
+    totalStages: DEFAULT_VOCAB_TOTAL_STAGES,
+  };
+  const [vocabStageStats, setVocabStageStats] = useState(DEFAULT_VOCAB_STAGE_STATS);
+  const [vocabDueCount, setVocabDueCount] = useState(0);
+
+  useEffect(() => {
+    // Pull live vocab stage progress from the overview endpoint. Every stage
+    // carries `is_cleared` (passed the 80% quiz) and `is_mastered` (all words
+    // at high recall); count the booleans straight from the API so the HUD
+    // always reflects the latest server state. If the endpoint is unavailable,
+    // fall back to the previously cached stats so the HUD keeps its last state.
+    getVocabOverview('N5')
+      .then((overview) => {
+        const stages = overview.stages || [];
+        const nextStats = {
+          clearedStages: stages.filter((stage) => stage.is_cleared).length,
+          masteredStages: stages.filter((stage) => stage.is_mastered).length,
+          totalStages: stages.length || DEFAULT_VOCAB_TOTAL_STAGES,
+        };
+        setVocabStageStats(nextStats);
+        setVocabDueCount(stages.reduce((total: number, stage) => total + stage.due_words, 0));
+        try {
+          localStorage.setItem('ganbatte_vocab_stage_stats', JSON.stringify(nextStats));
+        } catch (storageError) {
+          // Storage may be unavailable; stats still display for this session.
+          console.error('Failed to cache vocab stage stats to localStorage:', storageError);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch vocab overview:', error);
+        try {
+          const cachedStats = localStorage.getItem('ganbatte_vocab_stage_stats');
+          if (cachedStats) {
+            setVocabStageStats({ ...DEFAULT_VOCAB_STAGE_STATS, ...JSON.parse(cachedStats) });
+          }
+        } catch (cacheError) {
+          // Fallback default state
+          console.error('Failed to load cached vocab stats from localStorage:', cacheError);
+        }
+      });
+  }, []);
+
   const screen = controlledScreen ?? internalScreen;
+
   const setScreen = (nextScreen: SelectorScreen) => {
     if (onScreenChange) {
       onScreenChange(nextScreen);
@@ -50,12 +104,17 @@ function AppHome({
     }
     setInternalScreen(nextScreen);
   };
+
   const [joinCode, setJoinCode] = useState(roomCode || '');
   const [deckType, setDeckType] = useState<Deck>('kana');
   const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState<Array<string | number>>([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const [kanjiGroups, setKanjiGroups] = useState<ApiRecord[]>([]);
+
+  // Player Passport Data States
+  const [kanjiOverview, setKanjiOverview] = useState<KanjiGroupOverview[]>([]);
+  const [kanaMasteredCount, setKanaMasteredCount] = useState({ hiragana: 0, katakana: 0 });
   const joinCodeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,13 +136,51 @@ function AppHome({
   }, [prefillRoomCode, roomCode]);
 
   useEffect(() => {
-    getKanjiCards().then((data) => setKanjiGroups(data.groups || [])).catch(() => { });
+    getKanjiCards().then((data) => setKanjiGroups(data.groups || [])).catch((error) => {
+      console.error('Failed to fetch kanji cards:', error);
+    });
+    getKanjiOverview().then((data) => setKanjiOverview(data.groups || [])).catch((error) => {
+      console.error('Failed to fetch kanji overview:', error);
+    });
+
+    getCharacterAttempts('kana')
+      .then((res) => {
+        let hCount = 0;
+        let kCount = 0;
+        ((res?.attempts as unknown[]) || []).forEach((item) => {
+          const attempt = item as { character?: string; correct_streak?: number; script?: string };
+          if (Number(attempt.correct_streak ?? 0) >= 3) {
+            if (attempt.script === 'katakana') kCount += 1;
+            else hCount += 1;
+          }
+        });
+        setKanaMasteredCount({ hiragana: hCount, katakana: kCount });
+      })
+      .catch((error) => {
+        console.error('Failed to fetch kana character attempts:', error);
+      });
   }, []);
 
+  // Aggregate Stats
+  const totalKanjiDue = useMemo(
+    () => kanjiOverview.reduce((acc, curr) => acc + (curr.due_characters || 0), 0),
+    [kanjiOverview]
+  );
+  const masteredKanjiGroups = useMemo(
+    () => kanjiOverview.filter((g) => g.is_mastered).length,
+    [kanjiOverview]
+  );
+
+  // Combined due reviews across Kanji + Vocab for the passport HUD badge.
+  const totalDueReviews = useMemo(
+    () => totalKanjiDue + (vocabDueCount || 0),
+    [totalKanjiDue, vocabDueCount]
+  );
+
   const handleGroupToggle = (groupId: string | number) => {
-    setSelectedGroups((current) => current.includes(groupId)
-      ? current.filter((id) => id !== groupId)
-      : [...current, groupId]);
+    setSelectedGroups((current) =>
+      current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId]
+    );
   };
 
   const handleClearSelectedGroups = () => {
@@ -96,9 +193,10 @@ function AppHome({
     if (!isSocketReady) return;
 
     const normalizedGroups = deckType === 'kanji' ? selectedGroups : [];
-    const normalizedSettings: DeckOptions = deckType === 'grammar'
-      ? { type: 'grammar', groups: [], maxLesson: grammarLevel, count: 5 }
-      : { type: deckType, groups: normalizedGroups };
+    const normalizedSettings: DeckOptions =
+      deckType === 'grammar'
+        ? { type: 'grammar', groups: [], maxLesson: grammarLevel, count: 5 }
+        : { type: deckType, groups: normalizedGroups };
 
     onCreateRoom(normalizedSettings);
   };
@@ -116,10 +214,9 @@ function AppHome({
     <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-3 sm:p-4">
       <div className="w-full max-w-5xl">
         {screen === 'home' ? (
-          <div className="space-y-5 sm:space-y-10">
+          <div className="space-y-5 sm:space-y-8">
             {/* --- HERO SECTION --- */}
-            <div className="text-center space-y-2 sm:space-y-4">
-              {/* Status Badge */}
+            <div className="text-center space-y-2 sm:space-y-3">
               <div className="inline-flex items-center gap-1.5 sm:gap-2 border-2 border-black bg-[#FFDE59] px-2.5 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000]">
                 <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#A3E636] opacity-75" />
@@ -128,7 +225,6 @@ function AppHome({
                 <span>CO-OP READY // KANA · KANJI · GRAMMAR</span>
               </div>
 
-              {/* Heading */}
               <h1 className="text-2xl sm:text-5xl font-black uppercase tracking-tight text-white leading-tight">
                 Master Japanese{' '}
                 <span className="border-b-[3px] sm:border-b-4 border-[#A3E636] text-[#A3E636]">
@@ -136,11 +232,163 @@ function AppHome({
                 </span>
               </h1>
 
-              {/* Cooperative Hero Subtext */}
               <p className="mx-auto max-w-xl font-mono text-[11px] sm:text-sm font-bold text-white/70 leading-snug sm:leading-normal">
                 Build your character and grammar foundation, then team up in live co-op rooms to practice together.
               </p>
             </div>
+
+            {/* --- PLAYER PASSPORT & STATS HUD --- */}
+            <section className="mx-auto max-w-4xl border-2 border-black bg-[#151922] p-3.5 sm:p-5 shadow-[4px_4px_0px_0px_#000000] text-white space-y-3 sm:space-y-4">
+              {/* Header Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-white/20 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]">
+                    PASSPORT
+                  </span>
+                  <span className="font-mono text-xs font-black uppercase tracking-tight text-white">
+      // PLAYER PROGRESSION
+                  </span>
+                </div>
+
+                {/* Real-time Combined Reviews Badge */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center gap-1.5 border-2 border-black px-2.5 py-0.5 font-mono text-[10px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] ${totalDueReviews > 0
+                      ? 'bg-[#FF6B6B] text-black animate-pulse'
+                      : 'bg-[#252c3d] text-neutral-400'
+                      }`}
+                  >
+                    <TimerIcon className={`h-3.5 w-3.5 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'}`} />
+                    <span>TOTAL DUE:</span>
+                    <span className={totalDueReviews > 0 ? 'text-black' : 'text-white'}>
+                      {totalDueReviews}
+                    </span>
+                  </div>
+
+                  {/* Breakdown tooltip/sub-badges if reviews are pending */}
+                  {totalDueReviews > 0 && (
+                    <div className="hidden xs:flex sm:flex items-center gap-1 font-mono text-[9px] font-bold text-neutral-400">
+                      <span>({totalKanjiDue} Kanji · {vocabDueCount || 0} Vocab)</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3 Pillar Cards */}
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
+                {/* 01 // KANA CARD (PURE YELLOW THEME) */}
+                <div
+                  onClick={onOpenKanaStudy}
+                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-3 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:bg-[#2e374d] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59]">
+                      01 // KANA
+                    </span>
+                    <RocketIcon className="h-3 w-3 text-[#FFDE59] transition-transform group-hover/card:scale-110" />
+                  </div>
+
+                  <div className="mt-1 flex items-baseline justify-between font-mono text-xs">
+                    <span className="text-[10px] font-black uppercase text-white">Mastered</span>
+                    <span className="font-black text-[#FFDE59]">
+                      {kanaMasteredCount.hiragana + kanaMasteredCount.katakana} / 92
+                    </span>
+                  </div>
+
+                  {/* Yellow Progress Bar */}
+                  <div className="mt-2 h-2 w-full overflow-hidden border border-black bg-[#151922]">
+                    <div
+                      className="h-full bg-[#FFDE59] transition-all"
+                      style={{
+                        width: `${Math.min(100, Math.round(((kanaMasteredCount.hiragana + kanaMasteredCount.katakana) / 92) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 02 // KANJI CARD (PURE CYAN/BLUE THEME) */}
+                <div
+                  onClick={onOpenKanjiStudy}
+                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-3 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:bg-[#2e374d] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#70CFF8]">
+                      02 // KANJI
+                    </span>
+                    <CheckCircledIcon className="h-3 w-3 text-[#70CFF8] transition-transform group-hover/card:scale-110" />
+                  </div>
+
+                  <div className="mt-1 flex items-baseline justify-between font-mono text-xs">
+                    <span className="text-[10px] font-black uppercase text-white">Groups Mastered</span>
+                    <span className="font-black text-[#70CFF8]">
+                      {masteredKanjiGroups} / {kanjiOverview.length || 8}
+                    </span>
+                  </div>
+
+                  {/* Cyan Progress Bar */}
+                  <div className="mt-2 h-2 w-full overflow-hidden border border-black bg-[#151922]">
+                    <div
+                      className="h-full bg-[#70CFF8] transition-all"
+                      style={{
+                        width: `${Math.min(100, Math.round((masteredKanjiGroups / (kanjiOverview.length || 8)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 03 // VOCAB SRS CARD (GREEN THEME: SOLID MASTERED + SLASHED CLEARED) */}
+                <div
+                  onClick={onOpenVocabStudy}
+                  className="group/card cursor-pointer border-2 border-black bg-[#252c3d] p-3 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:bg-[#2e374d] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
+                      03 // VOCAB SRS
+                    </span>
+                    <LightningBoltIcon className="h-3 w-3 text-[#A3E636] transition-transform group-hover/card:scale-110" />
+                  </div>
+
+                  <div className="mt-1 flex items-baseline justify-between font-mono text-xs">
+                    <span className="text-[10px] font-black uppercase text-white">Stages Cleared</span>
+                    <span className="font-black text-[#A3E636]">
+                      {vocabStageStats.clearedStages} / 28 STAGES
+                    </span>
+                  </div>
+
+                  {/* Segmented Bar: Solid Green for Mastered + Slashed/Striped Green for Cleared */}
+                  <div className="mt-2 flex h-2 w-full overflow-hidden border border-black bg-[#151922]">
+                    {/* Solid Filled Green (Mastered) */}
+                    <div
+                      className="h-full bg-[#A3E636] transition-all"
+                      style={{
+                        width: `${Math.min(100, (vocabStageStats.masteredStages / 28) * 100)}%`,
+                      }}
+                      title={`${vocabStageStats.masteredStages} Mastered Stages`}
+                    />
+
+                    {/* Slashed/Striped Green (Cleared but not yet Mastered) */}
+                    <div
+                      className="h-full transition-all"
+                      style={{
+                        width: `${Math.min(
+                          100 - (vocabStageStats.masteredStages / 28) * 100,
+                          ((vocabStageStats.clearedStages - vocabStageStats.masteredStages) / 28) * 100
+                        )}%`,
+                        backgroundImage:
+                          'repeating-linear-gradient(45deg, #A3E636, #A3E636 2px, #151922 2px, #151922 4px)',
+                      }}
+                      title={`${vocabStageStats.clearedStages} Cleared Stages`}
+                    />
+                  </div>
+
+                  {/* Sub-label breakdown */}
+                  <div className="mt-1.5 flex justify-between font-mono text-[8px] font-black uppercase">
+                    <span className="text-[#A3E636]">★ {vocabStageStats.masteredStages} Mastered</span>
+                    <span className="text-[#A3E636]/80">✓ {vocabStageStats.clearedStages} Cleared</span>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {/* --- CORE ACTION CARDS --- */}
             <div className="grid gap-4 sm:gap-8 md:grid-cols-2 max-w-4xl mx-auto">
@@ -250,5 +498,3 @@ function AppHome({
     </div>
   );
 }
-
-export default AppHome;
