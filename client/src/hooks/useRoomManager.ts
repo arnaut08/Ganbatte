@@ -149,12 +149,7 @@ export default function useRoomManager({
   const activeSocket = socket as unknown as Socket | null;
   socketRef.current = socket;
 
-  useEffect(() => {
-    const savedSession = readRoomSession();
-    const savedRoomCode = (savedSession?.roomCode || '').trim().toUpperCase();
-    if (savedRoomCode) setPrefillRoomCode(savedRoomCode);
-  }, []);
-
+  // Sync preparing state if updated over socket
   useEffect(() => {
     if (!room) return;
     if (room.status === 'preparing' && status !== 'assessment-preparing') {
@@ -164,24 +159,8 @@ export default function useRoomManager({
     if (room.status === 'active' && status === 'assessment-preparing') {
       setIsPreparingAssessment(false);
       transitionToStatus('assessment');
-      return;
     }
-    if (room.status === 'completed' && status !== 'results' && status !== 'lobby' && !results) {
-      setIsPreparingAssessment(false);
-      transitionToStatus('results');
-    }
-  }, [room, results, status, transitionToStatus]);
-
-  useEffect(() => {
-    if (room?.status !== 'completed' || !room.players?.length || results) return;
-    setResults(room.players.map((player) => ({
-      name: player.name,
-      userId: player.userId ?? null,
-      answers: player.answers ?? [],
-      hintsUsed: player.hintsUsed || [],
-    })));
-    transitionToStatus('results');
-  }, [room, results, transitionToStatus]);
+  }, [room, status, transitionToStatus]);
 
   useEffect(() => {
     const practiceWindow = window as PracticeAugmentedWindow;
@@ -225,7 +204,7 @@ export default function useRoomManager({
 
   const handleRequestHost = useCallback((action: string) => {
     if (activeSocket && roomCode && room) activeSocket.emit('request-assessment-action', roomCode, action);
-  }, [activeSocket, room, roomCode]);
+  }, [activeSocket, roomCode]);
 
   const handleSubmitAnswer = useCallback((answer: unknown) => {
     if (activeSocket && roomCode) activeSocket.emit('submit-answer', roomCode, answer);
@@ -251,7 +230,7 @@ export default function useRoomManager({
       setStatus('selector');
       setSelectorScreen('practice');
     });
-  }, [activeSocket, clearRoomSession, roomCode, setSelectorScreen, setStatus]);
+  }, [activeSocket, roomCode, setSelectorScreen, setStatus]);
 
   const handleStartNewSession = useCallback(() => {
     if (!activeSocket || !roomCode || !room) return;
@@ -266,7 +245,7 @@ export default function useRoomManager({
       setStatus('selector');
       setSelectorScreen('practice');
     });
-  }, [clearRoomSession, room, roomCode, setSelectorScreen, setStatus, activeSocket]);
+  }, [room, roomCode, setSelectorScreen, setStatus, activeSocket]);
 
   const clearRoomState = useCallback(() => {
     setRoomCode(null);
@@ -280,7 +259,7 @@ export default function useRoomManager({
     clearRoomSession();
     clearRoomState();
     setStatus('selector');
-  }, [clearRoomSession, clearRoomState, setStatus]);
+  }, [clearRoomState, setStatus]);
 
   const handleReturnToRoom = useCallback(() => {
     const savedSession = readRoomSession();
@@ -298,13 +277,19 @@ export default function useRoomManager({
     activeSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response: SocketAck) => {
       if (!response?.success || !response.room) { clearRoomSession(); clearRoomState(); setStatus('selector'); return; }
       const rejoinedRoom = response.room;
+      if (rejoinedRoom.status === 'completed') {
+        clearRoomSession();
+        clearRoomState();
+        setStatus('selector');
+        return;
+      }
       setRoom(rejoinedRoom);
       setKanaCards((rejoinedRoom.cards ?? []).filter(isStudyCard));
       const nextStatus = rejoinedRoom.status === 'active' ? 'assessment' : 'lobby';
       if (nextStatus === 'lobby') activeSocket.emit('set-player-presence', savedRoomCode, 'in_lobby');
       setStatus(nextStatus);
     });
-  }, [activeSocket, clearRoomSession, clearRoomState, room, roomCode, setStatus, user?.id]);
+  }, [activeSocket, clearRoomState, room, roomCode, setStatus, user?.id]);
 
   return useMemo(() => ({
     roomCode, room, username, kanaCards, results, grammarQuestions, prefillRoomCode,

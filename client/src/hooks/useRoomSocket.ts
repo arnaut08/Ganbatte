@@ -115,7 +115,14 @@ export default function useRoomSocket({
   const inviteJoinAttemptedRef = useRef(false);
   const lastPresenceSyncRef = useRef<string | null>(null);
 
-  // Helper to force navigation into room views and sync history stack
+  const clearRoomQueryParam = useCallback(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('room')) {
+      url.searchParams.delete('room');
+      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, []);
+
   const forceRoomStatus = useCallback((nextStatus: AppStatus) => {
     setStatus(nextStatus);
     setScreenHistory((prev) => (prev[prev.length - 1] === nextStatus ? prev : [...prev, nextStatus]));
@@ -220,21 +227,35 @@ export default function useRoomSocket({
       newSocket.emit('rejoin-room', savedRoomCode, savedUsername, savedSession.sessionKey || getSessionKey(), user?.id, (response: SocketAck) => {
         if (!response?.success || !response.room) {
           clearRoomSession();
+          clearRoomQueryParam();
           return;
         }
 
         const nextRoom = response.room;
+
+        // If the rehydrated room is already finished, clear room session and stay on Home
+        if (nextRoom.status === 'completed') {
+          clearRoomSession();
+          clearRoomQueryParam();
+          setRoom(null);
+          setRoomCode(null);
+          setResults(null);
+          setStatus('selector');
+          setScreenHistory(['selector']);
+          return;
+        }
+
         setRoomCode(savedRoomCode);
         setUsername(savedUsername);
         setRoom(nextRoom);
         setKanaCards((nextRoom.cards as StudyCard[] | undefined) || []);
-        if (nextRoom.status === 'completed') {
-          setResults(normalizeRoomResults(nextRoom.players));
-          forceRoomStatus('results');
-        } else if (nextRoom.status === 'preparing') {
+
+        if (nextRoom.status === 'preparing') {
           forceRoomStatus('assessment-preparing');
+        } else if (nextRoom.status === 'active') {
+          forceRoomStatus('assessment');
         } else {
-          forceRoomStatus(nextRoom.status === 'active' ? 'assessment' : 'lobby');
+          forceRoomStatus('lobby');
         }
       });
     });
@@ -312,6 +333,8 @@ export default function useRoomSocket({
       const rawResults = data?.results || (Array.isArray(data?.room?.players) ? data.room.players : []);
       setResults(normalizeRoomResults(rawResults));
       forceRoomStatus('results');
+      clearRoomSession();
+      clearRoomQueryParam();
     });
 
     newSocket.on('room-returned-to-lobby', (data: SocketPayload) => {
@@ -339,6 +362,8 @@ export default function useRoomSocket({
       setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
       setResults(null);
       setIsPreparingAssessment(false);
+      clearRoomSession();
+      clearRoomQueryParam();
       forceRoomStatus('lobby');
       setToast({
         message: data.exitedPlayerWasHost ? 'The host exited the lobby. You are now the host.' : 'The guest exited the lobby.',
@@ -450,11 +475,7 @@ export default function useRoomSocket({
     getSessionKey,
     saveRoomSession,
     clearRoomSession,
-    clearRoomQueryParam: () => {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('room');
-      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
-    },
+    clearRoomQueryParam,
     handleSetAwayStatus,
   };
 }

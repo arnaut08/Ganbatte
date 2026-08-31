@@ -55,6 +55,18 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
   const [requestedAction, setRequestedAction] = useState<string | null>(null);
   const savedResult = useRef(false);
   const { recordActivity } = useActivityRecorder();
+
+  // Guard: If results or cards are empty (e.g. following a page refresh), redirect back to home
+  useEffect(() => {
+    if (!results || results.length === 0 || !kanaCards || kanaCards.length === 0) {
+      onStartNewSession?.();
+    }
+  }, [results, kanaCards, onStartNewSession]);
+
+  if (!results || results.length === 0 || !kanaCards || kanaCards.length === 0) {
+    return null;
+  }
+
   const isKanjiDeck = kanaCards.some((card) => card?.groupId || card?.groupName);
   const selectedDeckGroups = Array.isArray(room?.selectedGroups)
     ? room.selectedGroups
@@ -183,7 +195,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
       sessionStorage.setItem(storageKey, 'true');
 
-      // PvP match finished — record cross-device activity for streaks/tiers.
       if (companionUserId) {
         void recordActivity();
       }
@@ -192,7 +203,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
     saveCurrentAssessmentResult();
   }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey, isKanjiDeck, selectedDeckGroups, recordActivity]);
 
-  // Determine top score for winner podium
   const maxScore = Math.max(
     ...results.map((p) => computeStats(p.answers || []).percentage)
   );
@@ -203,7 +213,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-        // SESSION COMPLETE
+            // SESSION COMPLETE
           </span>
           <h1 className="text-lg sm:text-3xl font-black uppercase tracking-tight text-white leading-tight">
             Assessment Results
@@ -231,19 +241,22 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
           return (
             <div
               key={idx}
-              className={`relative flex flex-col justify-between border-2 border-black p-3.5 sm:p-5 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] ${isWinner ? 'bg-[#70CFF8]' : 'bg-[#1a1f2c]'
-                }`}
+              className={`relative flex flex-col justify-between border-2 border-black p-3.5 sm:p-5 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] ${
+                isWinner ? 'bg-[#70CFF8]' : 'bg-[#1a1f2c]'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase ${isWinner ? 'bg-black text-[#FFDE59]' : 'bg-[#2c3345] text-neutral-300'
-                    }`}
+                  className={`border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase ${
+                    isWinner ? 'bg-black text-[#FFDE59]' : 'bg-[#2c3345] text-neutral-300'
+                  }`}
                 >
                   {isWinner ? '★ WINNER' : results.length > 1 ? `RANK #${idx + 1}` : 'OPERATOR'}
                 </span>
                 <span
-                  className={`font-mono text-[10px] sm:text-xs font-bold ${isWinner ? 'text-black/70' : 'text-neutral-400'
-                    }`}
+                  className={`font-mono text-[10px] sm:text-xs font-bold ${
+                    isWinner ? 'text-black/70' : 'text-neutral-400'
+                  }`}
                 >
                   P{idx + 1}
                 </span>
@@ -251,22 +264,25 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
               <div className="my-2 sm:my-4">
                 <h2
-                  className={`text-base sm:text-xl font-black uppercase truncate ${isWinner ? 'text-black' : 'text-white'
-                    }`}
+                  className={`text-base sm:text-xl font-black uppercase truncate ${
+                    isWinner ? 'text-black' : 'text-white'
+                  }`}
                 >
                   {player.name}
                 </h2>
                 <div
-                  className={`mt-0.5 sm:mt-1 font-mono text-3xl sm:text-5xl font-black leading-none ${isWinner ? 'text-black' : 'text-[#A3E636]'
-                    }`}
+                  className={`mt-0.5 sm:mt-1 font-mono text-3xl sm:text-5xl font-black leading-none ${
+                    isWinner ? 'text-black' : 'text-[#A3E636]'
+                  }`}
                 >
                   {stats.percentage}%
                 </div>
               </div>
 
               <div
-                className={`flex flex-wrap items-center gap-2 sm:gap-3 border-t-2 pt-2 sm:pt-3 font-mono text-[10px] sm:text-xs font-black ${isWinner ? 'border-black/20 text-black' : 'border-neutral-700 text-neutral-400'
-                  }`}
+                className={`flex flex-wrap items-center gap-2 sm:gap-3 border-t-2 pt-2 sm:pt-3 font-mono text-[10px] sm:text-xs font-black ${
+                  isWinner ? 'border-black/20 text-black' : 'border-neutral-700 text-neutral-400'
+                }`}
               >
                 <span className="text-[#10b981]">✔ {stats.correct}/{stats.total} CORRECT</span>
                 <span>·</span>
@@ -320,7 +336,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
       <div className="space-y-2.5 sm:space-y-4 pt-2 sm:pt-4">
         <div className="border-b-2 border-neutral-700 pb-1.5 sm:pb-2">
           <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#70CFF8]">
-        // CARD EVALUATION ({kanaCards.length} ITEMS)
+            // CARD EVALUATION ({kanaCards.length} ITEMS)
           </span>
         </div>
 
@@ -330,7 +346,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
               key={i}
               className="border-2 border-black bg-[#1a1f2c] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] space-y-2.5 sm:space-y-3"
             >
-              {/* Top Row: Index, Phrase, English */}
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b-2 border-black/40 pb-2">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="border border-black bg-white px-1.5 py-0.2 sm:px-2 sm:py-0.5 font-mono text-[10px] sm:text-xs font-black text-black">
@@ -347,9 +362,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 )}
               </div>
 
-              {/* Submissions vs Target */}
               <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
-                {/* Correct Solution */}
                 <div className="border-2 border-black bg-[#A3E636] p-2 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
                   <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-black/70">
                     TARGET ROMAJI
@@ -359,7 +372,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                   </p>
                 </div>
 
-                {/* Player Answers */}
                 <div className="grid gap-1.5 sm:gap-2">
                   {results.map((player, pi) => {
                     const playerAnswer = player.answers?.[i];
@@ -385,7 +397,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 </div>
               </div>
 
-              {/* Hints Footer for Kanji Decks */}
               {isKanjiDeck && (() => {
                 const playersWithHints = results.filter(
                   (player) => Number(player.hintsUsed?.[i] || 0) > 0
@@ -396,7 +407,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 return (
                   <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-black/40">
                     <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                  // Hints:
+                      // Hints:
                     </span>
                     {playersWithHints.map((player, pi) => (
                       <span

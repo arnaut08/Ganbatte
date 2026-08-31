@@ -30,8 +30,8 @@ type ScreenRouterProps = AppContextValue & RoomContextValue;
 function LegacyAppScreenRouter({
   authLoading, authRequired, user, status, selectorScreen, appHomeKey, setSelectorScreen,
   handleCreateRoom, handleJoinRoom, handleOpenKanaStudy, handleOpenKanjiStudy, handleStartKanjiLearning,
-    handleOpenVocabStudy, handleStartVocabLearning, handleOpenGrammarStudy, handleStartGrammarStudy, handleStartGrammarPractice, handleOpenGrammarPractice, handleReturnToRoom,
-  handleDeclineRoomResume, prefillRoomCode, isSocketReady, roomCode, currentSessionKey,
+  handleOpenVocabStudy, handleStartVocabLearning, handleOpenGrammarStudy, handleStartGrammarStudy,
+  handleStartGrammarPractice, handleOpenGrammarPractice, prefillRoomCode, isSocketReady, roomCode, currentSessionKey,
   username, friends, friendSearchResults, isFriendSearchLoading, handleSearchUsers,
   handleRemoveFriend, handleGoBack, handleContinueKanaIntro, handleOpenKanaFilter,
   handleApplyKanaFilters, handleKanaSelectionChange, selectedKana, friendRequests,
@@ -41,11 +41,7 @@ function LegacyAppScreenRouter({
   results, isCurrentPlayerHost, handleReplayAssessment, handleStartNewSession, handleRequestHost,
   handleOpenHistory,
 }: ScreenRouterProps) {
-  // Server rooms carry the live session payload in `cards` (study cards for
-  // kana/kanji decks, grammar questions otherwise); narrow it once here.
   const grammarSessionQuestions = (room?.cards ?? []).filter(isGrammarQuestion);
-  // Player answers arrive untyped over the socket; project them onto the
-  // grammar-room view model the practice screen consumes.
   const grammarRoomView = room
     ? {
       code: room.code,
@@ -59,6 +55,40 @@ function LegacyAppScreenRouter({
     }
     : null;
 
+  const hasValidResults = Array.isArray(results) && results.length > 0;
+  const isResultsScreen = status === 'results';
+
+  // If status is a multiplayer screen (lobby/assessment) but room is missing,
+  // or status is results but results are missing, fall back to AppHome.
+  const shouldRenderRoomLobby = status === 'lobby' && Boolean(room);
+  const shouldRenderAssessment = status === 'assessment' && Boolean(room);
+  const shouldRenderPreparing = status === 'assessment-preparing' && room?.deckType === 'grammar';
+  const shouldRenderResults = isResultsScreen && hasValidResults;
+
+  const isOtherKnownScreen = [
+    'friends',
+    'kana-intro',
+    'kana-filter',
+    'kana-study',
+    'kanji-intro',
+    'kanji-study',
+    'vocab-intro',
+    'vocab-study',
+    'grammar-intro',
+    'grammar-study',
+    'grammar-practice',
+    'history',
+    'passport',
+  ].includes(status);
+
+  const shouldRenderHome =
+    status === 'selector' ||
+    (!isOtherKnownScreen &&
+      !shouldRenderRoomLobby &&
+      !shouldRenderAssessment &&
+      !shouldRenderPreparing &&
+      !shouldRenderResults);
+
   return (
     <Suspense fallback={<GenericRouteSkeleton />}>
       {authLoading ? (
@@ -67,7 +97,7 @@ function LegacyAppScreenRouter({
         <AuthPage />
       ) : (
         <>
-          {status === 'selector' && (
+          {shouldRenderHome && (
             <AppHome
               key={appHomeKey}
               screen={selectorScreen}
@@ -82,7 +112,7 @@ function LegacyAppScreenRouter({
               isSocketReady={isSocketReady}
               roomCode={roomCode}
             />
-            )}
+          )}
 
           {status === 'friends' && (
             <FriendsPanel
@@ -97,11 +127,11 @@ function LegacyAppScreenRouter({
               isSearching={isFriendSearchLoading}
               onBack={handleGoBack}
             />
-            )}
+          )}
 
           {status === 'kana-intro' && (
             <KanaIntro onBack={handleGoBack} onContinue={handleContinueKanaIntro} />
-            )}
+          )}
 
           {status === 'kana-filter' && (
             <KanaFilterScreen
@@ -110,7 +140,7 @@ function LegacyAppScreenRouter({
               onSelectionChange={handleKanaSelectionChange}
               initialSelectedKana={selectedKana}
             />
-            )}
+          )}
 
           {status === 'kana-study' && (
             <KanaRecall
@@ -118,17 +148,17 @@ function LegacyAppScreenRouter({
               onOpenFilter={handleOpenKanaFilter}
               selectedKana={selectedKana}
             />
-            )}
+          )}
 
           {status === 'kanji-intro' && (
             <KanjiIntroScreen onBack={handleGoBack} onStartLearning={handleStartKanjiLearning} />
-            )}
+          )}
 
           {status === 'kanji-study' && <KanjiStudy onBack={handleGoBack} />}
 
           {status === 'vocab-intro' && (
             <VocabIntroScreen onBack={handleGoBack} onStartLearning={handleStartVocabLearning} />
-            )}
+          )}
 
           {status === 'vocab-study' && <VocabScreen onBack={handleGoBack} />}
 
@@ -138,6 +168,7 @@ function LegacyAppScreenRouter({
               onStartLearning={handleStartGrammarStudy}
             />
           )}
+
           {status === 'grammar-study' && (
             <GrammarStudy
               onBack={handleGoBack}
@@ -149,7 +180,7 @@ function LegacyAppScreenRouter({
 
           {status === 'grammar-practice' && (
             <GrammarPractice questions={grammarQuestions} onBack={handleGoBack} />
-            )}
+          )}
 
           {status === 'history' && <AssessmentHistory onBack={handleGoBack} />}
 
@@ -162,16 +193,16 @@ function LegacyAppScreenRouter({
               onOpenGrammarStudy={handleOpenGrammarStudy}
               onOpenHistory={handleOpenHistory}
             />
-            )}
+          )}
 
-          {status === 'assessment-preparing' && room?.deckType === 'grammar' && (
+          {shouldRenderPreparing && (
             <AssessmentLoadingScreen
               title="Preparing the grammar deck"
               description="Generating the question set and getting both players ready."
             />
-            )}
+          )}
 
-          {status === 'lobby' && room && (
+          {shouldRenderRoomLobby && room && (
             <RoomLobby
               roomCode={roomCode}
               room={room}
@@ -184,9 +215,9 @@ function LegacyAppScreenRouter({
               friends={friends}
               onInviteFriend={handleInviteFriend}
             />
-            )}
+          )}
 
-          {status === 'assessment' && room && (
+          {shouldRenderAssessment && room && (
             room.deckType === 'grammar' ? (
               <GrammarPractice
                 questions={
@@ -208,36 +239,36 @@ function LegacyAppScreenRouter({
                 username={username}
               />
             )
-            )}
+          )}
 
-          {status === 'results' && results && room?.deckType === 'grammar' && (
-            <GrammarPractice
-              questions={
-                grammarSessionQuestions.length ? grammarSessionQuestions : grammarQuestions
-              }
-              room={grammarRoomView}
-              username={username}
-              onBack={handleGoBack}
-              onNextCard={handleNextCard}
-              onSubmitAnswer={handleSubmitAnswer}
-              forceShowResults
-            />
-            )}
-
-          {status === 'results' && results && room?.deckType !== 'grammar' && (
-            <Results
-              results={results}
-              roomCode={roomCode}
-              kanaCards={kanaCards}
-              username={username}
-              user={user}
-              room={room}
-              isHost={isCurrentPlayerHost}
-              onReplaySet={handleReplayAssessment}
-              onStartNewSession={handleStartNewSession}
-              onRequestHost={handleRequestHost}
-            />
-            )}
+          {shouldRenderResults && (
+            room?.deckType === 'grammar' ? (
+              <GrammarPractice
+                questions={
+                  grammarSessionQuestions.length ? grammarSessionQuestions : grammarQuestions
+                }
+                room={grammarRoomView}
+                username={username}
+                onBack={handleGoBack}
+                onNextCard={handleNextCard}
+                onSubmitAnswer={handleSubmitAnswer}
+                forceShowResults
+              />
+            ) : (
+              <Results
+                results={results}
+                roomCode={roomCode}
+                kanaCards={kanaCards}
+                username={username}
+                user={user}
+                room={room}
+                isHost={isCurrentPlayerHost}
+                onReplaySet={handleReplayAssessment}
+                onStartNewSession={handleStartNewSession}
+                onRequestHost={handleRequestHost}
+              />
+            )
+          )}
         </>
       )}
     </Suspense>
