@@ -61,6 +61,14 @@ export default function KanjiStudy({ onBack }: Props) {
     loadOverview();
   };
 
+  const handleScreenBack = () => {
+    if (selectedGroup !== null || quizGroup !== null) {
+      returnToMap();
+    } else {
+      onBack();
+    }
+  };
+
   if (selectedGroup) {
     return (
       <KanjiStudySession
@@ -92,7 +100,7 @@ export default function KanjiStudy({ onBack }: Props) {
       <header className="flex items-center gap-2.5 sm:gap-4">
         <button
           type="button"
-          onClick={onBack}
+          onClick={handleScreenBack}
           className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
           aria-label="Return to learning modules"
         >
@@ -134,7 +142,7 @@ export default function KanjiStudy({ onBack }: Props) {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search group..."
                 aria-label="Search Kanji groups"
-                className="h-9 w-1/2 border-2 border-black bg-white pl-8 pr-7 font-mono text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] placeholder:text-neutral-400 placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-[#70CFF8] sm:h-10 sm:pl-10 sm:pr-8 sm:text-xs"
+                className="h-9 w-full sm:w-1/2 border-2 border-black bg-white pl-8 pr-7 font-mono text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] placeholder:text-neutral-400 placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-[#70CFF8] sm:h-10 sm:pl-10 sm:pr-8 sm:text-xs"
               />
               {search.length > 0 && (
                 <button

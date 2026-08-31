@@ -123,7 +123,6 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
     };
     setMasteryById((current) => ({ ...current, [card.id]: optimistic }));
 
-    // Cross-device streak/tier tracking fires on the first correct recall.
     if (nextAttempt.correct && !hasRecordedActivity.current) {
       hasRecordedActivity.current = true;
       void recordActivity();
@@ -173,12 +172,18 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
     resetCard();
   };
 
-  // Global enter listener: advance directly to next card or complete session
+  const handleScreenBack = () => {
+    if (isComplete) {
+      onOpenFilter();
+    } else {
+      onBack();
+    }
+  };
+
+  // Global enter listener
   useEffect(() => {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Enter') return;
-      // While a celebration popup is open it owns Enter; never advance cards
-      // or navigate on the same keypress that dismisses it.
       if (hasActiveCelebration) return;
       if (isComplete) {
         onOpenFilter();
@@ -206,7 +211,7 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
         <div className="flex items-center gap-2.5 sm:gap-4">
           <button
             type="button"
-            onClick={onBack}
+            onClick={handleScreenBack}
             className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
             title="Back"
           >
