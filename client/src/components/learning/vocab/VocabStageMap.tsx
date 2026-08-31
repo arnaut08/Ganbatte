@@ -1,5 +1,5 @@
 import { ChevronRightIcon, TimerIcon, LightningBoltIcon } from '@radix-ui/react-icons';
-import type { VocabStage } from '../../types';
+import type { VocabStage } from '../../../types';
 
 type VocabStageMapProps = {
   stages: VocabStage[];

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeftIcon } from '@radix-ui/react-icons';
-import { getVocabFilter, getVocabOverview, getVocabStage } from '../../services/api';
-import type { VocabStage, VocabStudyItem } from '../../types';
+import { getVocabFilter, getVocabOverview, getVocabStage } from '../../../services/api';
+import type { VocabStage, VocabStudyItem } from '../../../types';
 import DeckFilterBar, { type DeckCategory } from './DeckFilterBar';
 import VocabStageMap from './VocabStageMap';
 import VocabStudySession from './VocabStudySession';
 import VocabStageQuiz from './VocabStageQuiz';
-import GroupMapSkeleton from './GroupMapSkeleton';
+import GroupMapSkeleton from '../GroupMapSkeleton';
 
 type VocabScreenProps = {
   onBack: () => void;
@@ -69,16 +68,16 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
           const stageNum = item.stage_number;
           const overviewStage = allStages.find((candidate) => candidate.stage_number === stageNum);
           const stage = stageMap.get(stageNum) || {
-              stage_number: stageNum,
-              theme: item.theme,
-              total_words: 0,
-              learned_words: 0,
-              mastered_words: 0,
-              due_words: 0,
-              quiz_passed: overviewStage?.quiz_passed || false,
-              is_cleared: overviewStage?.is_cleared || false,
-              is_mastered: overviewStage?.is_mastered || false,
-            };
+            stage_number: stageNum,
+            theme: item.theme,
+            total_words: 0,
+            learned_words: 0,
+            mastered_words: 0,
+            due_words: 0,
+            quiz_passed: overviewStage?.quiz_passed || false,
+            is_cleared: overviewStage?.is_cleared || false,
+            is_mastered: overviewStage?.is_mastered || false,
+          };
           stage.total_words += 1;
           if ((item.progress?.srs_stage || 0) > 0) stage.learned_words += 1;
           if ((item.progress?.srs_stage || 0) >= 4) stage.mastered_words += 1;
@@ -94,7 +93,7 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
       .finally(() => setVocabLoading(false));
   }, [vocabCategory, allStages]);
 
-  // 4. Memoized stages list (Runs unconditionally before any returns)
+  // 4. Memoized stages list
   const visibleVocabStages = useMemo(() => {
     const normalizedSearch = vocabSearch.trim().toLowerCase();
     return filteredStages.filter((stage) => {
@@ -107,7 +106,7 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
     });
   }, [showDueOnly, vocabSearch, filteredStages]);
 
-  // 5. Handlers
+  // 5. Navigation Handlers
   const handleCategoryChange = (category: DeckCategory) => {
     setVocabCategory(category);
     setShowDueOnly(false);
@@ -133,7 +132,16 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
     }
   };
 
-  // 6. Conditional rendering ONLY after all hooks have executed
+  // Intercept root back action if an internal sub-view is active
+  const handleScreenBack = () => {
+    if (selectedStage !== null || quizStage !== null) {
+      handleReturnFromSession();
+    } else {
+      onBack();
+    }
+  };
+
+  // 6. Sub-view rendering
   if (selectedStage !== null) {
     return (
       <VocabStudySession
@@ -160,7 +168,7 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
       <header className="flex items-center gap-3 sm:gap-4">
         <button
           type="button"
-          onClick={onBack}
+          onClick={handleScreenBack}
           className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
           aria-label="Return to learning modules"
         >

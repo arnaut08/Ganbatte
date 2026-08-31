@@ -5,7 +5,7 @@ import {
   LightningBoltIcon,
   ThickArrowRightIcon,
 } from '@radix-ui/react-icons';
-import type { KanjiCard } from '../../types';
+import type { KanjiCard } from '../../../types';
 
 export type KanjiStudyCardData = KanjiCard & { id: string; reading?: string; meaning?: string; example?: [string, string] };
 export type KanjiRating = 1 | 2 | 3 | 4;

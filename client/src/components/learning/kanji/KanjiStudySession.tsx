@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getKanjiGroup, reviewKanji } from '../../services/api';
-import type { KanjiCard } from '../../types';
+import { getKanjiGroup, reviewKanji } from '../../../services/api';
+import type { KanjiCard } from '../../../types';
 import KanjiStudyCard, { type KanjiRating, type KanjiStudyCardData } from './KanjiStudyCard';
-import StudySkeleton from './StudySkeleton';
+import StudySkeleton from '../StudySkeleton';
 
 type Props = { groupId: string; groupName: string; onBack: () => void; onQuiz: () => void };
 

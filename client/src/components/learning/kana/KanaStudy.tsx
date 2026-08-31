@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getKanaCards } from '../../services/api';
-import type { KanaCard } from '../../types';
+import { getKanaCards } from '../../../services/api';
+import type { KanaCard } from '../../../types';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
 type KanaStudyProps = {
@@ -26,14 +26,12 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Filter cards based on selected kana characters
   const cards =
     selectedKana && selectedKana.size > 0
       ? kanaData.cards.filter((card) => selectedKana.has(card.kana))
       : kanaData.cards;
   const card = cards[cardIndex];
 
-  // Dynamic Theme Colors: Hiragana (#FFDE59 Yellow), Katakana (#70CFF8 Cyan)
   const isHiragana =
     card?.script === 'hiragana' ||
     card?.groupName?.toLowerCase().includes('hiragana');
@@ -58,7 +56,7 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
           </button>
 
           <div className="flex flex-col justify-center">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#A3E636]">
               // PRACTICE: KANA DECK
             </span>
             <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
@@ -112,13 +110,12 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
         </div>
       )}
 
-      {/* 5. All-in-One Kana Card (No 'Show Reading' click needed) */}
+      {/* 5. All-in-One Kana Card */}
       {!isLoading && !error && card && (
         <div
           className="relative flex flex-col justify-between overflow-hidden border-2 border-black p-6 sm:p-8 shadow-[6px_6px_0px_0px_#000000] transition-all"
           style={{ backgroundColor: accentColor }}
         >
-          {/* Card Header: Group & Counter */}
           <div className="flex items-center justify-between border-b-2 border-black pb-4">
             <span className="border-2 border-black bg-black px-2.5 py-0.5 font-mono text-[11px] font-black uppercase tracking-wider text-white">
               {card.groupName || 'Basic Kana'}
@@ -128,18 +125,14 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
             </span>
           </div>
 
-          {/* Main Visual & Info Section */}
           <div className="my-6 grid grid-cols-1 items-center gap-6 md:grid-cols-2">
-            {/* Hero Character Box */}
             <div className="flex flex-col items-center justify-center border-2 border-black bg-white p-6 shadow-[4px_4px_0px_0px_#000000]">
               <span className="kana-font select-none text-8xl sm:text-9xl font-black text-black leading-none">
                 {card.kana}
               </span>
             </div>
 
-            {/* Reading / Pronunciation Grid */}
             <div className="space-y-3">
-              {/* Romaji */}
               <div className="border-2 border-black bg-white p-3.5 shadow-[3px_3px_0px_0px_#000000]">
                 <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
                   // Romaji
@@ -149,7 +142,6 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
                 </p>
               </div>
 
-              {/* Mnemonic Text Box (If Provided) */}
               {card.mnemonic && (
                 <div className="border-2 border-black bg-[#A3E636] p-3 shadow-[3px_3px_0px_0px_#000000]">
                   <span className="font-mono text-[10px] font-black uppercase text-black">
@@ -163,7 +155,6 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
             </div>
           </div>
 
-          {/* Example Word Section */}
           {card.example && (
             <div className="border-2 border-black bg-white p-4 shadow-[3px_3px_0px_0px_#000000]">
               <span className="font-mono text-[10px] font-black uppercase tracking-wider text-neutral-500">
@@ -185,7 +176,7 @@ function KanaStudy({ onBack, onOpenFilter, selectedKana }: KanaStudyProps) {
         </div>
       )}
 
-      {/* 6. Stepper Navigation */}
+      {/* 6. Stepper Controls */}
       {!isLoading && !error && card && (
         <div className="flex items-center justify-between gap-3 pt-2">
           <button

@@ -1,5 +1,5 @@
 import { ChevronRightIcon, RocketIcon, TimerIcon } from '@radix-ui/react-icons';
-import type { KanjiGroupOverview } from '../../types';
+import type { KanjiGroupOverview } from '../../../types';
 
 type Props = {
     groups: KanjiGroupOverview[];
