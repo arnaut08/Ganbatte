@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getVocabStage, reviewVocab } from '../../services/api';
-import type { VocabStudyItem } from '../../types';
+import { getVocabStage, reviewVocab } from '../../../services/api';
+import type { VocabStudyItem } from '../../../types';
 import VocabCard from './VocabCard';
 import VocabStageQuiz from './VocabStageQuiz';
-import StudySkeleton from './StudySkeleton';
+import StudySkeleton from '../StudySkeleton';
 
 type VocabStudySessionProps = {
   level?: string;

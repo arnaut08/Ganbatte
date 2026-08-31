@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getCharacterAttempts, getKanaCards } from '../../services/api';
-import type { ApiRecord } from '../../types';
+import { getCharacterAttempts, getKanaCards } from '../../../services/api';
+import type { ApiRecord } from '../../../types';
 
 const MATRIX_TYPE_LABELS = {
   basic: 'BASIC',

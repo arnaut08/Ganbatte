@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { CheckCircledIcon, ExclamationTriangleIcon, SpeakerLoudIcon } from '@radix-ui/react-icons';
-import { markVocabAgain, saveStageQuizResult, type SaveStageQuizPayload } from '../../services/api';
-import type { VocabStudyItem } from '../../types';
-import { generateVocabQuiz, type VocabQuizQuestion } from '../../utils/quizGenerator';
-import useActivityRecorder from '../../hooks/useActivityRecorder';
+import { markVocabAgain, saveStageQuizResult, type SaveStageQuizPayload } from '../../../services/api';
+import type { VocabStudyItem } from '../../../types';
+import { generateVocabQuiz, type VocabQuizQuestion } from '../../../utils/quizGenerator';
+import useActivityRecorder from '../../../hooks/useActivityRecorder';
 
 function renderFurigana(text: string): ReactNode {
   const nodes: ReactNode[] = [];

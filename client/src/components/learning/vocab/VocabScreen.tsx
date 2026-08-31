@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
-import { getVocabFilter, getVocabOverview, getVocabStage } from '../../services/api';
-import type { VocabStage, VocabStudyItem } from '../../types';
+import { getVocabFilter, getVocabOverview, getVocabStage } from '../../../services/api';
+import type { VocabStage, VocabStudyItem } from '../../../types';
 import DeckFilterBar, { type DeckCategory } from './DeckFilterBar';
 import VocabStageMap from './VocabStageMap';
 import VocabStudySession from './VocabStudySession';
 import VocabStageQuiz from './VocabStageQuiz';
-import GroupMapSkeleton from './GroupMapSkeleton';
+import GroupMapSkeleton from '../GroupMapSkeleton';
 
 type VocabScreenProps = {
   onBack: () => void;

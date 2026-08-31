@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getGrammarLessons, getGrammarOverview } from '../../services/api';
+import { getGrammarLessons, getGrammarOverview } from '../../../services/api';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
-import type { GrammarLesson, GrammarLessonOverview } from '../../types';
+import type { GrammarLesson, GrammarLessonOverview } from '../../../types';
 
 const KANJI_CHARACTER = /\p{Script=Han}/u;
 const HIRAGANA_START = 0x3041;

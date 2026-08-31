@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MagnifyingGlassIcon, TimerIcon, Cross2Icon } from '@radix-ui/react-icons';
-import { getKanjiOverview } from '../../services/api';
-import type { KanjiGroupOverview } from '../../types';
+import { getKanjiOverview } from '../../../services/api';
+import type { KanjiGroupOverview } from '../../../types';
 import KanjiGroupMap from './KanjiGroupMap';
 import KanjiGroupQuiz from './KanjiGroupQuiz';
 import KanjiStudySession from './KanjiStudySession';
-import GroupMapSkeleton from './GroupMapSkeleton';
+import GroupMapSkeleton from '../GroupMapSkeleton';
 
 type Props = { onBack: () => void };
 

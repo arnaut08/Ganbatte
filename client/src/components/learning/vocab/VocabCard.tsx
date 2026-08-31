@@ -6,7 +6,7 @@ import {
   ThickArrowRightIcon,
 } from '@radix-ui/react-icons';
 import { useEffect, useState, type ReactNode } from 'react';
-import type { VocabItem } from '../../types';
+import type { VocabItem } from '../../../types';
 
 function renderBracketFurigana(text: string): ReactNode {
   const source = String(text || '');

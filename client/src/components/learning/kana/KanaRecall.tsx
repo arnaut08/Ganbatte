@@ -3,11 +3,11 @@ import {
   getCharacterAttempts,
   getKanaCards,
   recordCharacterAttempt,
-} from '../../services/api';
-import { buildKanaAttempt } from '../../utils/kanaRecall';
-import useActivityRecorder from '../../hooks/useActivityRecorder';
-import { useCelebrations } from '../../contexts/CelebrationContext';
-import type { KanaCard } from '../../types';
+} from '../../../services/api';
+import { buildKanaAttempt } from '../../../utils/kanaRecall';
+import useActivityRecorder from '../../../hooks/useActivityRecorder';
+import { useCelebrations } from '../../../contexts/CelebrationContext';
+import type { KanaCard } from '../../../types';
 
 type KanaRecallCard = KanaCard & { id: string };
 

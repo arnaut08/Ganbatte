@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { CheckCircledIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
-import { getKanjiGroup, saveKanjiQuizResult } from '../../services/api';
-import type { KanjiCard } from '../../types';
-import useActivityRecorder from '../../hooks/useActivityRecorder';
+import { getKanjiGroup, saveKanjiQuizResult } from '../../../services/api';
+import type { KanjiCard } from '../../../types';
+import useActivityRecorder from '../../../hooks/useActivityRecorder';
 
 type Card = KanjiCard & { id: string; reading?: string; meaning?: string };
 type Question = { card: Card; options: string[] };
