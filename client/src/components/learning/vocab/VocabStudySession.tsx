@@ -48,7 +48,9 @@ export default function VocabStudySession({
       .finally(() => {
         if (isCurrent) setIsLoading(false);
       });
-    return () => { isCurrent = false; };
+    return () => {
+      isCurrent = false;
+    };
   }, [level, stageNumber]);
 
   const activeCard = queue[0];
@@ -73,9 +75,13 @@ export default function VocabStudySession({
     try {
       const { progress } = await reviewVocab(card.id, rating);
       const updatedStage = Number(progress.srs_stage);
-      setStageItems((current) => current.map((item) => item.id === card.id
-        ? { ...item, progress: { ...item.progress, srs_stage: updatedStage } }
-        : item));
+      setStageItems((current) =>
+        current.map((item) =>
+          item.id === card.id
+            ? { ...item, progress: { ...item.progress, srs_stage: updatedStage } }
+            : item
+        )
+      );
     } catch {
       setReviewError('Review saved locally, but could not sync with the server.');
     } finally {
@@ -84,16 +90,95 @@ export default function VocabStudySession({
   };
 
   if (sessionComplete && isQuizStarted) {
-    return <VocabStageQuiz level={level} stageNumber={stageNumber} items={stageItems} onBackToStageMap={onBackToStageMap} />;
+    return (
+      <VocabStageQuiz
+        level={level}
+        stageNumber={stageNumber}
+        items={stageItems}
+        onBackToStageMap={onBackToStageMap}
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-8">
+        <StudySkeleton accentColor="#A3E636" />
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8">
+        <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">
+          {error}
+        </div>
+      </main>
+    );
+  }
+
+  if (!isLoading && !error && totalCards === 0) {
+    return (
+      <main className="mx-auto w-full max-w-3xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
+        <div className="border-2 border-black bg-[#1f2637] p-8 text-center text-white shadow-[4px_4px_0px_0px_#000] sm:p-10 sm:shadow-[6px_6px_0px_0px_#000]">
+          <p className="font-mono text-xs font-black uppercase text-neutral-300 sm:text-sm">
+            This stage has no vocabulary yet.
+          </p>
+          <button
+            type="button"
+            onClick={onBackToStageMap}
+            className="mt-4 cursor-pointer border-2 border-black bg-[#A3E636] px-5 py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            Back to Stage Map
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (sessionComplete) {
+    return (
+      <main className="mx-auto w-full max-w-3xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
+        <section className="border-2 border-black border-l-8 border-l-[#A3E636] bg-[#1f2637] p-5 text-white shadow-[4px_4px_0px_0px_#000] sm:p-8 sm:shadow-[6px_6px_0px_0px_#000]">
+          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#A3E636] sm:text-xs">
+            STAGE {stageNumber} // COMPLETE
+          </span>
+          <h2 className="mt-1 text-2xl font-black uppercase tracking-tight text-white sm:text-4xl">
+            Session Complete
+          </h2>
+          <p className="mt-2 font-mono text-xs font-bold uppercase text-neutral-300 sm:text-sm">
+            {completedCards} cards reviewed and saved.
+          </p>
+          <div className="mt-6 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onBackToStageMap}
+              className="cursor-pointer border-2 border-black bg-white px-4 py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:py-3"
+            >
+              Return to Stage Map
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsQuizStarted(true)}
+              className="cursor-pointer border-2 border-black bg-[#A3E636] px-4 py-2.5 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:py-3"
+            >
+              Take a Quiz →
+            </button>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-7 sm:py-8">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 px-3 py-4 sm:gap-5 sm:px-4 sm:py-6 sm:pb-28">
+      {/* Header */}
       <header className="flex items-center gap-2.5 sm:gap-4">
         <button
           type="button"
           onClick={onBackToStageMap}
-          className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
           aria-label="Return to vocabulary stage map"
           title="Back to vocabulary stage map"
         >
@@ -101,55 +186,49 @@ export default function VocabStudySession({
         </button>
 
         <div className="flex flex-col justify-center text-left">
-          <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59] sm:text-xs">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#A3E636] sm:text-xs">
             JLPT {level} // STAGE {stageNumber}
           </span>
-          <h1 className="text-lg font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
+          <h1 className="text-lg font-black uppercase leading-tight tracking-tight text-white sm:text-2xl">
             Vocabulary Recall
           </h1>
         </div>
       </header>
 
-      {isLoading && <StudySkeleton />}
-      
-      {error && !isLoading && (
-        <div className="border-2 border-black bg-[#FF6B6B] p-5 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">{error}</div>
-      )}
+      {/* Progress Track */}
+      <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-3">
+        <div className="mb-1.5 flex items-center justify-between gap-3 font-mono text-[9px] font-black uppercase text-neutral-300 sm:text-[10px]">
+          <span>{reviewedLabel}</span>
+          <span className="text-[#A3E636]">{remainingCards} remaining</span>
+        </div>
+        <div className="h-4 overflow-hidden border-2 border-black bg-[#1f2637] shadow-[1px_1px_0px_0px_#000] sm:h-4.5" aria-label={`${progressPercent}% complete`}>
+          <div
+            className="h-full bg-[#A3E636] transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </section>
 
-      {!isLoading && !error && totalCards === 0 && (
-        <div className="border-2 border-black bg-[#1a1f2c] p-10 text-center shadow-[6px_6px_0px_0px_#000]">
-          <p className="font-mono text-xs font-black uppercase text-neutral-400">This stage has no vocabulary yet.</p>
-          <button type="button" onClick={onBackToStageMap} className="mt-6 border-2 border-black bg-[#A3E636] px-4 py-3 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">Back to Stage Map</button>
+      {reviewError && (
+        <div className="border-2 border-black bg-[#FFDE59] p-2.5 text-center font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000]">
+          {reviewError}
         </div>
       )}
 
-      {!isLoading && !error && totalCards > 0 && !sessionComplete && (
-        <>
-          <section className="border-2 border-black bg-[#1a1f2c] p-3 shadow-[4px_4px_0px_0px_#000]">
-            <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[10px] font-black uppercase text-white">
-              <span>{reviewedLabel}</span>
-              <span>{remainingCards} remaining</span>
-            </div>
-            <div className="h-5 border-2 border-black bg-white" aria-label={`${progressPercent}% complete`}>
-              <div className="h-full border-r-2 border-black bg-[#A3E636] transition-all" style={{ width: `${progressPercent}%` }} />
-            </div>
-          </section>
-          {reviewError && <div className="border-2 border-black bg-[#FFDE59] p-3 text-center font-mono text-[10px] font-black uppercase text-black shadow-[3px_3px_0px_0px_#000]">{reviewError}</div>}
-          {activeCard && <VocabCard key={`${activeCard.id}-${cardTurn}`} vocab={activeCard} onRate={handleRate} />}
-          {isRating && <p className="text-center font-mono text-[10px] font-black uppercase text-neutral-400">Saving review...</p>}
-        </>
+      {activeCard && (
+        <VocabCard
+          key={`${activeCard.id}-${cardTurn}`}
+          vocab={activeCard}
+          position={completedCards + 1}
+          total={totalCards}
+          onRate={handleRate}
+        />
       )}
 
-      {sessionComplete && (
-        <section className="border-2 border-black bg-[#A3E636] p-6 text-black shadow-[6px_6px_0px_0px_#000] sm:p-10">
-          <span className="font-mono text-xs font-black uppercase tracking-wider">Stage {stageNumber} // Complete</span>
-          <h2 className="mt-2 text-3xl font-black uppercase tracking-tight sm:text-5xl">Session Complete</h2>
-          <p className="mt-3 font-mono text-sm font-bold uppercase">{completedCards} cards reviewed and saved.</p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <button type="button" onClick={onBackToStageMap} className="border-2 border-black bg-white px-4 py-3 font-mono text-xs font-black uppercase shadow-[3px_3px_0px_0px_#000] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">Return to Stage Map</button>
-            <button type="button" onClick={() => setIsQuizStarted(true)} className="border-2 border-black bg-[#70CFF8] px-4 py-3 font-mono text-xs font-black uppercase shadow-[3px_3px_0px_0px_#000] hover:bg-[#8bd9fa] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">Take a Quiz</button>
-          </div>
-        </section>
+      {isRating && (
+        <p className="text-center font-mono text-[10px] font-black uppercase text-neutral-400">
+          Saving review...
+        </p>
       )}
     </main>
   );
