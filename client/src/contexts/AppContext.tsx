@@ -4,6 +4,7 @@ import type { AppStatus, SelectorScreen } from '../types';
 
 export type AppContextValue = {
   authLoading: boolean;
+  isLoggingOut: boolean;
   authRequired: boolean;
   user: User | null;
   appHomeKey: number;

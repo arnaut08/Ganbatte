@@ -162,6 +162,13 @@ export function getKanjiCards(): Promise<CardDeck<KanjiCard>> {
   return request('/api/kanji-cards');
 }
 
+export function getActiveMatchSession(sessionKey: string): Promise<{
+  user_in_active_match: boolean;
+  room: Room | null;
+}> {
+  return request(`/api/assessments/active-session?sessionKey=${encodeURIComponent(sessionKey)}`);
+}
+
 export function getKanjiOverview(): Promise<{ groups: KanjiGroupOverview[] }> {
   return request('/api/kanji/overview');
 }

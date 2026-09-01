@@ -79,6 +79,11 @@ export default function useAppNavigation({
     (nextStatus: AppStatus, targetSelector?: SelectorScreen) => {
       if (!nextStatus) return;
 
+      if (statusRef.current === 'assessment' || statusRef.current === 'assessment-preparing') {
+        showToast('Cannot navigate away during an active match. Finish or forfeit first.', 'error');
+        return;
+      }
+
       const socket = socketRef.current;
       const roomCode = roomCodeRef.current;
       if (socket?.connected && roomCode) {
@@ -92,10 +97,14 @@ export default function useAppNavigation({
       setScreenHistory((prev) => (prev[prev.length - 1] === nextStatus ? prev : [...prev, nextStatus]));
       setStatus(nextStatus);
     },
-    [roomCodeRef, socketRef]
+    [roomCodeRef, showToast, socketRef]
   );
 
   const handleGoBack = useCallback(() => {
+    if (statusRef.current === 'assessment' || statusRef.current === 'assessment-preparing') {
+      showToast('Cannot navigate away during an active match. Finish or forfeit first.', 'error');
+      return;
+    }
     const destination = getBackDestination({
       currentStatus: statusRef.current,
       selectorScreen: selectorScreenRef.current,
@@ -124,11 +133,15 @@ export default function useAppNavigation({
   }, [roomCodeRef, roomStatus, socketRef]);
 
   const handleBackToPractice = useCallback(() => {
+    if (statusRef.current === 'assessment' || statusRef.current === 'assessment-preparing') {
+      showToast('Cannot navigate away during an active match. Finish or forfeit first.', 'error');
+      return;
+    }
     setStatus('selector');
     setSelectorScreen('practice');
     setScreenHistory(['selector']);
     setAppHomeKey((value) => value + 1);
-  }, []);
+  }, [showToast]);
 
   const handleOpenGrammarPractice = useCallback(
     async (maxLesson = 12, count = 10, mode = 'practice') => {

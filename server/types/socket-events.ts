@@ -14,6 +14,7 @@ export interface ClientToServerEvents {
   'next-card': (roomCode: RoomCode) => void;
   'player-ready': (roomCode: RoomCode) => void;
   'use-hint': (roomCode: RoomCode, cardIndex: number) => void;
+  'forfeit-match': (roomCode: RoomCode) => void;
   'leave-room': (roomCode: RoomCode, callback: RoomCallback) => void;
   'start-assessment': (roomCode: RoomCode, refreshDeck?: boolean) => void;
   'replay-assessment': (roomCode: RoomCode) => void;

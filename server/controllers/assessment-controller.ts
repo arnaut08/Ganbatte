@@ -1,4 +1,21 @@
 import { z } from 'zod';
+import { roomState } from '../utils/socket-room-utils.js';
+
+export function getActiveMatchSession(req: Request, res: Response): void {
+  const userId = req.user?.id;
+  const sessionKey = typeof req.query.sessionKey === 'string' ? req.query.sessionKey : '';
+  const activeRoom = [...roomState.rooms.values()].find((room) => (
+    (room.status === 'active' || room.status === 'preparing')
+    && room.players.some((player) => (
+      (userId && player.userId === userId) || (sessionKey && player.sessionKey === sessionKey)
+    ))
+  ));
+
+  res.json({
+    user_in_active_match: Boolean(activeRoom),
+    room: activeRoom || null,
+  });
+}
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { getSupabaseClient } from '../config/supabase.js';
 import { calculateSrsUpdate } from '../services/vocab-progress-service.js';
