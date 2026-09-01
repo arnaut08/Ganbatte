@@ -38,10 +38,10 @@ export default function KanjiGroupMap({ groups, onSelect, onQuiz }: Props) {
                             className="pointer-events-none absolute -bottom-3 -right-2 select-none font-mono text-[80px] sm:text-[105px] font-black leading-none text-transparent transition-all duration-300 group-hover:scale-105"
                             style={{ WebkitTextStroke: '2px rgba(112, 207, 248, 0.15)' }}
                             onMouseEnter={(e) => {
-                                (e.currentTarget as HTMLElement).style.WebkitTextStroke = '2px rgba(112, 207, 248, 0.35)';
+                                (e.currentTarget as HTMLElement).style.webkitTextStroke = '2px rgba(112, 207, 248, 0.35)';
                             }}
                             onMouseLeave={(e) => {
-                                (e.currentTarget as HTMLElement).style.WebkitTextStroke = '2px rgba(112, 207, 248, 0.15)';
+                                (e.currentTarget as HTMLElement).style.webkitTextStroke = '2px rgba(112, 207, 248, 0.15)';
                             }}
                             aria-hidden="true"
                         >

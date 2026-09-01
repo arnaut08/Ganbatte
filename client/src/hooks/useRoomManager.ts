@@ -157,7 +157,7 @@ export default function useRoomManager({
 
   // Sync / Re-authenticate socket when user logs in post email-verification
   useEffect(() => {
-    if (!activeSocket) return;
+    if (!activeSocket || !supabase) return;
 
     if (user?.id) {
       supabase.auth.getSession().then(({ data }) => {

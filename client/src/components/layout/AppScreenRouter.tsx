@@ -4,12 +4,14 @@ import { useRoomContext, type RoomContextValue } from '../../contexts/RoomContex
 import { isGrammarAnswer, isGrammarQuestion } from '../../types';
 import { HomeSkeleton } from './AppHomeSkeleton';
 import { GenericRouteSkeleton } from './GenericRouteSkeleton';
+import useToast from '@/hooks/useToast';
 
 const AppHome = lazy(() => import('../AppHome'));
 const RoomLobby = lazy(() => import('../practice/RoomLobby'));
 const Assessment = lazy(() => import('../practice/Assessment'));
 const Results = lazy(() => import('../practice/Results'));
 const AuthPage = lazy(() => import('../auth/AuthPage'));
+const UpdatePasswordPage = lazy(() => import('../auth/UpdatePasswordPage'));
 const KanjiStudy = lazy(() => import('../learning/kanji/KanjiStudy'));
 const KanjiIntroScreen = lazy(() => import('../learning/kanji/KanjiIntroScreen'));
 const VocabScreen = lazy(() => import('../learning/vocab/VocabScreen'));
@@ -98,6 +100,8 @@ function LegacyAppScreenRouter({
     setIsStampAnimating(true);
   }, []);
 
+  const { toast, showToast, clearToast } = useToast();
+
   const grammarSessionQuestions = (room?.cards ?? []).filter(isGrammarQuestion);
   const grammarRoomView = room
     ? {
@@ -151,6 +155,9 @@ function LegacyAppScreenRouter({
   // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
   const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating;
 
+  // Show password update page if the URL contains a recovery hash
+  const isRecoveryFlow = window.location.hash.includes('type=recovery');
+
   if (isFullyHydrating) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#11141d] px-4 text-white font-mono">
@@ -161,6 +168,22 @@ function LegacyAppScreenRouter({
           <p className="text-sm font-bold uppercase">Syncing active match state &amp; cards...</p>
         </div>
       </div>
+    );
+  }
+
+  // If recovery flow is active and user has a recovery session, force the update view
+  if (isRecoveryFlow) {
+
+    return (
+      <Suspense fallback={<GenericRouteSkeleton status={status} />}>
+        <UpdatePasswordPage
+          onSuccess={() => {
+            window.location.hash = '';
+            window.location.reload();
+          }}
+          showToast={showToast}
+        />
+      </Suspense>
     );
   }
 

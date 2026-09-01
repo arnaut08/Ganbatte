@@ -1,8 +1,8 @@
-import type { ToastValue } from '../../types';
+import type { ToastAction, ToastValue } from '../../types';
 
 type AppToastProps = {
   toast: ToastValue | null;
-  onAction?: (action: NonNullable<ToastValue>['actions'][number]) => void;
+  onAction?: (action: ToastAction) => void;
 };
 
 export default function AppToast({ toast, onAction }: AppToastProps) {

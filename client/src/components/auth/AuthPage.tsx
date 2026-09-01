@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { supabase } from '../../config/supabase';
 
-type AuthMode = 'signin' | 'signup';
+type AuthMode = 'signin' | 'signup' | 'forgot';
 type CredentialField = 'email' | 'password' | null;
 type AuthForm = { name: string; email: string; password: string };
 
@@ -67,6 +67,24 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
     setCredentialField(null);
 
     try {
+      if (mode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
+          redirectTo: `${window.location.origin}/update-password`,
+        });
+
+        setIsSubmitting(false);
+        if (error) {
+          setMessageType('error');
+          setMessage(error.message);
+          setCredentialField('email');
+          emailInputRef.current?.focus();
+        } else {
+          setMessageType('success');
+          setMessage('Recovery instructions dispatched. Check your inbox for the reset link.');
+        }
+        return;
+      }
+
       const response = mode === 'signup'
         ? await supabase.auth.signUp({
           email: form.email.trim(),
@@ -167,7 +185,7 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
             <div>
               STATUS:{' '}
               <span className={`font-black uppercase ${isAccessGranted ? 'text-[#DC2626]' : 'text-black'}`}>
-                {isAccessGranted ? 'ACCESS_GRANTED' : mode === 'signup' ? 'CADET_ENROLL' : 'VERIFY_OPERATOR'}
+                {isAccessGranted ? 'ACCESS_GRANTED' : mode === 'signup' ? 'CADET_ENROLL' : mode === 'forgot' ? 'RECOVERY_MODE' : 'VERIFY_OPERATOR'}
               </span>
             </div>
           </div>
@@ -184,11 +202,11 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
               </div>
 
               <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center border-2 border-black bg-[#FFDE59] font-mono text-3xl sm:text-4xl font-black text-black shadow-[2px_2px_0px_0px_#000]">
-                {form.name.trim().charAt(0).toUpperCase() || (mode === 'signup' ? '?' : 'OP')}
+                {form.name.trim().charAt(0).toUpperCase() || (mode === 'signup' ? '?' : mode === 'forgot' ? '!' : 'OP')}
               </div>
 
               <span className="border border-black bg-black px-2 py-0.5 font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white">
-                {mode === 'signup' ? 'NEW_CADET' : 'OPERATOR'}
+                {mode === 'signup' ? 'NEW_CADET' : mode === 'forgot' ? 'RECOVERY' : 'OPERATOR'}
               </span>
             </div>
             <span className="mt-2 font-mono text-[9px] sm:text-[10px] font-bold tracking-widest text-neutral-500 uppercase text-center">
@@ -205,8 +223,8 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                 disabled={isAccessGranted}
                 onClick={() => handleSetMode('signin')}
                 className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signin'
-                    ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
-                    : 'text-neutral-500 hover:text-black cursor-pointer'
+                  ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
+                  : 'text-neutral-500 hover:text-black cursor-pointer'
                   }`}
               >
                 Sign In
@@ -216,8 +234,8 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                 disabled={isAccessGranted}
                 onClick={() => handleSetMode('signup')}
                 className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signup'
-                    ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
-                    : 'text-neutral-500 hover:text-black cursor-pointer'
+                  ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
+                  : 'text-neutral-500 hover:text-black cursor-pointer'
                   }`}
               >
                 Create Account
@@ -268,44 +286,55 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                   required
                   aria-invalid={credentialField === 'email'}
                   className={`h-10 w-full border-2 bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:outline-none sm:text-sm ${credentialField === 'email'
-                      ? 'border-solid border-[#FF6B6B] bg-[#FFF1F2]'
-                      : 'border-dashed border-black focus:border-solid'
+                    ? 'border-solid border-[#FF6B6B] bg-[#FFF1F2]'
+                    : 'border-dashed border-black focus:border-solid'
                     }`}
                 />
               </div>
 
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label
-                    htmlFor="password"
-                    className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
-                  >
-                    ACCESS CIPHER
-                  </label>
-                  {mode === 'signup' && (
-                    <span className="font-mono text-[9px] font-bold text-neutral-500">
-                      MIN. 8 CHARS
-                    </span>
-                  )}
-                </div>
-                <input
-                  id="password"
-                  ref={passwordInputRef}
-                  name="password"
-                  type="password"
-                  disabled={isAccessGranted || isSubmitting}
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  minLength={8}
-                  required
-                  aria-invalid={credentialField === 'password'}
-                  className={`h-10 w-full border-2 bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:outline-none sm:text-sm ${credentialField === 'password'
+              {mode !== 'forgot' && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="password"
+                      className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
+                    >
+                      ACCESS CIPHER
+                    </label>
+                    <div className="flex items-center gap-3">
+                      {mode === 'signup' && (
+                        <span className="font-mono text-[9px] font-bold text-neutral-500">
+                          MIN. 8 CHARS
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleSetMode('forgot')}
+                        className="font-mono text-[9px] font-black uppercase text-neutral-600 hover:text-black hover:underline cursor-pointer"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    id="password"
+                    ref={passwordInputRef}
+                    name="password"
+                    type="password"
+                    disabled={isAccessGranted || isSubmitting}
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    minLength={8}
+                    required
+                    aria-invalid={credentialField === 'password'}
+                    className={`h-10 w-full border-2 bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:outline-none sm:text-sm ${credentialField === 'password'
                       ? 'border-solid border-[#FF6B6B] bg-[#FFF1F2]'
                       : 'border-dashed border-black focus:border-solid'
-                    }`}
-                />
-              </div>
+                      }`}
+                  />
+                </div>
+              )}
 
               {/* Passport Rejection / Verification Notice Box */}
               {message && (
@@ -349,22 +378,37 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
               )}
 
               {/* Submit CTA Button */}
-              <div className="pt-2">
+              <div className="pt-2 space-y-2">
                 <button
                   type="submit"
                   disabled={isSubmitting || isAccessGranted}
-                  className="w-full cursor-pointer border-2 border-black bg-[#A3E636] py-3 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#b5eb5b] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-80"
+                  className={`w-full cursor-pointer border-2 border-black py-3 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-80 ${mode === 'forgot' ? 'bg-[#FFDE59] hover:bg-[#f6d246]' : 'bg-[#A3E636] hover:bg-[#b5eb5b]'
+                    }`}
                 >
                   {isAccessGranted
                     ? 'ACCESS GRANTED · REDIRECTING...'
                     : isSubmitting
                       ? mode === 'signup'
                         ? 'REGISTERING CADET...'
-                        : 'VALIDATING ACCESS...'
+                        : mode === 'forgot'
+                          ? 'DISPATCHING RECOVERY...'
+                          : 'VALIDATING ACCESS...'
                       : mode === 'signup'
                         ? 'ISSUE PASSPORT & SIGN UP →'
-                        : 'ENTER SYSTEM →'}
+                        : mode === 'forgot'
+                          ? 'SEND RECOVERY INSTRUCTIONS →'
+                          : 'ENTER SYSTEM →'}
                 </button>
+
+                {mode === 'forgot' && (
+                  <button
+                    type="button"
+                    onClick={() => handleSetMode('signin')}
+                    className="w-full text-center font-mono text-[10px] font-black uppercase text-neutral-600 hover:text-black cursor-pointer pt-1"
+                  >
+                    ← Return to Sign In
+                  </button>
+                )}
               </div>
             </form>
           </div>
