@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
+import type { ToastType } from '../types';
 import { supabase } from '../config/supabase';
 
-export default function useAuth() {
+type UseAuthOptions = {
+  showToast?: (message: string, type?: ToastType) => void;
+};
+
+export default function useAuth(options?: UseAuthOptions) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const authRequired = Boolean(supabase);
@@ -13,10 +18,6 @@ export default function useAuth() {
       return undefined;
     }
 
-    // Keep the previous User object identity whenever the id is unchanged:
-    // auth events like TOKEN_REFRESHED (fired when a hidden tab regains
-    // focus) deliver a fresh object for the same user, and swapping it in
-    // needlessly re-renders every `user` consumer.
     const mergeUser = (current: User | null, nextUser: User | null) =>
       (current?.id ?? null) === (nextUser?.id ?? null) ? current : nextUser;
 
@@ -26,14 +27,28 @@ export default function useAuth() {
       setAuthLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       const nextUser = session?.user || null;
       setUser((current) => mergeUser(current, nextUser));
       setAuthLoading(false);
+
+      // Handle specific auth landing events from URL tokens
+      if (event === 'SIGNED_IN') {
+        const hash = window.location.hash;
+        
+        if (hash) {
+          if (hash.includes('type=signup') || hash.includes('type=email_change')) {
+            options?.showToast?.('Email verified successfully! Welcome to the arena.', 'success');
+            window.history.replaceState(null, '', window.location.pathname);
+          } else if (hash.includes('type=recovery')) {
+            options?.showToast?.('Recovery session initialized. Update your password below.', 'warning');
+          }
+        }
+      }
     });
 
     return () => listener.subscription.unsubscribe();
-  }, []);
+  }, [options]);
 
   const getDisplayName = useCallback(() => {
     const fullName = user?.user_metadata?.full_name?.trim();
