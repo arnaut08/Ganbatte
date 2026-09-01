@@ -37,13 +37,13 @@ function getMasteryState(streak: number): MasteryState {
 }
 
 const MASTERY_STATE_BADGE: Record<MasteryState, { label: string; chipClass: string }> = {
-  unlearned: { label: 'UNLEARNED', chipClass: 'bg-neutral-200 text-neutral-800' },
+  unlearned: { label: 'UNLEARNED', chipClass: 'bg-[#252c3d] text-neutral-300' },
   practicing: { label: 'PRACTICING', chipClass: 'bg-[#70CFF8] text-black' },
   mastered: { label: '★ MASTERED', chipClass: 'bg-[#A3E636] text-black' },
 };
 
 const NEXT_BUTTON_CLASSES =
-  'border-2 border-black bg-black px-5 py-2 sm:px-6 sm:py-2.5 font-mono text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-800 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none';
+  'cursor-pointer border-2 border-black bg-white px-5 py-2 sm:px-6 sm:py-2.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-[#FFDE59] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none';
 
 function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
   const [cards, setCards] = useState<KanaRecallCard[]>([]);
@@ -212,7 +212,7 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
           <button
             type="button"
             onClick={handleScreenBack}
-            className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
             title="Back"
           >
             <span className="font-mono text-sm font-black sm:text-lg">&lt;</span>
@@ -229,9 +229,9 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
         <button
           type="button"
           onClick={onOpenFilter}
-          className="border-2 border-black bg-[#A3E636] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#94df22] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:px-3.5 sm:py-1.5 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000000]"
+          className="cursor-pointer border-2 border-black bg-[#151922] border-l-4 border-l-[#A3E636] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-white shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#252c3d] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-3.5 sm:py-1.5 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000000]"
         >
-          {activeCards.length} CARDS
+          <strong className="text-[#A3E636]">{activeCards.length}</strong> CARDS
         </button>
       </div>
 
@@ -249,51 +249,51 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
 
       {/* Session Complete View */}
       {!isLoading && !error && isComplete && sessionSummary && (
-        <section className="border-2 border-black bg-[#FFDE59] p-4 text-black shadow-[4px_4px_0px_0px_#000000] sm:p-8 sm:shadow-[6px_6px_0px_0px_#000000]">
-          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-black/80 sm:text-xs">
+        <section className="border-2 border-black border-l-8 border-l-[#FFDE59] bg-[#1f2637] p-4 text-white shadow-[4px_4px_0px_0px_#000000] sm:p-8 sm:shadow-[6px_6px_0px_0px_#000000]">
+          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59] sm:text-xs">
             // SESSION COMPLETE
           </span>
-          <h2 className="mt-0.5 text-2xl font-black uppercase tracking-tight sm:mt-1 sm:text-4xl">
+          <h2 className="mt-0.5 text-2xl font-black uppercase tracking-tight text-white sm:mt-1 sm:text-4xl">
             Nice work!
           </h2>
-          <p className="mt-1 text-xs font-bold leading-tight sm:text-sm">
+          <p className="mt-1 font-mono text-xs font-medium leading-tight text-neutral-300 sm:text-sm">
             Every correct answer grows a character&apos;s streak — 3 in a row locks in ★ MASTERED.
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-6 sm:gap-3">
-            <div className="border-2 border-black bg-[#A3E636] p-2.5 text-center shadow-[2px_2px_0px_0px_#000] sm:p-4 sm:shadow-[3px_3px_0px_0px_#000]">
-              <span className="block font-mono text-xl font-black sm:text-3xl">{sessionSummary.mastered}</span>
-              <span className="font-mono text-[9px] font-black uppercase sm:text-xs">Mastered</span>
+            <div className="border-2 border-black bg-[#151922] border-t-4 border-t-[#A3E636] p-2.5 text-center shadow-[2px_2px_0px_0px_#000] sm:p-4 sm:shadow-[3px_3px_0px_0px_#000]">
+              <span className="block font-mono text-xl font-black text-[#A3E636] sm:text-3xl">{sessionSummary.mastered}</span>
+              <span className="font-mono text-[9px] font-black uppercase text-neutral-300 sm:text-xs">Mastered</span>
             </div>
-            <div className="border-2 border-black bg-[#70CFF8] p-2.5 text-center shadow-[2px_2px_0px_0px_#000] sm:p-4 sm:shadow-[3px_3px_0px_0px_#000]">
-              <span className="block font-mono text-xl font-black sm:text-3xl">{sessionSummary.practicing}</span>
-              <span className="font-mono text-[9px] font-black uppercase sm:text-xs">Practicing</span>
+            <div className="border-2 border-black bg-[#151922] border-t-4 border-t-[#70CFF8] p-2.5 text-center shadow-[2px_2px_0px_0px_#000] sm:p-4 sm:shadow-[3px_3px_0px_0px_#000]">
+              <span className="block font-mono text-xl font-black text-[#70CFF8] sm:text-3xl">{sessionSummary.practicing}</span>
+              <span className="font-mono text-[9px] font-black uppercase text-neutral-300 sm:text-xs">Practicing</span>
             </div>
-            <div className="border-2 border-black bg-white p-2.5 text-center shadow-[2px_2px_0px_0px_#000] sm:p-4 sm:shadow-[3px_3px_0px_0px_#000]">
-              <span className="block font-mono text-xl font-black sm:text-3xl">{sessionSummary.unlearned}</span>
-              <span className="font-mono text-[9px] font-black uppercase sm:text-xs">Unlearned</span>
+            <div className="border-2 border-black bg-[#151922] border-t-4 border-t-neutral-500 p-2.5 text-center shadow-[2px_2px_0px_0px_#000] sm:p-4 sm:shadow-[3px_3px_0px_0px_#000]">
+              <span className="block font-mono text-xl font-black text-white sm:text-3xl">{sessionSummary.unlearned}</span>
+              <span className="font-mono text-[9px] font-black uppercase text-neutral-300 sm:text-xs">Unlearned</span>
             </div>
           </div>
 
-          <div className="mt-5 flex justify-end border-t-2 border-black pt-3.5 sm:mt-6 sm:pt-4">
+          <div className="mt-5 flex justify-end border-t-2 border-white/10 pt-3.5 sm:mt-6 sm:pt-4">
             <button type="button" onClick={onOpenFilter} className={NEXT_BUTTON_CLASSES}>
               DONE →
             </button>
           </div>
-          {saveError && <p className="mt-2 font-mono text-[10px] font-bold text-red-700 sm:text-xs">{saveError}</p>}
+          {saveError && <p className="mt-2 font-mono text-[10px] font-bold text-[#FF6B6B] sm:text-xs">{saveError}</p>}
         </section>
       )}
 
       {/* No Cards Selected */}
       {!isLoading && !error && !isComplete && !card && (
-        <div className="border-2 border-black bg-[#151922] p-6 text-center text-white shadow-[4px_4px_0px_0px_#000000] sm:p-10">
+        <div className="border-2 border-black bg-[#1f2637] p-6 text-center text-white shadow-[4px_4px_0px_0px_#000000] sm:p-10">
           <p className="font-mono text-xs font-black uppercase text-neutral-300 sm:text-sm">
             No Kana cards selected.
           </p>
           <button
             type="button"
             onClick={onOpenFilter}
-            className="mt-4 border-2 border-black bg-[#A3E636] px-4 py-2 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#94df22] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+            className="mt-4 cursor-pointer border-2 border-black bg-[#FFDE59] px-4 py-2 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             Change selection
           </button>
@@ -302,18 +302,18 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
 
       {/* Active Card */}
       {!isLoading && !error && !isComplete && card && (
-        <section className="border-2 border-black bg-[#FFDE59] p-4 text-black shadow-[4px_4px_0px_0px_#000000] sm:p-8 sm:shadow-[6px_6px_0px_0px_#000000]">
+        <section className="border-2 border-black border-l-8 border-l-[#FFDE59] bg-[#1f2637] p-4 text-white shadow-[4px_4px_0px_0px_#000000] sm:p-8 sm:shadow-[6px_6px_0px_0px_#000000]">
           {/* Header */}
-          <div className="flex items-center justify-between border-b-2 border-black pb-2 font-mono text-[10px] font-black uppercase sm:text-xs">
-            <span>{card.groupName}</span>
-            <span>
+          <div className="flex items-center justify-between border-b-2 border-white/10 pb-2 font-mono text-[10px] font-black uppercase sm:text-xs">
+            <span className="text-[#FFDE59]">{card.groupName}</span>
+            <span className="text-neutral-400">
               {cardIndex + 1} / {activeCards.length}
             </span>
           </div>
 
-          {/* Large Kana Display */}
-          <div className="my-3 border-2 border-black bg-white p-4 text-center shadow-[3px_3px_0px_0px_#000000] sm:my-6 sm:p-8 sm:shadow-[4px_4px_0px_0px_#000000]">
-            <div className="kana-font text-7xl font-black leading-none text-black sm:text-9xl">
+          {/* Large Kana Display Box */}
+          <div className="my-3 border-2 border-black bg-[#151922] p-4 text-center shadow-[3px_3px_0px_0px_#000000] sm:my-6 sm:p-8 sm:shadow-[4px_4px_0px_0px_#000000]">
+            <div className="kana-font text-7xl font-black leading-none text-white sm:text-9xl">
               {card.kana}
             </div>
           </div>
@@ -321,7 +321,7 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
           {/* Form State */}
           {!attempt ? (
             <form onSubmit={submitAnswer} className="space-y-2.5 sm:space-y-3">
-              <label htmlFor="kana-answer" className="block font-mono text-[10px] font-black uppercase sm:text-xs">
+              <label htmlFor="kana-answer" className="block font-mono text-[10px] font-black uppercase text-neutral-300 sm:text-xs">
                 Type the romaji reading (Enter to submit)
               </label>
               <input
@@ -332,13 +332,14 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
                 autoFocus
                 autoComplete="off"
                 spellCheck={false}
-                className="h-10 w-full border-2 border-black bg-white px-3 font-mono text-base font-black text-black shadow-[2px_2px_0px_0px_#000000] outline-none placeholder:font-sans placeholder:text-xs placeholder:font-normal placeholder:text-neutral-400 focus:ring-2 focus:ring-black sm:h-12 sm:px-4 sm:text-xl"
+                className="h-10 w-full border-2 border-black bg-[#151922] px-3 font-mono text-base font-black uppercase tracking-widest text-white shadow-[2px_2px_0px_0px_#000000] outline-none placeholder:font-sans placeholder:text-xs placeholder:font-normal placeholder:tracking-normal placeholder:text-neutral-500 focus:border-[#FFDE59] focus:ring-0 sm:h-12 sm:px-4 sm:text-xl"
                 placeholder="romaji"
               />
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="submit"
-                  className="border-2 border-black bg-[#A3E636] px-5 py-2 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:bg-[#94df22] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:py-2.5"
+                  disabled={!answer.trim()}
+                  className="cursor-pointer border-2 border-black bg-[#A3E636] px-5 py-2 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none sm:py-2.5"
                 >
                   Check answer ↵
                 </button>
@@ -348,20 +349,19 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
             /* Result State */
             <div className="space-y-3 sm:space-y-4">
               <div
-                className={`border-2 border-black p-2.5 font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] sm:p-3 sm:text-sm ${
-                  attempt.correct ? 'bg-[#A3E636] text-black' : 'bg-[#FF6B6B] text-black'
-                }`}
+                className={`border-2 border-black p-2.5 font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] sm:p-3 sm:text-sm ${attempt.correct ? 'bg-[#A3E636] text-black' : 'bg-[#FF6B6B] text-black'
+                  }`}
               >
                 {attempt.correct ? 'CORRECT!' : `Not quite. Answer: ${card.romaji}`}
               </div>
 
               {/* Streak Mastery Info */}
-              <div className="grid grid-cols-3 items-center gap-1.5 border-2 border-black bg-white p-2.5 shadow-[2px_2px_0px_0px_#000] sm:p-3">
+              <div className="grid grid-cols-3 items-center gap-1.5 border-2 border-black bg-[#151922] p-2.5 shadow-[2px_2px_0px_0px_#000] sm:p-3">
                 <div className="text-center">
-                  <span className="block font-mono text-base font-black sm:text-2xl">
+                  <span className="block font-mono text-base font-black text-white sm:text-2xl">
                     {streak}/{MASTERY_TARGET}
                   </span>
-                  <span className="font-mono text-[8px] font-black uppercase sm:text-[10px]">Streak</span>
+                  <span className="font-mono text-[8px] font-black uppercase text-neutral-400 sm:text-[10px]">Streak</span>
                 </div>
                 <div className="flex items-center justify-center">
                   <span
@@ -371,24 +371,24 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
                   </span>
                 </div>
                 <div className="text-center">
-                  <span className="block font-mono text-base font-black sm:text-2xl">{totalAttempts}</span>
-                  <span className="font-mono text-[8px] font-black uppercase sm:text-[10px]">Attempts</span>
+                  <span className="block font-mono text-base font-black text-white sm:text-2xl">{totalAttempts}</span>
+                  <span className="font-mono text-[8px] font-black uppercase text-neutral-400 sm:text-[10px]">Attempts</span>
                 </div>
               </div>
 
               {/* Example Word */}
               {card.example && (
-                <div className="border-2 border-black bg-white p-2.5 shadow-[2px_2px_0px_0px_#000] sm:p-3.5">
-                  <p className="jp-font text-base font-black sm:text-lg">{card.example[0]}</p>
-                  <p className="font-mono text-[10px] font-bold text-neutral-800 sm:text-xs">
+                <div className="border-2 border-black bg-[#151922] border-l-4 border-l-[#70CFF8] p-2.5 shadow-[2px_2px_0px_0px_#000] sm:p-3.5">
+                  <p className="jp-font text-base font-black text-white sm:text-lg">{card.example[0]}</p>
+                  <p className="font-mono text-[10px] font-bold text-neutral-300 sm:text-xs">
                     {card.example[1]} | {card.example[2]}
                   </p>
                 </div>
               )}
 
               {/* Next Button Footer */}
-              <div className="flex flex-col gap-2 border-t-2 border-black pt-3 sm:flex-row sm:items-center sm:justify-between sm:pt-4">
-                <span className="font-mono text-[9px] font-bold uppercase text-black/70 sm:text-[10px]">
+              <div className="flex flex-col gap-2 border-t-2 border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between sm:pt-4">
+                <span className="font-mono text-[9px] font-bold uppercase text-neutral-400 sm:text-[10px]">
                   Press Enter for next character
                 </span>
                 <button type="button" onClick={moveNext} className={NEXT_BUTTON_CLASSES}>
@@ -397,7 +397,7 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
               </div>
 
               {saveError && (
-                <p className="font-mono text-[10px] font-bold text-red-700 sm:text-xs">{saveError}</p>
+                <p className="font-mono text-[10px] font-bold text-[#FF6B6B] sm:text-xs">{saveError}</p>
               )}
             </div>
           )}

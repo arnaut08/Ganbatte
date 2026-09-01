@@ -56,7 +56,7 @@ function matrixMatchesTab(matrix: KanaMatrixData, tab: KanaFilterTab): boolean {
 }
 
 /** Compact corner badge reflecting streak-based mastery for one tile. */
-function MasteryCornerBadge({ streak }: { streak: number }) {
+function MasteryCornerBadge({ streak, isKatakana }: { streak: number; isKatakana?: boolean }) {
   if (streak >= 3) {
     return (
       <span
@@ -70,7 +70,8 @@ function MasteryCornerBadge({ streak }: { streak: number }) {
   if (streak >= 1) {
     return (
       <span
-        className="pointer-events-none absolute right-1 top-1 h-1.5 w-1.5 rounded-full border border-black bg-[#70CFF8] shadow-[0.5px_0.5px_0px_0px_#000]"
+        className={`pointer-events-none absolute right-1 top-1 h-1.5 w-1.5 rounded-full border border-black shadow-[0.5px_0.5px_0px_0px_#000] ${isKatakana ? 'bg-[#FB923C]' : 'bg-[#FFDE59]'
+          }`}
         title={`Practicing (streak ${streak})`}
       />
     );
@@ -99,7 +100,8 @@ function KanaMatrix({
 }: KanaMatrixProps) {
   const { id, name, script, type, columns, rows, extras } = matrix;
   const isHiragana = script === 'hiragana';
-  const themeColor = isHiragana ? '#FFDE59' : '#70CFF8';
+  // Katakana updated to Amber Orange #FB923C to prevent clashing with Kanji #70CFF8
+  const themeColor = isHiragana ? '#FFDE59' : '#FB923C';
 
   const allCells = [
     ...rows.flatMap((row) => row.cells.filter(Boolean)),
@@ -124,20 +126,24 @@ function KanaMatrix({
   };
 
   const tileClasses = (isSelected: boolean) =>
-    `kana-font relative flex h-8 sm:h-12 items-center justify-center border-2 text-sm sm:text-xl font-black transition-all ${
-      isSelected
-        ? 'border-black bg-[#FFDE59] text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
-        : 'border-black bg-white text-neutral-900 shadow-none hover:bg-neutral-100'
+    `kana-font relative flex h-9 sm:h-12 items-center justify-center border-2 border-black font-black transition-all cursor-pointer select-none text-sm sm:text-xl ${isSelected
+      ? isHiragana
+        ? 'bg-[#FFDE59] text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
+        : 'bg-[#FB923C] text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
+      : 'bg-[#1f2637] text-white hover:bg-[#2a3449]'
     } active:translate-x-[1px] active:translate-y-[1px] active:shadow-none`;
 
   return (
-    <div className="flex flex-col border-2 border-black bg-[#151922] p-2.5 sm:p-5 shadow-[3px_3px_0px_0px_#000] sm:shadow-[5px_5px_0px_0px_#000]">
+    <div
+      className="flex flex-col border-2 border-black bg-[#151922] p-2.5 sm:p-5 shadow-[4px_4px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] border-l-8"
+      style={{ borderLeftColor: themeColor }}
+    >
       {/* Matrix Header */}
-      <div className="mb-2 sm:mb-4 flex items-center justify-between gap-2 border-b-2 border-black/40 pb-2 sm:pb-3">
+      <div className="mb-2 sm:mb-4 flex items-center justify-between gap-2 border-b-2 border-white/10 pb-2 sm:pb-3">
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           <span
-            className="shrink-0 border-2 border-black bg-black px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider"
-            style={{ color: themeColor }}
+            className="shrink-0 border-2 border-black px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]"
+            style={{ backgroundColor: themeColor }}
           >
             {MATRIX_TYPE_LABELS[type as keyof typeof MATRIX_TYPE_LABELS] || type}
           </span>
@@ -152,11 +158,10 @@ function KanaMatrix({
         <button
           type="button"
           onClick={() => onToggleGroup(id)}
-          className={`shrink-0 border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
-            isGroupSelected
-              ? 'bg-[#FF6B6B] text-black hover:bg-[#ff8585]'
-              : 'bg-[#FFDE59] text-black hover:bg-[#ffe77f]'
-          }`}
+          className={`shrink-0 cursor-pointer border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-[1.5px_1.5px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${isGroupSelected
+              ? 'bg-[#FF6B6B] text-black'
+              : 'bg-white text-black hover:bg-[#FFDE59]'
+            }`}
         >
           {isGroupSelected ? 'Clear' : 'Select'}
         </button>
@@ -167,7 +172,7 @@ function KanaMatrix({
         <div
           className="grid gap-1 sm:gap-1.5 min-w-[200px]"
           style={{
-            gridTemplateColumns: `24px repeat(${columns.length + (extras.length > 0 ? 1 : 0)}, minmax(0, 1fr))`,
+            gridTemplateColumns: `26px repeat(${columns.length + (extras.length > 0 ? 1 : 0)}, minmax(0, 1fr))`,
           }}
         >
           {/* Top Left Blank Corner */}
@@ -181,11 +186,10 @@ function KanaMatrix({
                 key={col}
                 type="button"
                 onClick={() => onToggleColumn(id, colIndex)}
-                className={`flex h-7 sm:h-9 items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all active:translate-x-[1px] active:translate-y-[1px] ${
-                  isColActive
+                className={`flex h-7 sm:h-9 cursor-pointer items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] ${isColActive
                     ? 'bg-[#A3E636] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                    : 'bg-[#252c3d] text-neutral-300 hover:bg-[#323b52] hover:text-white'
-                }`}
+                    : 'bg-[#1f2637] text-neutral-400 hover:bg-[#283248] hover:text-white'
+                  }`}
                 title={`Toggle entire '${col}' column`}
               >
                 {col}
@@ -194,7 +198,7 @@ function KanaMatrix({
           })}
 
           {extras.length > 0 && (
-            <div className="flex h-7 sm:h-9 items-center justify-center border-2 border-dashed border-neutral-600 font-mono text-[9px] sm:text-xs font-bold text-neutral-500">
+            <div className="flex h-7 sm:h-9 items-center justify-center border-2 border-dashed border-neutral-700 font-mono text-[9px] sm:text-xs font-bold text-neutral-500">
               +
             </div>
           )}
@@ -208,11 +212,10 @@ function KanaMatrix({
                 <button
                   type="button"
                   onClick={() => onToggleRow(id, row.id)}
-                  className={`flex h-8 sm:h-12 items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all active:translate-x-[1px] active:translate-y-[1px] ${
-                    isRowActive
+                  className={`flex h-9 sm:h-12 cursor-pointer items-center justify-center border-2 border-black font-mono text-[9px] sm:text-xs font-black uppercase transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] ${isRowActive
                       ? 'bg-[#A3E636] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                      : 'bg-[#252c3d] text-neutral-300 hover:bg-[#323b52] hover:text-white'
-                  }`}
+                      : 'bg-[#1f2637] text-neutral-400 hover:bg-[#283248] hover:text-white'
+                    }`}
                   title={`Toggle entire '${row.label || 'V'}' row`}
                 >
                   {row.label || 'V'}
@@ -224,7 +227,7 @@ function KanaMatrix({
                     return (
                       <div
                         key={`${row.id}-${colIndex}`}
-                        className="h-8 sm:h-12 border border-dashed border-neutral-700/40 bg-[#0f131a]"
+                        className="h-9 sm:h-12 border border-dashed border-neutral-800 bg-[#0d1117]/60"
                       />
                     );
                   }
@@ -239,7 +242,7 @@ function KanaMatrix({
                       title={streak >= 3 ? `${cell} – mastered` : `${cell} – streak ${streak}`}
                     >
                       {cell}
-                      <MasteryCornerBadge streak={streak} />
+                      <MasteryCornerBadge streak={streak} isKatakana={!isHiragana} />
                     </button>
                   );
                 })}
@@ -260,7 +263,7 @@ function KanaMatrix({
                           title={streak >= 3 ? `${extraCell} – mastered` : `${extraCell} – streak ${streak}`}
                         >
                           {extraCell}
-                          <MasteryCornerBadge streak={streak} />
+                          <MasteryCornerBadge streak={streak} isKatakana={!isHiragana} />
                         </button>
                       );
                     })}
@@ -292,10 +295,6 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Keep the shared App-level selectedKana in sync with every local selection
-  // change. Without this, unselecting characters and leaving the filter without
-  // pressing "Start Practice" would re-show the unselected characters when the
-  // filter is mounted again from the stale App-level set.
   useEffect(() => {
     if (!onSelectionChange) return;
     const initial = new Set(initialSelectedKana ?? []);
@@ -435,7 +434,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
             <button
               type="button"
               onClick={onBack}
-              className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
+              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
               title="Back to Setup"
             >
               <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
@@ -452,23 +451,23 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
 
           {/* Action & Mastery Bar */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <span className="border-2 border-black bg-[#FFDE59] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
-              Hiragana {masteredCounts.hiragana}/{basicCellsByScript.hiragana?.size ?? 0}
+            <span className="border-2 border-black bg-[#151922] border-l-4 border-l-[#FFDE59] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-white shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
+              Hiragana <strong className="text-[#FFDE59]">{masteredCounts.hiragana}</strong>/{basicCellsByScript.hiragana?.size ?? 0}
             </span>
-            <span className="border-2 border-black bg-[#70CFF8] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
-              Katakana {masteredCounts.katakana}/{basicCellsByScript.katakana?.size ?? 0}
+            <span className="border-2 border-black bg-[#151922] border-l-4 border-l-[#FB923C] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-white shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
+              Katakana <strong className="text-[#FB923C]">{masteredCounts.katakana}</strong>/{basicCellsByScript.katakana?.size ?? 0}
             </span>
             <button
               type="button"
               onClick={handleSelectAll}
-              className="border-2 border-black bg-[#A3E636] px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:px-3 sm:py-1 sm:text-xs"
+              className="cursor-pointer border-2 border-black bg-white px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#A3E636] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-3 sm:py-1 sm:text-xs"
             >
               Select All
             </button>
             <button
               type="button"
               onClick={handleClearAll}
-              className="border-2 border-black bg-white px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:px-3 sm:py-1 sm:text-xs"
+              className="cursor-pointer border-2 border-black bg-white px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FF6B6B] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-3 sm:py-1 sm:text-xs"
             >
               Clear All
             </button>
@@ -484,11 +483,10 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase tracking-wider transition-all sm:px-3.5 sm:py-1.5 sm:text-xs ${
-                  isActive
+                className={`cursor-pointer border-2 border-black px-2.5 py-1 font-mono text-[10px] font-black uppercase tracking-wider transition-all sm:px-3.5 sm:py-1.5 sm:text-xs hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${isActive
                     ? 'bg-[#FFDE59] text-black shadow-[2px_2px_0px_0px_#000]'
-                    : 'bg-white text-neutral-800 shadow-[1.5px_1.5px_0px_0px_#000] hover:bg-neutral-100'
-                } active:translate-x-[1px] active:translate-y-[1px] active:shadow-none`}
+                    : 'bg-[#151922] text-neutral-300 shadow-[1.5px_1.5px_0px_0px_#000] hover:bg-[#1f2637] hover:text-white'
+                  }`}
               >
                 {tab.label} ({tab.count})
               </button>
@@ -552,7 +550,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
             type="button"
             onClick={handleApply}
             disabled={selectedCells.size === 0}
-            className="border-2 border-black bg-[#A3E636] px-4 py-1.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-600 disabled:opacity-50 disabled:shadow-none sm:px-6 sm:py-2 sm:text-sm sm:shadow-[3px_3px_0px_0px_#000]"
+            className="cursor-pointer border-2 border-black bg-white px-4 py-1.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#A3E636] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none sm:px-6 sm:py-2 sm:text-sm sm:shadow-[3px_3px_0px_0px_#000]"
           >
             Start Practice →
           </button>

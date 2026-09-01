@@ -6,15 +6,15 @@ type GrammarQuestionPromptProps = {
 
 function GrammarQuestionPrompt({ question }: GrammarQuestionPromptProps) {
   return (
-    <div className="relative border-2 border-black bg-[#FFDE59] p-3.5 sm:p-5 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
-      <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-black/60">
+    <div className="relative border-2 border-black bg-[#151922] border-l-4 border-l-[#C084FC] p-3.5 sm:p-5 shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000]">
+      <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#C084FC]">
         QUESTION PROMPT
       </span>
-      <p className="jp-font mt-0.5 sm:mt-1 text-sm sm:text-xl font-black leading-snug text-black">
+      <p className="jp-font mt-1.5 sm:mt-2 text-sm sm:text-xl font-black leading-snug text-white">
         {question?.prompt}
       </p>
       {question?.englishText && (
-        <p className="mt-1 sm:mt-2 font-mono text-[10px] sm:text-xs font-bold text-black/80">
+        <p className="mt-1 sm:mt-2 font-mono text-[10px] sm:text-xs font-bold text-neutral-400">
           EN: {question.englishText}
         </p>
       )}

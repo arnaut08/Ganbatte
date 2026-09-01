@@ -164,28 +164,39 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:space-y-6 sm:py-8">
-      <header className="flex items-center gap-3 sm:gap-4">
+    <main className="mx-auto w-full max-w-5xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
+      {/* HEADER */}
+      <header className="flex items-center gap-2.5 sm:gap-4">
         <button
           type="button"
           onClick={handleScreenBack}
-          className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
           aria-label="Return to learning modules"
         >
           <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
         </button>
-        <div>
-          <span className="font-mono text-[10px] font-black uppercase tracking-wider text-[#A3E636]">04 // Vocabulary</span>
-          <h1 className="text-2xl font-black uppercase tracking-tight text-white sm:text-4xl">N5 Vocabulary</h1>
+        <div className="flex flex-col justify-center text-left">
+          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#A3E636] sm:text-xs">
+            03 // VOCABULARY
+          </span>
+          <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-4xl">
+            N5 Vocabulary
+          </h1>
         </div>
       </header>
 
-      <section className="space-y-4 border-t-2 border-white/20 pt-5 sm:pt-6">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <p className="font-mono text-xs font-bold uppercase text-neutral-400">Choose a stage to begin active recall.</p>
-          <span className="font-mono text-[10px] font-bold uppercase text-neutral-400">Stage map // active recall</span>
-        </div>
+      {/* SUB-HEADER INFO */}
+      <div className="flex flex-col gap-1 border-t-2 border-white/20 pt-3 sm:flex-row sm:items-end sm:justify-between sm:pt-4">
+        <p className="font-mono text-[10px] font-black uppercase text-neutral-400 sm:text-xs">
+          Choose a stage to begin active recall.
+        </p>
+        <span className="font-mono text-[9px] font-black uppercase tracking-widest text-neutral-400 sm:text-[10px]">
+          Stage map // active recall
+        </span>
+      </div>
 
+      {/* FILTER CONTROLS */}
+      {!vocabLoading && !vocabError && (
         <DeckFilterBar
           category={vocabCategory}
           search={vocabSearch}
@@ -195,32 +206,35 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
           onSearchChange={setVocabSearch}
           onToggleDueOnly={() => setShowDueOnly((prev) => !prev)}
         />
+      )}
 
-        {vocabLoading && <GroupMapSkeleton count={6} />}
+      {/* SKELETON */}
+      {vocabLoading && <GroupMapSkeleton count={6} accentColor="#A3E636" />}
 
-        {vocabError && !vocabLoading && (
-          <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">
-            {vocabError}
-          </div>
-        )}
+      {/* ERROR */}
+      {vocabError && !vocabLoading && (
+        <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">
+          {vocabError}
+        </div>
+      )}
 
-        {!vocabLoading && !vocabError && (
-          <>
-            {isQuizLoading && (
-              <div className="border-2 border-black bg-[#151922] p-8 text-center font-mono text-xs font-black uppercase tracking-wider text-[#FFDE59] shadow-[4px_4px_0px_0px_#000]">
-                Generating Stage Quiz Questions...
-              </div>
-            )}
-            {!isQuizLoading && (
-              <VocabStageMap
-                stages={visibleVocabStages}
-                onSelectStage={setSelectedStage}
-                onStartQuiz={handleStartQuiz}
-              />
-            )}
-          </>
-        )}
-      </section>
+      {/* CONTENT GRID */}
+      {!vocabLoading && !vocabError && (
+        <>
+          {isQuizLoading && (
+            <div className="border-2 border-black bg-[#151922] p-8 text-center font-mono text-xs font-black uppercase tracking-wider text-[#A3E636] shadow-[4px_4px_0px_0px_#000]">
+              Generating Stage Quiz Questions...
+            </div>
+          )}
+          {!isQuizLoading && (
+            <VocabStageMap
+              stages={visibleVocabStages}
+              onSelectStage={setSelectedStage}
+              onStartQuiz={handleStartQuiz}
+            />
+          )}
+        </>
+      )}
     </main>
   );
 }

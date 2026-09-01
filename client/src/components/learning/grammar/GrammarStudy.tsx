@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getGrammarLessons, getGrammarOverview } from '../../../services/api';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import type { GrammarLesson, GrammarLessonOverview } from '../../../types';
+import GrammarStudySkeleton from './GrammarStudySkeleton';
+import AssessmentLoadingScreen from '@/components/practice/AssessmentLoadingScreen';
 
 const KANJI_CHARACTER = /\p{Script=Han}/u;
 const HIRAGANA_START = 0x3041;
@@ -72,15 +74,30 @@ function renderJapaneseWithReadings(japanese: string, furigana?: string): ReactN
   flushKanji(reading.length);
   flushPlainText();
 
-  return segments.map((segment, index) =>
-    segment.type === 'kanji' ? (
-      <ruby key={`${segment.text}-${index}`} className="kanji-reading" tabIndex={0}>
-        <span>{segment.text}</span>
-        <rt>{segment.reading}</rt>
-      </ruby>
-    ) : (
-      <span key={`${segment.text}-${index}`}>{segment.text}</span>
-    ),
+  return (
+    <>
+      {segments.map((segment, index) =>
+        segment.type === 'kanji' ? (
+          <span
+            key={`${segment.text}-${index}`}
+            className="group relative mx-0.5 inline-block cursor-pointer align-baseline focus:outline-none"
+            tabIndex={0}
+          >
+            <span
+              className="pointer-events-none absolute bottom-[calc(100%+4px)] left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[10px] font-black leading-none text-black opacity-0 shadow-[2px_2px_0px_0px_#000] transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100 group-active:opacity-100 sm:text-xs"
+              aria-hidden="true"
+            >
+              {segment.reading}
+            </span>
+            <span className="border-b-2 border-black bg-[#C084FC] px-1 py-0.5 font-black text-black">
+              {segment.text}
+            </span>
+          </span>
+        ) : (
+          <span key={`${segment.text}-${index}`}>{segment.text}</span>
+        ),
+      )}
+    </>
   );
 }
 
@@ -146,21 +163,30 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
     }
   };
 
+  if (isPracticing) {
+    return (
+      <AssessmentLoadingScreen
+        title={`PREPARING LESSON ${lesson?.lessonNumber ?? selectedIndex + 1} QUIZ`}
+        description="Generating fresh practice questions with AI..."
+      />
+    );
+  }
+
   return (
     <main className="container mx-auto max-w-4xl space-y-3.5 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
       {/* Header Bar */}
-      <div className="flex items-center gap-2.5 sm:gap-4">
+      <div className="flex items-end gap-2.5 sm:gap-4">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           title="Back to learning"
         >
           <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
         </button>
         <div>
-          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-            // STUDY: GENKI GRAMMAR
+          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#C084FC]">
+            04 // GRAMMAR
           </span>
           <h1 className="text-base sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
             Genki Volume 1
@@ -168,25 +194,23 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="border-2 border-black bg-[#1a1f2c] p-8 sm:p-12 text-center font-mono text-xs sm:text-sm font-bold text-neutral-300 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
-          LOADING LESSONS...
-        </div>
-      )}
-      {error && (
-        <div className="border-2 border-black bg-[#FF6B6B] p-3 sm:p-4 text-center font-mono text-xs sm:text-sm font-black uppercase text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
+      {isLoading && <GrammarStudySkeleton />}
+
+      {error && !isLoading && (
+        <div className="border-2 border-black bg-[#FF6B6B] p-3 sm:p-4 text-center font-mono text-xs sm:text-sm font-black uppercase text-black shadow-[3px_3px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000]">
           {error}
         </div>
       )}
+
       {!isLoading && !error && lessons.length === 0 && (
-        <div className="border-2 border-black bg-[#1a1f2c] p-8 sm:p-12 text-center font-mono text-xs sm:text-sm font-bold text-neutral-300 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
+        <div className="border-2 border-black bg-[#151922] p-8 sm:p-12 text-center font-mono text-xs sm:text-sm font-bold text-neutral-400 shadow-[4px_4px_0px_0px_#000]">
           NO PUBLISHED LESSONS YET.
         </div>
       )}
 
       {!isLoading && !error && lesson && (
         <div className="space-y-3.5 sm:space-y-6">
-          {/* Top: Chapter/Lesson Pills Bar (Horizontal Scroll on Mobile) */}
+          {/* Top: Chapter/Lesson Pills Bar */}
           <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap">
             {lessons.map((entry, index) => {
               const progress = lessonProgress[entry.lessonNumber];
@@ -202,27 +226,24 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                     setSelectedIndex(index);
                     setSlideIndex(0);
                   }}
-                  className={`relative shrink-0 flex items-center gap-1.5 border-2 border-black px-2.5 py-1 sm:px-3.5 sm:py-1.5 font-mono text-[10px] sm:text-xs font-black uppercase transition-all shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
-                    isSelected
-                      ? 'bg-[#FFDE59] text-black'
-                      : 'bg-[#1a1f2c] text-neutral-400 hover:bg-[#2c3345] hover:text-white'
-                  }`}
+                  className={`relative shrink-0 flex items-center gap-1.5 cursor-pointer border-2 border-black px-2.5 py-1 sm:px-3.5 sm:py-1.5 font-mono text-[10px] sm:text-xs font-black uppercase transition-all shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${isSelected
+                      ? 'bg-[#C084FC] text-black ring-1 ring-black'
+                      : 'bg-[#151922] text-neutral-300 hover:bg-[#1f2637] hover:text-white'
+                    }`}
                 >
                   <span>Lesson {entry.lessonNumber}</span>
                   {isMastered ? (
                     <span
-                      className={`text-[9px] sm:text-[10px] ${
-                        isSelected ? 'text-purple-900' : 'text-[#C084FC]'
-                      }`}
+                      className={`text-xs font-black ${isSelected ? 'text-black' : 'text-[#C084FC]'
+                        }`}
                       title="Mastered"
                     >
                       ★
                     </span>
                   ) : isCleared ? (
                     <span
-                      className={`text-[9px] sm:text-[10px] ${
-                        isSelected ? 'text-green-900' : 'text-[#A3E636]'
-                      }`}
+                      className={`text-xs font-black ${isSelected ? 'text-black' : 'text-white'
+                        }`}
                       title="Cleared"
                     >
                       ✓
@@ -234,64 +255,74 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
           </div>
 
           {/* Main Presentation Deck Card */}
-          <article className="flex flex-col border-2 border-black bg-[#FFDE59] text-black shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000]">
+          <article className="flex flex-col border-2 border-black border-l-8 border-l-[#C084FC] bg-[#1f2637] text-white shadow-[4px_4px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000]">
             {/* Card Header */}
-            <div className="p-3.5 sm:p-8 pb-2.5 sm:pb-4">
+            <div className="p-3.5 sm:p-7 pb-2.5 sm:pb-4">
               <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[11px] font-black uppercase text-[#FFDE59]">
+                    <span className="border-2 border-black bg-[#C084FC] px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[11px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000]">
                       Lesson {lesson.lessonNumber}
                     </span>
                     {currentProgress?.is_mastered ? (
-                      <span className="border-2 border-black bg-[#C084FC] px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[11px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000]">
+                      <span className="border-2 border-black bg-[#C084FC] px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[11px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000]">
                         ★ Mastered
                       </span>
                     ) : currentProgress?.is_cleared ? (
-                      <span className="border-2 border-black bg-[#A3E636] px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[11px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000]">
+                      <span className="border-2 border-black bg-white px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[11px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000]">
                         ✓ Cleared
                       </span>
                     ) : null}
                   </div>
-                  <h2 className="mt-1.5 sm:mt-3 text-xl sm:text-3xl font-black uppercase tracking-tight">
+                  <h2 className="mt-1.5 sm:mt-2.5 text-xl sm:text-3xl font-black uppercase tracking-tight text-white">
                     {lesson.title}
                   </h2>
                 </div>
+
                 <button
                   type="button"
                   onClick={handlePractice}
-                  disabled={isPracticing}
-                  className="w-full sm:w-auto border-2 border-black bg-white px-3.5 py-2 sm:px-4 sm:py-2.5 font-mono text-[11px] sm:text-xs font-black uppercase whitespace-nowrap shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-wait disabled:opacity-60"
+                  className="w-full sm:w-auto cursor-pointer border-2 border-black bg-white px-3.5 py-2 sm:px-4 sm:py-2.5 font-mono text-[11px] sm:text-xs font-black uppercase text-black whitespace-nowrap shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#C084FC] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                 >
-                  {isPracticing ? 'Preparing...' : 'Practice this lesson ⚡'}
+                  Practice this lesson →
                 </button>
               </div>
 
               {/* Slide Progress Indicator */}
-              <div className="mt-3.5 sm:mt-6 flex items-center justify-between border-y-2 border-black py-1.5 sm:py-2.5 font-mono text-[10px] sm:text-xs font-black uppercase">
-                <span>Slide {slideIndex + 1} of {slideLabels.length}</span>
-                <span className="bg-black/10 px-1.5 py-0.5">{slideLabels[slideIndex]}</span>
+              <div className="mt-3.5 sm:mt-5 flex items-center justify-between border-y-2 border-white/10 py-1.5 sm:py-2.5 font-mono text-[10px] sm:text-xs font-black uppercase text-neutral-300">
+                <span>
+                  Slide {slideIndex + 1} of {slideLabels.length}
+                </span>
+                <span className="border-2 border-black bg-[#151922] px-2 py-0.5 text-[#C084FC] shadow-[1px_1px_0px_0px_#000]">
+                  {slideLabels[slideIndex]}
+                </span>
               </div>
             </div>
 
             {/* Dynamic Slide Body */}
-            <div className="min-h-0 sm:min-h-[320px] px-3.5 sm:px-8 py-2">
+            <div className="min-h-0 sm:min-h-[300px] px-3.5 sm:px-7 py-2">
               {/* Slide 0: Overview */}
               {slideIndex === 0 && (
-                <section className="space-y-3 sm:space-y-5">
-                  <p className="max-w-3xl text-xs sm:text-base font-bold leading-relaxed">{lesson.overview}</p>
+                <section className="space-y-3 sm:space-y-4">
+                  <p className="max-w-3xl text-xs sm:text-sm font-medium leading-relaxed text-neutral-200">
+                    {lesson.overview}
+                  </p>
                   <div className="grid gap-2.5 sm:gap-4 md:grid-cols-2">
-                    <div className="border-2 border-black bg-white p-3 sm:p-4 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
-                      <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-neutral-600">// Objectives</h3>
-                      <ul className="mt-2 list-disc space-y-1 sm:space-y-2 pl-4 text-xs sm:text-sm font-bold">
+                    <div className="border-2 border-black bg-[#151922] p-3.5 sm:p-4 shadow-[2px_2px_0px_0px_#000]">
+                      <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#C084FC]">
+                        // Objectives
+                      </h3>
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs sm:text-sm font-medium text-neutral-300">
                         {lesson.objectives.map((objective) => (
                           <li key={objective}>{objective}</li>
                         ))}
                       </ul>
                     </div>
-                    <div className="border-2 border-black bg-white p-3 sm:p-4 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
-                      <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-neutral-600">// What you will learn</h3>
-                      <p className="mt-2 text-xs sm:text-sm font-bold leading-relaxed">
+                    <div className="border-2 border-black bg-[#151922] p-3.5 sm:p-4 shadow-[2px_2px_0px_0px_#000]">
+                      <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#C084FC]">
+                        // What you will learn
+                      </h3>
+                      <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-neutral-300">
                         Work through each grammar point sequentially, then test your understanding with guided practice and quizzes.
                       </p>
                     </div>
@@ -305,25 +336,38 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                   {(() => {
                     const point = lesson.grammarPoints[slideIndex - 1];
                     return (
-                      <div key={point.pattern} className="border-2 border-black bg-white p-3.5 sm:p-5 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
-                        <div className="border-b-2 border-black pb-2 sm:pb-3">
-                          <span className="font-mono text-[9px] sm:text-xs font-black uppercase text-neutral-500">// Pattern</span>
-                          <h4 className="text-lg sm:text-2xl font-black mt-0.5">
-                            {point.pattern} <span className="text-xs sm:text-base font-bold text-neutral-600">| {point.meaning}</span>
+                      <div
+                        key={point.pattern}
+                        className="border-2 border-black bg-[#151922] p-3.5 sm:p-5 shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000]"
+                      >
+                        <div className="border-b-2 border-white/10 pb-2 sm:pb-3">
+                          <span className="font-mono text-[9px] sm:text-xs font-black uppercase text-[#C084FC]">
+                            // Pattern
+                          </span>
+                          <h4 className="text-lg sm:text-2xl font-black mt-0.5 text-white">
+                            {point.pattern}{' '}
+                            <span className="text-xs sm:text-base font-bold text-neutral-400">
+                              | {point.meaning}
+                            </span>
                           </h4>
                         </div>
 
-                        <div className="mt-2 sm:mt-3">
-                          <span className="font-mono text-[9px] sm:text-xs font-black uppercase text-neutral-500">// Formation</span>
-                          <p className="mt-1 font-mono text-xs sm:text-sm font-bold bg-neutral-100 p-1.5 sm:p-2 border border-black/20">
+                        <div className="mt-2.5 sm:mt-3.5">
+                          <span className="font-mono text-[9px] sm:text-xs font-black uppercase text-neutral-400">
+                            // Formation
+                          </span>
+                          <p className="mt-1 font-mono text-xs sm:text-sm font-bold bg-[#1f2637] p-2 border border-white/10 text-[#C084FC]">
                             {point.formation}
                           </p>
                         </div>
 
+                        {/* WHEN TO USE IT */}
                         {(point.usageNotes || []).length > 0 && (
-                          <div className="mt-2.5 sm:mt-4 border-l-4 border-[#70CFF8] pl-2.5 sm:pl-3">
-                            <h5 className="font-mono text-[10px] sm:text-xs font-black uppercase">// When to use it</h5>
-                            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs sm:text-sm font-semibold">
+                          <div className="mt-3.5 border-2 border-black border-l-4 border-l-[#C084FC] bg-[#1f2637] p-3 sm:p-3.5 shadow-[1.5px_1.5px_0px_0px_#000]">
+                            <h5 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#C084FC]">
+                              // When to use it
+                            </h5>
+                            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs sm:text-sm font-medium text-neutral-200">
                               {(point.usageNotes || []).map((note) => (
                                 <li key={note}>{note}</li>
                               ))}
@@ -331,15 +375,26 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                           </div>
                         )}
 
-                        <div className="mt-2.5 sm:mt-4 space-y-1.5 sm:space-y-2">
-                          <span className="font-mono text-[9px] sm:text-xs font-black uppercase text-neutral-500">// Examples</span>
+                        {/* EXAMPLES */}
+                        <div className="mt-3.5 space-y-1.5 sm:space-y-2">
+                          <span className="font-mono text-[9px] sm:text-xs font-black uppercase text-neutral-400">
+                            // Examples
+                          </span>
                           {point.examples.map((example) => (
-                            <div key={`${point.pattern}-${example.japanese}`} className="border-2 border-black bg-[#A3E636]/20 p-2 sm:p-3 text-xs sm:text-sm">
-                              <p className="jp-font text-sm sm:text-base font-black" aria-label={`${example.japanese}${example.furigana ? ` (${example.furigana})` : ''}`}>
+                            <div
+                              key={`${point.pattern}-${example.japanese}`}
+                              className="border-2 border-black bg-[#1f2637] border-l-4 border-l-[#C084FC] p-2.5 sm:p-3 text-xs sm:text-sm"
+                            >
+                              <p
+                                className="jp-font text-sm sm:text-base font-black text-white"
+                                aria-label={`${example.japanese}${example.furigana ? ` (${example.furigana})` : ''}`}
+                              >
                                 {renderJapaneseWithReadings(example.japanese, example.furigana)}
                               </p>
-                              <p className="font-mono text-[10px] sm:text-xs text-neutral-600">{example.romaji}</p>
-                              <p className="font-semibold text-neutral-800">{example.english}</p>
+                              <p className="font-mono text-[10px] sm:text-xs text-neutral-400">
+                                {example.romaji}
+                              </p>
+                              <p className="font-medium text-neutral-200">{example.english}</p>
                             </div>
                           ))}
                         </div>
@@ -351,9 +406,11 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
 
               {/* Common Mistakes Slide */}
               {slideIndex === lesson.grammarPoints.length + 1 && (
-                <section className="border-2 border-black bg-[#FF6B6B] p-3.5 sm:p-5 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
-                  <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider">// Common mistakes</h3>
-                  <ul className="mt-2 list-disc space-y-1 sm:space-y-2 pl-4 text-xs sm:text-sm font-bold">
+                <section className="border-2 border-black border-l-8 border-l-[#FF6B6B] bg-[#151922] p-3.5 sm:p-5 shadow-[2px_2px_0px_0px_#000]">
+                  <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#FF6B6B]">
+                    // Common mistakes
+                  </h3>
+                  <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs sm:text-sm font-medium text-neutral-200">
                     {lesson.commonMistakes.map((mistake) => (
                       <li key={mistake}>{mistake}</li>
                     ))}
@@ -364,27 +421,45 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
               {/* Review Checklist Slide */}
               {slideIndex === lesson.grammarPoints.length + 2 && (
                 <section className="space-y-3 sm:space-y-4">
-                  <div className="border-2 border-black bg-white p-3.5 sm:p-5 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
-                    <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-neutral-600">// Review checklist</h3>
-                    <ul className="mt-2 space-y-1.5 sm:space-y-2 text-xs sm:text-sm font-bold">
+                  <div className="border-2 border-black bg-[#151922] p-3.5 sm:p-5 shadow-[2px_2px_0px_0px_#000]">
+                    <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#C084FC]">
+                      // Review checklist
+                    </h3>
+                    <ul className="mt-2.5 space-y-2 text-xs sm:text-sm font-medium text-neutral-200">
                       {lesson.reviewChecklist.map((item) => (
-                        <li key={item} className="flex items-center gap-2">
-                          <input type="checkbox" className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-none border-2 border-black accent-black" />
+                        <li key={item} className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded-none border-2 border-black bg-white accent-[#C084FC]"
+                          />
                           <span>{item}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
+
                   {(lesson.guidedPractice || []).length > 0 && (
-                    <div className="space-y-2 sm:space-y-3">
-                      <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider">// Guided practice</h3>
+                    <div className="space-y-2 sm:space-y-2.5">
+                      <h3 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-neutral-400">
+                        // Guided practice
+                      </h3>
                       {(lesson.guidedPractice || []).map((item, index) => (
-                        <div key={`${item.prompt}-${index}`} className="border-2 border-black bg-white p-3 sm:p-4 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
-                          <p className="font-black text-xs sm:text-sm">{index + 1}. {item.prompt}</p>
-                          <p className="mt-1.5 text-xs sm:text-sm font-bold">
-                            <span className="font-mono text-[9px] sm:text-xs uppercase bg-black text-white px-1 py-0.5">Answer</span> {item.answer}
+                        <div
+                          key={`${item.prompt}-${index}`}
+                          className="border-2 border-black bg-[#151922] p-3 sm:p-4 shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          <p className="font-bold text-xs sm:text-sm text-white">
+                            {index + 1}. {item.prompt}
                           </p>
-                          <p className="mt-0.5 text-xs sm:text-sm font-semibold text-neutral-600">{item.explanation}</p>
+                          <p className="mt-1.5 text-xs sm:text-sm font-bold text-neutral-200">
+                            <span className="font-mono text-[9px] sm:text-xs uppercase bg-black text-[#C084FC] px-1 py-0.5 border border-black mr-1.5">
+                              Answer
+                            </span>{' '}
+                            {item.answer}
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-neutral-400">
+                            {item.explanation}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -393,20 +468,22 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
               )}
             </div>
 
-            {/* Integrated Deck Bottom Navigation */}
-            <div className="mt-4 sm:mt-6 border-t-2 border-black bg-black/5 p-3 sm:p-6 flex flex-col gap-2.5 sm:gap-4">
-              {/* Slide Quick-Selector Tabs */}
-              <div className="flex gap-1 sm:gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex-wrap" aria-label="Lesson slides">
+            {/* Bottom Slide Navigator */}
+            <div className="mt-4 sm:mt-6 border-t-2 border-white/10 bg-[#151922]/60 p-3 sm:p-5 flex flex-col gap-2.5 sm:gap-3.5">
+              {/* Quick Selector Tabs */}
+              <div
+                className="flex gap-1 sm:gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex-wrap"
+                aria-label="Lesson slides"
+              >
                 {slideLabels.map((label, index) => (
                   <button
                     key={`${label}-${index}`}
                     type="button"
                     onClick={() => setSlideIndex(index)}
-                    className={`shrink-0 border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[11px] font-black uppercase shadow-[1px_1px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
-                      index === slideIndex
-                        ? 'bg-black text-[#FFDE59]'
-                        : 'bg-white text-black hover:bg-neutral-100'
-                    }`}
+                    className={`shrink-0 cursor-pointer border-2 border-black px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[11px] font-black uppercase shadow-[1px_1px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${index === slideIndex
+                        ? 'bg-[#C084FC] text-black shadow-none'
+                        : 'bg-[#1f2637] text-neutral-300 hover:bg-[#283248] hover:text-white'
+                      }`}
                   >
                     {index + 1}. {label}
                   </button>
@@ -419,7 +496,7 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                   type="button"
                   onClick={() => moveSlide(-1)}
                   disabled={slideIndex === 0}
-                  className="border-2 border-black bg-white px-3 py-1.5 sm:px-4 sm:py-2.5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
+                  className="cursor-pointer border-2 border-black bg-white px-3 py-1.5 sm:px-4 sm:py-2 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none"
                 >
                   ← Prev
                 </button>
@@ -427,7 +504,7 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                   type="button"
                   onClick={() => moveSlide(1)}
                   disabled={slideIndex === slideLabels.length - 1}
-                  className="border-2 border-black bg-[#A3E636] px-3.5 py-1.5 sm:px-5 sm:py-2.5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
+                  className="cursor-pointer border-2 border-black bg-[#C084FC] px-3.5 py-1.5 sm:px-5 sm:py-2 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#cb9afc] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none"
                 >
                   Next →
                 </button>
@@ -444,7 +521,7 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                 setSlideIndex(0);
               }}
               disabled={selectedIndex === 0}
-              className="flex h-9 sm:h-11 items-center gap-1 border-2 border-black bg-white px-3 sm:px-4 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 sm:h-11 cursor-pointer items-center gap-1 border-2 border-black bg-white px-3 sm:px-4 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none"
             >
               <ChevronLeftIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Prev Lesson
             </button>
@@ -455,7 +532,7 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
                 setSlideIndex(0);
               }}
               disabled={selectedIndex === lessons.length - 1}
-              className="flex h-9 sm:h-11 items-center gap-1 border-2 border-black bg-[#70CFF8] px-3 sm:px-4 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 sm:h-11 cursor-pointer items-center gap-1 border-2 border-black bg-[#C084FC] px-3 sm:px-4 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#cb9afc] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none"
             >
               Next Lesson <ChevronRightIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>

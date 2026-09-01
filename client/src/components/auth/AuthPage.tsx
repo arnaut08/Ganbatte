@@ -6,6 +6,11 @@ type AuthMode = 'signin' | 'signup';
 type CredentialField = 'email' | 'password' | null;
 type AuthForm = { name: string; email: string; password: string };
 
+type AuthPageProps = {
+  onStartSuccessAnimation?: () => void;
+  onSuccessComplete?: () => void;
+};
+
 const getCredentialField = (error: unknown): CredentialField => {
   const typedError = error as { code?: string; message?: string } | null;
   const errorText = `${typedError?.code ?? ''} ${typedError?.message ?? ''}`.toLowerCase();
@@ -21,13 +26,15 @@ const getCredentialField = (error: unknown): CredentialField => {
   return null;
 };
 
-function AuthPage() {
+export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }: AuthPageProps) {
   const [form, setForm] = useState<AuthForm>({ name: '', email: '', password: '' });
   const [mode, setMode] = useState<AuthMode>('signin');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
   const [credentialField, setCredentialField] = useState<CredentialField>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAccessGranted, setIsAccessGranted] = useState(false);
+
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +47,7 @@ function AuthPage() {
   };
 
   const handleSetMode = (nextMode: AuthMode) => {
-    if (mode !== nextMode) {
+    if (mode !== nextMode && !isAccessGranted) {
       setMode(nextMode);
       setMessage('');
       setCredentialField(null);
@@ -51,7 +58,7 @@ function AuthPage() {
     event.preventDefault();
     if (!supabase) {
       setMessageType('error');
-      setMessage('Authentication is not configured yet.');
+      setMessage('Authentication service not connected.');
       return;
     }
 
@@ -74,6 +81,7 @@ function AuthPage() {
       const { data, error } = response;
 
       if (error) {
+        setIsSubmitting(false);
         setMessageType('error');
         const nextCredentialField = getCredentialField(error);
         setCredentialField(nextCredentialField);
@@ -83,205 +91,305 @@ function AuthPage() {
         } else if (nextCredentialField === 'password') {
           passwordInputRef.current?.focus();
         } else if (mode === 'signin') {
-          setMessage('Email or password is incorrect. Please check your credentials and try again.');
+          setMessage('Incorrect credentials. Please verify your email and password.');
           emailInputRef.current?.focus();
         }
       } else if (mode === 'signup' && !data.session) {
+        setIsSubmitting(false);
         setMessageType('success');
-        setMessage('Account created. Check your email to confirm your account.');
+        setMessage('Cadet ID issued. Please check your inbox to confirm your account.');
       } else {
+        // Trigger Stamp Animation & lock form
+        onStartSuccessAnimation?.();
+        setIsAccessGranted(true);
         setMessageType('success');
-        setMessage(mode === 'signup' ? 'Account created successfully.' : 'Signed in successfully.');
+        setMessage('Credentials verified. Access granted.');
+
+        // Delay to allow the physical stamp slam animation to complete
+        setTimeout(() => {
+          onSuccessComplete?.();
+        }, 1600);
       }
-    } catch (err) {
-      setMessageType('error');
-      setMessage('An unexpected error occurred. Please try again.');
-    } finally {
+    } catch {
       setIsSubmitting(false);
+      setMessageType('error');
+      setMessage('An unexpected system error occurred. Please try again.');
     }
   };
 
   return (
-    <main className="flex items-center justify-center p-3 sm:p-4 min-h-[calc(100dvh-72px)] pb-16 sm:pb-24">
-      <div className="w-full max-w-md border-2 border-black bg-[#FFDE59] p-4 sm:p-8 shadow-[4px_4px_0px_0px_#000000] sm:shadow-[8px_8px_0px_0px_#000000]">
+    <main className="flex min-h-[calc(100dvh-80px)] items-center justify-center p-3 pb-20 sm:p-6 sm:pb-28">
+      {/* Inline Keyframes for Circular Hanko Slam */}
+      <style>{`
+        @keyframes hankoStampSlam {
+          0% {
+            opacity: 0;
+            transform: scale(2.8) rotate(-35deg);
+          }
+          60% {
+            opacity: 0.95;
+            transform: scale(0.94) rotate(-6deg);
+          }
+          80% {
+            transform: scale(1.03) rotate(-9deg);
+          }
+          100% {
+            opacity: 0.9;
+            transform: scale(1) rotate(-8deg);
+          }
+        }
+        .hanko-animate {
+          animation: hankoStampSlam 0.42s cubic-bezier(0.2, 1, 0.4, 1) forwards;
+        }
+      `}</style>
 
-        {/* 1. Mode Switcher Tabs */}
-        <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-1 border-2 border-black bg-black/10 p-1">
-          <button
-            type="button"
-            onClick={() => handleSetMode('signin')}
-            className={`py-1.5 sm:py-2 font-mono text-[10px] sm:text-xs font-black uppercase transition-all ${mode === 'signin'
-                ? 'border-2 border-black bg-white text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]'
-                : 'border-2 border-transparent text-black/70 hover:text-black hover:translate-x-[1px] hover:translate-y-[1px]'
-              }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSetMode('signup')}
-            className={`py-1.5 sm:py-2 font-mono text-[10px] sm:text-xs font-black uppercase transition-all ${mode === 'signup'
-                ? 'border-2 border-black bg-white text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]'
-                : 'border-2 border-transparent text-black/70 hover:text-black hover:translate-x-[1px] hover:translate-y-[1px]'
-              }`}
-          >
-            Create Account
-          </button>
+      {/* 1. Physical Passport / ID Card Shell */}
+      <div className="relative w-full max-w-2xl border-3 border-black bg-[#F8F7F4] p-5 shadow-[6px_6px_0px_0px_#000] sm:p-8 sm:shadow-[10px_10px_0px_0px_#000] overflow-hidden">
+
+        {/* Background Kanji Watermark */}
+        <div className="pointer-events-none absolute -bottom-6 -left-4 select-none font-mono text-7xl sm:text-9xl font-black text-black/[0.04]">
+          頑張って
         </div>
 
-        {/* 2. Header */}
-        <div className="mb-4 sm:mb-6 text-center">
-          <span className="border border-black bg-black px-1.5 py-0.2 sm:px-2 sm:py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-[#FFDE59]">
-            {mode === 'signup' ? '// NEW CADET REGISTRATION' : '// OPERATOR ACCESS'}
-          </span>
-          <h1 className="mt-1.5 sm:mt-2 text-xl sm:text-3xl font-black uppercase tracking-tight text-black leading-tight">
-            {mode === 'signup' ? 'Join Ganbatte' : 'Welcome Back'}
-          </h1>
-          <p className="mt-0.5 sm:mt-1 font-mono text-[10px] sm:text-xs font-bold text-black/80">
-            {mode === 'signup'
-              ? 'Save stats, track kanji mastery, and study together.'
-              : 'Continue your daily Japanese practice.'}
-          </p>
-        </div>
-
-        {/* 3. Form */}
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-          {mode === 'signup' && (
-            <div className="space-y-1 sm:space-y-1.5">
-              <label
-                htmlFor="name"
-                className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-black"
-              >
-                DISPLAY NAME
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="e.g. Kenji88"
-                required
-                maxLength={40}
-                className="h-10 sm:h-12 w-full border-2 border-black bg-white px-3 sm:px-3.5 font-mono text-xs sm:text-sm font-bold text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] placeholder:font-mono placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-neutral-400 focus:outline-none focus:bg-[#f3f9ff]"
-              />
-            </div>
-          )}
-
-          <div className="space-y-1 sm:space-y-1.5">
-            <label
-              htmlFor="email"
-              className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-black"
-            >
-              EMAIL ADDRESS
-            </label>
-            <input
-              id="email"
-              ref={emailInputRef}
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="your.email@domain.com"
-              required
-              aria-invalid={credentialField === 'email'}
-              className={`h-10 sm:h-12 w-full border-2 bg-white px-3 sm:px-3.5 font-mono text-xs sm:text-sm font-bold text-black placeholder:font-mono placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-neutral-400 focus:outline-none ${credentialField === 'email'
-                  ? 'border-[#FF6B6B] bg-[#fff5f5] shadow-[2px_2px_0px_0px_#FF6B6B] sm:shadow-[3px_3px_0px_0px_#FF6B6B]'
-                  : 'border-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] focus:bg-[#f3f9ff]'
-                }`}
-            />
+        {/* 2. Top ID Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-black pb-4">
+          <div className="flex items-center gap-2">
+            <span className="border-2 border-black bg-[#FFDE59] px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000]">
+              PASSPORT ID
+            </span>
+            <h1 className="font-mono text-lg sm:text-2xl font-black uppercase tracking-tight text-black">
+              GANBATTE LEARNER ID
+            </h1>
           </div>
 
-          <div className="space-y-1 sm:space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="password"
-                className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-black"
+          <div className="font-mono text-[9px] sm:text-[10px] font-bold text-neutral-600 text-left sm:text-right">
+            <div>ID: <span className="text-black font-black">頑張って-AUTH-SYS-2026</span></div>
+            <div>
+              STATUS:{' '}
+              <span className={`font-black uppercase ${isAccessGranted ? 'text-[#DC2626]' : 'text-black'}`}>
+                {isAccessGranted ? 'ACCESS_GRANTED' : mode === 'signup' ? 'CADET_ENROLL' : 'VERIFY_OPERATOR'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Main ID Body */}
+        <div className="mt-5 grid gap-5 sm:grid-cols-12 sm:gap-6">
+          {/* Left: Dynamic Cadet Monogram Badge */}
+          <div className="flex flex-col items-center sm:col-span-4">
+            <div className="relative flex h-36 w-32 sm:h-44 sm:w-full flex-col items-center justify-between border-2 border-black bg-[#E7E5E0] p-3 shadow-[3px_3px_0px_0px_#000]">
+              <div className="flex w-full items-center justify-between border-b border-black/20 pb-1 font-mono text-[8px] font-black text-neutral-600 uppercase">
+                <span>CHIP://ID</span>
+                <span className={`h-2 w-2 rounded-full border border-black ${isAccessGranted ? 'bg-[#DC2626] animate-pulse' : 'bg-[#FFDE59]'}`} />
+              </div>
+
+              <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center border-2 border-black bg-[#FFDE59] font-mono text-3xl sm:text-4xl font-black text-black shadow-[2px_2px_0px_0px_#000]">
+                {form.name.trim().charAt(0).toUpperCase() || (mode === 'signup' ? '?' : 'OP')}
+              </div>
+
+              <span className="border border-black bg-black px-2 py-0.5 font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white">
+                {mode === 'signup' ? 'NEW_CADET' : 'OPERATOR'}
+              </span>
+            </div>
+            <span className="mt-2 font-mono text-[9px] sm:text-[10px] font-bold tracking-widest text-neutral-500 uppercase text-center">
+              CADET IDENTIFIER
+            </span>
+          </div>
+
+          {/* Right: Forms & Mode Toggle */}
+          <div className="sm:col-span-8 space-y-4">
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-1.5 border-2 border-black bg-[#E7E5E0] p-1">
+              <button
+                type="button"
+                disabled={isAccessGranted}
+                onClick={() => handleSetMode('signin')}
+                className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signin'
+                    ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
+                    : 'text-neutral-500 hover:text-black cursor-pointer'
+                  }`}
               >
-                PASSWORD
-              </label>
+                Sign In
+              </button>
+              <button
+                type="button"
+                disabled={isAccessGranted}
+                onClick={() => handleSetMode('signup')}
+                className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signup'
+                    ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
+                    : 'text-neutral-500 hover:text-black cursor-pointer'
+                  }`}
+              >
+                Create Account
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <form onSubmit={handleSubmit} className="space-y-3">
               {mode === 'signup' && (
-                <span className="font-mono text-[9px] sm:text-[10px] font-bold text-black/60">
-                  MIN. 8 CHARS
-                </span>
-              )}
-            </div>
-            <input
-              id="password"
-              ref={passwordInputRef}
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              minLength={8}
-              required
-              aria-invalid={credentialField === 'password'}
-              className={`h-10 sm:h-12 w-full border-2 bg-white px-3 sm:px-3.5 font-mono text-sm sm:text-base font-bold text-black placeholder:font-mono placeholder:text-xs sm:placeholder:text-sm placeholder:text-neutral-400 focus:outline-none ${credentialField === 'password'
-                  ? 'border-[#FF6B6B] bg-[#fff5f5] shadow-[2px_2px_0px_0px_#FF6B6B] sm:shadow-[3px_3px_0px_0px_#FF6B6B]'
-                  : 'border-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] focus:bg-[#f3f9ff]'
-                }`}
-            />
-          </div>
-
-          {/* Alert Message Box */}
-          {message && (
-            <div
-              role="alert"
-              className="relative border-2 border-black bg-[#1a1f2c] p-2.5 sm:p-3 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  {/* Header Tag */}
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`border border-black px-1.5 py-0.2 font-mono text-[9px] font-black uppercase shadow-[1px_1px_0px_0px_#000000] ${messageType === 'error'
-                          ? 'bg-[#FF6B6B] text-black'
-                          : 'bg-[#A3E636] text-black'
-                        }`}
-                    >
-                      {messageType === 'error' ? '✖ ERROR' : '✔ SUCCESS'}
-                    </span>
-                    <span className="font-mono text-[9px] sm:text-[10px] font-bold text-neutral-400">
-                  // AUTH_NOTICE
-                    </span>
-                  </div>
-
-                  {/* Message Body */}
-                  <p className="mt-1 font-mono text-[11px] sm:text-xs font-bold leading-relaxed text-white">
-                    {message}
-                  </p>
+                <div className="space-y-1">
+                  <label
+                    htmlFor="name"
+                    className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
+                  >
+                    CADET NAME
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    disabled={isAccessGranted || isSubmitting}
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="e.g. Kenji88"
+                    required
+                    maxLength={40}
+                    className="h-10 w-full border-2 border-dashed border-black bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:border-solid focus:border-black focus:outline-none sm:text-sm"
+                  />
                 </div>
+              )}
 
-                {/* Interactive Close Button */}
-                <button
-                  type="button"
-                  onClick={() => setMessage('')}
-                  aria-label="Dismiss alert"
-                  className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center border-2 border-black bg-[#252c3d] font-mono text-[10px] sm:text-xs font-black text-neutral-300 shadow-[1px_1px_0px_0px_#000000] sm:shadow-[1.5px_1.5px_0px_0px_#000000] transition-all hover:bg-[#FF6B6B] hover:text-black active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+              <div className="space-y-1">
+                <label
+                  htmlFor="email"
+                  className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
                 >
-                  ✕
+                  EMAIL CREDENTIAL
+                </label>
+                <input
+                  id="email"
+                  ref={emailInputRef}
+                  name="email"
+                  type="email"
+                  disabled={isAccessGranted || isSubmitting}
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="operator@domain.com"
+                  required
+                  aria-invalid={credentialField === 'email'}
+                  className={`h-10 w-full border-2 bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:outline-none sm:text-sm ${credentialField === 'email'
+                      ? 'border-solid border-[#FF6B6B] bg-[#FFF1F2]'
+                      : 'border-dashed border-black focus:border-solid'
+                    }`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="password"
+                    className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
+                  >
+                    ACCESS CIPHER
+                  </label>
+                  {mode === 'signup' && (
+                    <span className="font-mono text-[9px] font-bold text-neutral-500">
+                      MIN. 8 CHARS
+                    </span>
+                  )}
+                </div>
+                <input
+                  id="password"
+                  ref={passwordInputRef}
+                  name="password"
+                  type="password"
+                  disabled={isAccessGranted || isSubmitting}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  minLength={8}
+                  required
+                  aria-invalid={credentialField === 'password'}
+                  className={`h-10 w-full border-2 bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:outline-none sm:text-sm ${credentialField === 'password'
+                      ? 'border-solid border-[#FF6B6B] bg-[#FFF1F2]'
+                      : 'border-dashed border-black focus:border-solid'
+                    }`}
+                />
+              </div>
+
+              {/* Passport Rejection / Verification Notice Box */}
+              {message && (
+                <div
+                  role="alert"
+                  className={`border-2 border-black p-2.5 shadow-[2px_2px_0px_0px_#000] ${messageType === 'error' ? 'bg-[#FFF1F2]' : 'bg-[#F0FDF4]'
+                    }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`border border-black px-1.5 py-0.2 font-mono text-[9px] font-black uppercase ${messageType === 'error' ? 'bg-[#FF6B6B] text-black' : 'bg-[#A3E636] text-black'
+                            }`}
+                        >
+                          {messageType === 'error' ? '✖ ACCESS REJECTED' : '✔ VERIFIED'}
+                        </span>
+                        <span className="font-mono text-[9px] font-bold text-neutral-500">
+                          // PASSPORT_SEC_LOG
+                        </span>
+                      </div>
+                      <p
+                        className={`mt-1 font-mono text-[11px] font-black leading-relaxed ${messageType === 'error' ? 'text-[#991b1b]' : 'text-[#166534]'
+                          }`}
+                      >
+                        {message}
+                      </p>
+                    </div>
+                    {!isAccessGranted && (
+                      <button
+                        type="button"
+                        onClick={() => setMessage('')}
+                        aria-label="Dismiss notice"
+                        className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white font-mono text-xs font-black text-black hover:bg-[#FF6B6B]"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Submit CTA Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isAccessGranted}
+                  className="w-full cursor-pointer border-2 border-black bg-[#A3E636] py-3 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#b5eb5b] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-80"
+                >
+                  {isAccessGranted
+                    ? 'ACCESS GRANTED · REDIRECTING...'
+                    : isSubmitting
+                      ? mode === 'signup'
+                        ? 'REGISTERING CADET...'
+                        : 'VALIDATING ACCESS...'
+                      : mode === 'signup'
+                        ? 'ISSUE PASSPORT & SIGN UP →'
+                        : 'ENTER SYSTEM →'}
                 </button>
               </div>
-            </div>
-          )}
-
-          {/* Primary Submit Button */}
-          <div className="pt-1 sm:pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full border-2 border-black bg-[#A3E636] py-2.5 sm:py-3.5 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#b5eb5b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {isSubmitting
-                ? (mode === 'signup' ? 'Creating Cadet...' : 'Authenticating...')
-                : (mode === 'signup' ? 'Complete Sign Up →' : 'Enter System →')}
-            </button>
+            </form>
           </div>
-        </form>
+        </div>
+
+        {/* Circular Japanese Hanko / Verification Seal */}
+        {isAccessGranted && (
+          <div className="hanko-animate pointer-events-none absolute top-12 right-6 sm:top-8 sm:right-10 z-30 select-none">
+            <div className="relative flex h-24 w-24 sm:h-28 sm:w-28 flex-col items-center justify-center rounded-full border-3 border-dashed border-[#DC2626] bg-[#DC2626]/[0.06] p-1 shadow-[0px_0px_1px_1px_#DC2626]">
+              {/* Inner Solid Ring */}
+              <div className="flex h-full w-full flex-col items-center justify-center rounded-full border-2 border-[#DC2626]">
+                <span className="font-mono text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-[#DC2626]">
+                  GANBATTE · 2026
+                </span>
+                <span className="font-serif text-2xl sm:text-3xl font-black leading-none tracking-widest text-[#DC2626]">
+                  承認
+                </span>
+                <span className="mt-0.5 font-mono text-[7px] sm:text-[8px] font-black uppercase tracking-wider text-[#DC2626]">
+                  APPROVED
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
 }
-
-export default AuthPage;
