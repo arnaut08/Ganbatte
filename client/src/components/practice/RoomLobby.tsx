@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CopyIcon, CheckIcon } from '@radix-ui/react-icons';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
+import { getDeckAccent } from '../../utils/deck-theme';
 import type { Friend, Room } from '../../types';
 
 type RoomLobbyProps = {
@@ -51,10 +52,12 @@ export default function RoomLobby({
 
   const isKanji = room?.deckType === 'kanji';
   const isGrammar = room?.deckType === 'grammar';
-
-  // Dynamic Accent Color per Domain
-  const themeAccent = isKanji ? '#70CFF8' : isGrammar ? '#C084FC' : '#FFDE59';
-  const themeLabel = isKanji ? '02 // KANJI 1v1' : isGrammar ? '04 // GRAMMAR 1v1' : '01 // KANA 1v1';
+  const themeAccent = getDeckAccent(room?.deckType);
+  const themeLabel = room?.deckType === 'kanji'
+    ? '02 // KANJI 1v1'
+    : room?.deckType === 'grammar'
+      ? '04 // GRAMMAR 1v1'
+      : '01 // KANA 1v1';
 
   const onlineFriends = friends.filter((friend) => friend.online && (friend.user_id || friend.id));
   const isRoomFull = (room?.players?.length || 0) >= 2;

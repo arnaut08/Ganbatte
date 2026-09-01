@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../config/supabase';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import type { AssessmentHistoryRecord } from '../../types';
+import AssessmentHistorySkeleton from './AssessmentHistorySkeleton';
 
 const PAGE_SIZE = 10;
 
@@ -123,22 +124,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
       </div>
 
       {/* 2. Loading Skeleton */}
-      {isLoading && (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between border-2 border-black bg-[#1f2637] p-4 shadow-[3px_3px_0px_0px_#000] sm:p-5 sm:shadow-[4px_4px_0px_0px_#000]"
-            >
-              <div className="space-y-2">
-                <div className="h-5 w-36 bg-[#151922] animate-pulse sm:w-44" />
-                <div className="h-3.5 w-24 bg-[#151922] animate-pulse sm:w-32" />
-              </div>
-              <div className="h-10 w-16 bg-[#151922] animate-pulse sm:h-12 sm:w-20" />
-            </div>
-          ))}
-        </div>
-      )}
+      {isLoading && <AssessmentHistorySkeleton />}
 
       {/* 3. Error Banner */}
       {error && !isLoading && (
