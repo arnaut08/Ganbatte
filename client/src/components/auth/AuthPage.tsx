@@ -307,13 +307,15 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                           MIN. 8 CHARS
                         </span>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => handleSetMode('forgot')}
-                        className="font-mono text-[9px] font-black uppercase text-neutral-600 hover:text-black hover:underline cursor-pointer"
-                      >
-                        Forgot password?
-                      </button>
+                      {mode === 'signin' && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetMode('forgot')}
+                          className="font-mono text-[9px] font-black uppercase text-neutral-600 hover:text-black hover:underline cursor-pointer"
+                        >
+                          Forgot password?
+                        </button>
+                      )}
                     </div>
                   </div>
                   <input
