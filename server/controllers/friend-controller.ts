@@ -9,7 +9,13 @@ interface FriendRequestRow {
   receiver_id: string;
   status: string;
   created_at: string;
-  profiles?: { id: string; display_name: string | null } | null;
+  sender?: FriendRequestProfile | null;
+  receiver?: FriendRequestProfile | null;
+}
+
+interface FriendRequestProfile {
+  id: string;
+  display_name: string | null;
 }
 
 export async function getFriends(req: Request, res: Response): Promise<void> {
@@ -123,13 +129,13 @@ export async function getFriendRequests(req: Request, res: Response): Promise<vo
     return;
   }
 
-  const rawRequests = requests || [];
+  const rawRequests = (requests || []) as unknown as FriendRequestRow[];
   const counterpartIds = rawRequests.map((r) =>
     r.sender_id === user.id ? String(r.receiver_id) : String(r.sender_id)
   );
   const onlineIds = await getUsersPresenceStatus(counterpartIds);
 
-  const results = rawRequests.map((request: any) => {
+  const results = rawRequests.map((request) => {
     const isOutgoing = String(request.sender_id) === String(user.id);
     const counterpartProfile = isOutgoing ? request.receiver : request.sender;
     const counterpartId = isOutgoing ? request.receiver_id : request.sender_id;
