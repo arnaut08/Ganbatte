@@ -69,7 +69,7 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
     try {
       if (mode === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-          redirectTo: `${window.location.origin}/update-password`,
+          redirectTo: `${window.location.origin}`,
         });
 
         setIsSubmitting(false);
