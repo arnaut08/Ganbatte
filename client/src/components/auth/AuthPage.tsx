@@ -89,7 +89,7 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
         ? await supabase.auth.signUp({
           email: form.email.trim(),
           password: form.password,
-          options: { data: { full_name: form.name.trim() } },
+          options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin },
         })
         : await supabase.auth.signInWithPassword({
           email: form.email.trim(),

@@ -7,6 +7,9 @@ export type AppContextValue = {
   isLoggingOut: boolean;
   authRequired: boolean;
   user: User | null;
+  isEmailVerifiedSignup: boolean;
+  setIsEmailVerifiedSignup: Dispatch<SetStateAction<boolean>>;
+  getDisplayName: () => string;
   appHomeKey: number;
   status: AppStatus;
   selectorScreen: SelectorScreen;

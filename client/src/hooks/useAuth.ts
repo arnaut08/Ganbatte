@@ -13,6 +13,11 @@ export default function useAuth(options?: UseAuthOptions) {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(
     () => typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
   );
+  const [isEmailVerifiedSignup, setIsEmailVerifiedSignup] = useState(
+    () => typeof window !== 'undefined' && (
+      window.location.hash.includes('type=signup') || window.location.hash.includes('type=email_change')
+    )
+  );
   const authRequired = Boolean(supabase);
 
   useEffect(() => {
@@ -26,7 +31,10 @@ export default function useAuth(options?: UseAuthOptions) {
 
     supabase.auth.getSession().then(({ data }) => {
       const nextUser = data.session?.user || null;
-      if (!window.location.hash.includes('type=recovery')) {
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
+      const isSpecialAuthFlow = hash.includes('type=recovery');
+
+      if (!isSpecialAuthFlow) {
         setUser((current) => mergeUser(current, nextUser));
       }
       setAuthLoading(false);
@@ -41,17 +49,15 @@ export default function useAuth(options?: UseAuthOptions) {
 
         if (hash) {
           if (hash.includes('type=signup') || hash.includes('type=email_change')) {
+            setIsEmailVerifiedSignup(true);
             setUser((current) => mergeUser(current, nextUser));
             window.history.replaceState(null, '', window.location.pathname);
+            return;
+          }
 
-            // Defer the toast slightly to ensure the layout has mounted and can render it
-            setTimeout(() => {
-              options?.showToast?.('Email verified successfully! Welcome to the arena.', 'success');
-            }, 100);
-          } else if (hash.includes('type=recovery')) {
+          if (hash.includes('type=recovery')) {
             setIsPasswordRecovery(true);
             options?.showToast?.('Recovery session initialized. Update your password below.', 'neutral');
-            // Do NOT set regular user state yet so they stay on the reset screen
             return;
           }
         }
@@ -81,7 +87,18 @@ export default function useAuth(options?: UseAuthOptions) {
     if (error) throw error;
     setUser(null);
     setIsPasswordRecovery(false);
+    setIsEmailVerifiedSignup(false);
   }, []);
 
-  return { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout };
+  return {
+    user,
+    authLoading,
+    authRequired,
+    isPasswordRecovery,
+    setIsPasswordRecovery,
+    isEmailVerifiedSignup,
+    setIsEmailVerifiedSignup,
+    getDisplayName,
+    handleLogout,
+  };
 }

@@ -11,7 +11,7 @@ const RoomLobby = lazy(() => import('../practice/RoomLobby'));
 const Assessment = lazy(() => import('../practice/Assessment'));
 const Results = lazy(() => import('../practice/Results'));
 const AuthPage = lazy(() => import('../auth/AuthPage'));
-const UpdatePasswordPage = lazy(() => import('../auth/UpdatePasswordPage'));
+const OnboardingScreen = lazy(() => import('../layout/OnboardingScreen'));
 const KanjiStudy = lazy(() => import('../learning/kanji/KanjiStudy'));
 const KanjiIntroScreen = lazy(() => import('../learning/kanji/KanjiIntroScreen'));
 const VocabScreen = lazy(() => import('../learning/vocab/VocabScreen'));
@@ -38,6 +38,9 @@ function LegacyAppScreenRouter({
   selectorScreen,
   appHomeKey,
   setSelectorScreen,
+  isEmailVerifiedSignup,
+  setIsEmailVerifiedSignup,
+  getDisplayName,
   handleCreateRoom,
   handleJoinRoom,
   handleOpenKanaStudy,
@@ -155,7 +158,6 @@ function LegacyAppScreenRouter({
   // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
   const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating;
 
-
   if (isFullyHydrating) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#11141d] px-4 text-white font-mono">
@@ -177,6 +179,15 @@ function LegacyAppScreenRouter({
         <AuthPage
           onStartSuccessAnimation={handleStartAuthAnimation}
           onSuccessComplete={handleAuthSuccess}
+        />
+      ) : isEmailVerifiedSignup ? (
+        <OnboardingScreen
+          displayName={getDisplayName ? getDisplayName() : 'Learner'}
+          email={user?.email}
+          onComplete={() => {
+            setIsEmailVerifiedSignup?.(false);
+            setSelectorScreen?.('home');
+          }}
         />
       ) : (
         <>

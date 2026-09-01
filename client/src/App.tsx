@@ -32,7 +32,7 @@ function App() {
     }
     showToast(nextToast.message, nextToast.type, nextToast.actions);
   }, [clearToast, showToast]);
-  const { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout: signOut } = useAuth({ showToast });
+  const { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout: signOut, isEmailVerifiedSignup, setIsEmailVerifiedSignup } = useAuth({ showToast });
   const socketRef = useRef<Socket | null>(null);
   const roomCodeRef = useRef<string | null>(null);
   const roomManagerRef = useRef<ReturnType<typeof useRoomManager> | null>(null);
@@ -117,6 +117,9 @@ function App() {
     user,
     appHomeKey,
     status,
+    getDisplayName,
+    isEmailVerifiedSignup,
+    setIsEmailVerifiedSignup,
     selectorScreen,
     setSelectorScreen,
     handleBackToPractice: navigation.handleBackToPractice,
@@ -137,7 +140,7 @@ function App() {
     handleOpenKanaFilter: navigation.handleOpenKanaFilter,
     handleKanaSelectionChange: navigation.handleKanaSelectionChange,
     handleApplyKanaFilters: navigation.handleApplyKanaFilters,
-  }), [authLoading, authRequired, appHomeKey, isLoggingOut, navigation, selectedKana, selectorScreen, status, user]);
+  }), [authLoading, authRequired, appHomeKey, isLoggingOut, navigation, selectedKana, selectorScreen, status, user, isEmailVerifiedSignup, setIsEmailVerifiedSignup]);
 
   const roomContextValue = useMemo(() => ({
     socket,
@@ -194,7 +197,7 @@ function App() {
       </Suspense>
     );
   }
-  
+
   return (
     <div className="app-container min-h-screen">
       <CelebrationProvider>
