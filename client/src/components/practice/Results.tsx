@@ -7,6 +7,7 @@ import {
 } from '../../utils/romaji';
 import { supabase } from '../../config/supabase';
 import useActivityRecorder from '../../hooks/useActivityRecorder';
+import { getDeckAccent } from '../../utils/deck-theme';
 import type { AssessmentResult, DiffSegment, KanaCard, KanjiCard } from '../../types';
 
 type ResultPlayer = Partial<AssessmentResult>;
@@ -78,7 +79,7 @@ export default function Results({
 
   const isKanjiDeck = room?.deckType === 'kanji' || kanaCards.some((card) => card?.groupId || card?.groupName);
   const isGrammarDeck = room?.deckType === 'grammar';
-  const themeAccent = isKanjiDeck ? '#70CFF8' : isGrammarDeck ? '#C084FC' : '#FFDE59';
+  const themeAccent = getDeckAccent(isKanjiDeck ? 'kanji' : isGrammarDeck ? 'grammar' : 'kana');
 
   const selectedDeckGroups = Array.isArray(room?.selectedGroups)
     ? room.selectedGroups

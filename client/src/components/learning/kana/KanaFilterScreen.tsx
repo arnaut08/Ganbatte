@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getCharacterAttempts, getKanaCards } from '../../../services/api';
 import type { ApiRecord } from '../../../types';
+import KanaFilterSkeleton from './KanaFilterSkeleton';
 
 const MATRIX_TYPE_LABELS = {
   basic: 'BASIC',
@@ -506,12 +507,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
         </div>
 
         {/* Loading Skeleton */}
-        {isLoading && (
-          <div className="grid gap-3.5 sm:gap-6 lg:grid-cols-2">
-            <div className="h-64 sm:h-96 border-2 border-black bg-[#151922] animate-pulse shadow-[3px_3px_0px_0px_#000]" />
-            <div className="h-64 sm:h-96 border-2 border-black bg-[#151922] animate-pulse shadow-[3px_3px_0px_0px_#000]" />
-          </div>
-        )}
+        {isLoading && <KanaFilterSkeleton />}
 
         {/* Error Banner */}
         {error && (

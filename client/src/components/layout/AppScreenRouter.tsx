@@ -2,8 +2,8 @@ import { lazy, Suspense, useState, useCallback } from 'react';
 import { useAppContext, type AppContextValue } from '../../contexts/AppContext';
 import { useRoomContext, type RoomContextValue } from '../../contexts/RoomContext';
 import { isGrammarAnswer, isGrammarQuestion } from '../../types';
-import { HomeSkeleton } from './AppHomeSkeleton';
-import { GenericRouteSkeleton } from './GenericRouteSkeleton';
+import { resolveRouteSkeleton } from './skeletons/RouteSkeletonResolver';
+import AssessmentLoadingScreen from '../practice/AssessmentLoadingScreen';
 import useToast from '@/hooks/useToast';
 
 const AppHome = lazy(() => import('../AppHome'));
@@ -23,7 +23,6 @@ const GrammarStudy = lazy(() => import('../learning/grammar/GrammarStudy'));
 const GrammarIntroScreen = lazy(() => import('../learning/grammar/GrammarIntroScreen'));
 const AssessmentHistory = lazy(() => import('../profile/AssessmentHistory'));
 const GrammarPractice = lazy(() => import('../practice/GrammarPractice'));
-const AssessmentLoadingScreen = lazy(() => import('../practice/AssessmentLoadingScreen'));
 const FriendsPanel = lazy(() => import('../social/FriendsPanel'));
 const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScreen'));
 
@@ -172,9 +171,9 @@ function LegacyAppScreenRouter({
   }
 
   return (
-    <Suspense fallback={<GenericRouteSkeleton status={status} />}>
+    <Suspense fallback={resolveRouteSkeleton(status, room?.deckType)}>
       {authLoading ? (
-        status === 'selector' ? <HomeSkeleton /> : <GenericRouteSkeleton status={status} />
+        resolveRouteSkeleton(status, room?.deckType)
       ) : shouldShowAuth ? (
         <AuthPage
           onStartSuccessAnimation={handleStartAuthAnimation}

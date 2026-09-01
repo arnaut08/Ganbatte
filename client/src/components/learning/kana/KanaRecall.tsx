@@ -8,6 +8,7 @@ import { buildKanaAttempt } from '../../../utils/kanaRecall';
 import useActivityRecorder from '../../../hooks/useActivityRecorder';
 import { useCelebrations } from '../../../contexts/CelebrationContext';
 import type { KanaCard } from '../../../types';
+import KanaRecallSkeleton from './KanaRecallSkeleton';
 
 type KanaRecallCard = KanaCard & { id: string };
 
@@ -235,11 +236,7 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
         </button>
       </div>
 
-      {isLoading && (
-        <div className="border-2 border-black bg-[#151922] p-8 text-center font-mono text-xs font-black uppercase text-white shadow-[4px_4px_0px_0px_#000] sm:p-12 sm:text-base">
-          Loading recall...
-        </div>
-      )}
+      {isLoading && <KanaRecallSkeleton />}
 
       {error && (
         <div className="border-2 border-black bg-[#FF6B6B] p-3 font-mono text-xs font-black uppercase text-black shadow-[3px_3px_0px_0px_#000] sm:p-4 sm:text-sm">
