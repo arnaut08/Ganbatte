@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, ComponentType, FormEvent, KeyboardEvent, ReactNode } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import {
   areRomajiAnswersEqual,
   buildDirectRomajiDiff,
@@ -36,7 +37,7 @@ type LegacyProps = {
 const LegacySwitch = Switch as unknown as ComponentType<LegacyProps>;
 const LegacyLabel = Label as unknown as ComponentType<LegacyProps>;
 
-function Assessment({
+export default function Assessment({
   room,
   kanaCards = [],
   onSubmitAnswer,
@@ -54,15 +55,15 @@ function Assessment({
   const currentCard: AssessmentCard = kanaCards[cardIndex] || {};
   const isLastCard = kanaCards.length > 0 && cardIndex === kanaCards.length - 1;
 
+  // Domain Theme Resolution
+  const isKanjiAssessment = room?.deckType === 'kanji';
+  const isGrammarAssessment = room?.deckType === 'grammar';
+  const themeAccent = isKanjiAssessment ? '#70CFF8' : isGrammarAssessment ? '#C084FC' : '#FFDE59';
+  const domainLabel = isKanjiAssessment ? '02 // KANJI DRILL' : isGrammarAssessment ? '04 // GRAMMAR DRILL' : '01 // KANA READING';
+
   // Safe player lookups
   const currentPlayer = room?.players?.find((p) => p.name === username);
   const otherPlayer = room?.players?.find((p) => p.name !== username);
-
-  // Hints calculation
-  const totalHintsUsed = Array.isArray(currentPlayer?.hintsUsed)
-    ? currentPlayer.hintsUsed.reduce((sum, value) => sum + Number(value || 0), 0)
-    : 0;
-  const currentHintsUsed = currentPlayer?.hintsUsed?.[cardIndex] ?? 0;
 
   // Real-time submission / ready states
   const submittedAnswer = currentPlayer?.answers?.[cardIndex];
@@ -71,9 +72,15 @@ function Assessment({
   const otherAnswer = otherPlayer?.answers?.[cardIndex];
   const otherSubmitted = otherAnswer !== undefined && otherAnswer !== null;
 
+  // Hints calculation: max 2 overall, max 1 per card
+  const totalHintsUsed = Array.isArray(currentPlayer?.hintsUsed)
+    ? currentPlayer.hintsUsed.reduce((sum, value) => sum + Number(value || 0), 0)
+    : 0;
+  const currentHintsUsed = currentPlayer?.hintsUsed?.[cardIndex] ?? 0;
+  const canUseHint = isKanjiAssessment && !submitted && currentHintsUsed === 0 && totalHintsUsed < 2;
+
   const currentReady = Boolean(currentPlayer?.ready);
   const otherReady = Boolean(otherPlayer?.ready);
-  const isKanjiAssessment = room?.deckType === 'kanji';
 
   const otherCorrect =
     otherSubmitted &&
@@ -81,7 +88,6 @@ function Assessment({
       ? areRomajiAnswersEqual(otherAnswer, currentCard?.romaji || '')
       : scoreRomajiAnswer(String(otherAnswer), currentCard?.romaji || '').percentage === 100);
 
-  // Clear timers and reset submission locks on new card
   useEffect(() => {
     setAnswer('');
     setIsSubmittingLocal(false);
@@ -93,7 +99,6 @@ function Assessment({
     }
   }, [cardIndex]);
 
-  // Unlock submission lock when room state updates with current answer
   useEffect(() => {
     if (submitted) {
       setIsSubmittingLocal(false);
@@ -103,7 +108,6 @@ function Assessment({
     }
   }, [submitted]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (submissionTimeoutRef.current) {
@@ -111,8 +115,6 @@ function Assessment({
       }
     };
   }, []);
-
-  const canUseHint = isKanjiAssessment && !submitted && totalHintsUsed < 2;
 
   const handleSubmit = (e?: FormEvent<HTMLFormElement> | KeyboardEvent<HTMLInputElement>) => {
     if (e) e.preventDefault();
@@ -128,7 +130,6 @@ function Assessment({
       onSubmitAnswer(cleanAnswer);
     }
 
-    // Safety fallback: auto-unlock submit state if network or socket drops
     if (submissionTimeoutRef.current) {
       clearTimeout(submissionTimeoutRef.current);
     }
@@ -137,7 +138,6 @@ function Assessment({
     }, 3500);
   };
 
-  // Evaluation Metrics
   const progress = kanaCards.length > 0 ? ((cardIndex + 1) / kanaCards.length) * 100 : 0;
   const answerScore = scoreRomajiAnswer(submittedAnswer || '', currentCard?.romaji || '');
   const isCorrect = isKanjiAssessment
@@ -160,76 +160,118 @@ function Assessment({
     ));
 
   return (
-    <main className="container mx-auto max-w-3xl space-y-3 sm:space-y-4 px-3 py-3 sm:px-4 sm:py-4 pb-20 sm:pb-24">
-      {/* 1. Arena Header & Progress HUD */}
+    <main className="container mx-auto max-w-3xl space-y-3.5 sm:space-y-5 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
+      {/* 1. Header & Progress HUD */}
       <div className="space-y-2 sm:space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <span className="font-mono text-[9px] sm:text-xs font-black uppercase tracking-wider text-[#FFDE59]">
-          // BATTLE ARENA: {isKanjiAssessment ? 'KANJI DRILL' : 'KANA READING'}
+            <span
+              className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider"
+              style={{ color: themeAccent }}
+            >
+              {domainLabel}
             </span>
-            <h1 className="text-base sm:text-3xl font-black uppercase tracking-tight text-white leading-tight">
-              {isKanjiAssessment ? 'Kanji Assessment' : 'Reading Assessment'}
+            <h1 className="text-lg sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
+              {isKanjiAssessment ? 'Kanji Assessment' : isGrammarAssessment ? 'Grammar Assessment' : 'Reading Assessment'}
             </h1>
           </div>
 
-          <div className="border-2 border-black bg-white px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] shrink-0">
+          <div className="border-2 border-black bg-white px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] shrink-0">
             CARD {cardIndex + 1} / {kanaCards.length || 1}
           </div>
         </div>
 
-        {/* Neo-Brutalist Progress Bar */}
-        <div className="h-2.5 sm:h-3.5 w-full border-2 border-black bg-[#1a1f2c] p-0.5 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
+        {/* Progress Bar */}
+        <div className="h-3 w-full border-2 border-black bg-[#151922] shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]">
           <div
-            className="h-full bg-[#A3E636] transition-all duration-300 ease-out"
-            style={{ width: `${Math.max(5, progress)}%` }}
+            className="h-full transition-all duration-300 ease-out"
+            style={{ width: `${Math.max(5, progress)}%`, backgroundColor: themeAccent }}
           />
         </div>
       </div>
 
-      {/* 2. Main Arena Battle Container */}
-      <div className="relative border-2 border-black bg-[#1a1f2c] p-3.5 sm:p-6 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] space-y-3.5 sm:space-y-5">
+      {/* 2. Main Arena Card */}
+      <div
+        className="relative border-2 border-black border-l-8 bg-[#1f2637] p-4 sm:p-6 shadow-[4px_4px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] space-y-4"
+        style={{ borderLeftColor: themeAccent }}
+      >
+        {/* Target Phrase Stage */}
+        <div className="relative border-2 border-black bg-[#151922] p-4 sm:p-7 shadow-[3px_3px_0px_0px_#000]">
+          {/* Stage Top Bar */}
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span
+                className="border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]"
+                style={{ backgroundColor: themeAccent }}
+              >
+                TARGET PROMPT
+              </span>
+              <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-400 truncate">
+                OP: {username}
+              </span>
+            </div>
 
-        {/* Target Phrase Hero Card */}
-        <div className="relative border-2 border-black bg-[#FFDE59] p-3.5 sm:p-8 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
-          <div className="flex items-center justify-between gap-2">
-            <span className="border-2 border-black bg-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-[#FFDE59]">
-              TARGET PHRASE
-            </span>
-            <span className="font-mono text-[10px] sm:text-xs font-bold text-black/70 truncate">
-              OPERATOR: {username}
-            </span>
+            {/* Anchored Top-Right Hint Button */}
+            {isKanjiAssessment && !submitted && (
+              <div>
+                {canUseHint ? (
+                  <button
+                    type="button"
+                    onClick={() => onUseHint?.(cardIndex)}
+                    className="flex cursor-pointer items-center gap-1.5 border-2 border-black bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#70CFF8] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    title="Reveal English meaning hint"
+                  >
+                    <QuestionMarkCircledIcon className="h-3.5 w-3.5 text-black" />
+                    <span>HINT ({2 - totalHintsUsed} LEFT)</span>
+                  </button>
+                ) : currentHintsUsed > 0 ? (
+                  <span className="font-mono text-[9px] sm:text-[10px] font-bold text-[#70CFF8]">
+                    HINT ACTIVE
+                  </span>
+                ) : (
+                  <span className="font-mono text-[9px] sm:text-[10px] font-bold text-neutral-500">
+                    NO HINTS LEFT
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Target Japanese Text */}
-          <div className="my-3 sm:my-6 text-center">
-            <p className="jp-font text-xl sm:text-4xl font-black text-black tracking-wide leading-relaxed">
+          <div className="my-4 sm:my-6 text-center">
+            <p className="jp-font text-3xl sm:text-5xl font-black text-white tracking-wide leading-relaxed">
               {currentCard?.kana || '...'}
             </p>
           </div>
 
-          {/* Subtext Prompt & Hint */}
-          <div className="flex flex-col items-center gap-1 text-center font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-black/70">
-            {isKanjiAssessment ? (
-              currentHintsUsed > 0 ? (
-                <span className="border border-black bg-white px-2 py-0.5 text-black shadow-[1.5px_1.5px_0px_0px_#000]">
-                  HINT: {currentCard?.english}
+          {/* Subtext Prompt or Active Hint Display */}
+          <div className="flex flex-col items-center justify-center">
+            {isKanjiAssessment && currentHintsUsed > 0 ? (
+              <div className="border-2 border-black border-l-4 border-l-[#70CFF8] bg-[#1f2637] px-3 py-1 text-center font-mono shadow-[1.5px_1.5px_0px_0px_#000]">
+                <span className="text-[9px] sm:text-[10px] font-black uppercase text-[#70CFF8] mr-1.5">
+                  HINT:
                 </span>
-              ) : (
-                <span>ENTER READING IN ROMAJI</span>
-              )
+                <span className="text-xs sm:text-sm font-black text-white">
+                  {currentCard?.english}
+                </span>
+              </div>
             ) : (
-              <span>TRANSLITERATE TO ROMAJI</span>
+              <span
+                className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-center"
+                style={{ color: themeAccent }}
+              >
+                {isKanjiAssessment ? 'ENTER READING IN ROMAJI' : 'TRANSLITERATE TO ROMAJI'}
+              </span>
             )}
           </div>
         </div>
 
-        {/* 3. Input Form / Post-Submission Review */}
+        {/* 3. Input Form / Round Evaluation */}
         {!submitted ? (
           <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-2 sm:top-3.5 font-mono text-sm sm:text-base font-black text-neutral-400 select-none">
+                <span className="absolute left-3 top-2.5 sm:top-3.5 font-mono text-sm sm:text-base font-black text-neutral-500 select-none">
                   &gt;
                 </span>
                 <input
@@ -248,42 +290,32 @@ function Assessment({
                       ? 'Type reading in romaji...'
                       : 'Type romaji reading...'
                   }
-                  className="h-10 sm:h-13 w-full border-2 border-black bg-white pl-7 pr-3 sm:pl-8 sm:pr-4 font-mono text-xs sm:text-base font-black text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:font-bold placeholder:text-neutral-400 focus-visible:bg-[#f3f9ff] focus:outline-none"
+                  className="h-10 sm:h-13 w-full border-2 border-black bg-[#151922] pl-8 pr-3 sm:pl-9 sm:pr-4 font-mono text-xs sm:text-base font-black text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] placeholder:font-mono placeholder:text-xs sm:placeholder:text-sm placeholder:font-bold placeholder:text-neutral-500 focus:border-white focus:outline-none"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                {canUseHint && (
-                  <button
-                    type="button"
-                    onClick={() => onUseHint?.(cardIndex)}
-                    className="h-10 sm:h-13 flex-1 sm:flex-none border-2 border-black bg-[#FFDE59] px-3 sm:px-4 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] hover:bg-[#ffe57e] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none whitespace-nowrap"
-                  >
-                    Hint ({2 - totalHintsUsed})
-                  </button>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={!answer.trim() || isSubmittingLocal}
-                  className="h-10 sm:h-13 flex-1 sm:flex-none sm:min-w-[120px] border-2 border-black bg-[#A3E636] px-4 sm:px-6 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] transition-all hover:bg-[#b5eb5b] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {isSubmittingLocal ? 'Submitting...' : 'Submit →'}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={!answer.trim() || isSubmittingLocal}
+                style={{ backgroundColor: answer.trim() && !isSubmittingLocal ? themeAccent : undefined }}
+                className={`h-10 sm:h-13 min-w-[100px] sm:min-w-[130px] border-2 border-black px-4 sm:px-6 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all whitespace-nowrap ${!answer.trim() || isSubmittingLocal
+                    ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
+                    : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                  }`}
+              >
+                {isSubmittingLocal ? 'Submitting...' : 'Submit →'}
+              </button>
             </div>
           </form>
         ) : (
           /* Round Evaluation */
-          <div className="space-y-3 sm:space-y-4 border-2 border-black bg-[#252c3d] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000]">
-            <div className="flex items-center justify-between border-b-2 border-black/40 pb-2">
-              <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-white">
-            // ROUND EVALUATION
+          <div className="space-y-3 sm:space-y-4 border-2 border-black bg-[#151922] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000]">
+            <div className="flex items-center justify-between border-b-2 border-white/10 pb-2">
+              <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-neutral-300">
+                // ROUND EVALUATION
               </span>
               <span
-                className={`border-2 border-black px-2 py-0.5 font-mono text-[10px] sm:text-xs font-black uppercase ${isCorrect
-                    ? 'bg-[#A3E636] text-black'
-                    : 'bg-[#FF6B6B] text-black'
+                className={`border-2 border-black px-2 py-0.5 font-mono text-[10px] sm:text-xs font-black uppercase shadow-[1px_1px_0px_0px_#000] ${isCorrect ? 'bg-[#A3E636] text-black' : 'bg-[#FF6B6B] text-black'
                   }`}
               >
                 {isCorrect ? '✔ CORRECT' : '✖ INCORRECT'}
@@ -292,7 +324,7 @@ function Assessment({
 
             <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
               {/* User Answer */}
-              <div className="border-2 border-black bg-[#1a1f2c] p-2.5 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
+              <div className="border-2 border-black bg-[#1f2637] p-2.5 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000]">
                 <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-400">
                   YOUR INPUT
                 </span>
@@ -300,17 +332,14 @@ function Assessment({
                   {isCorrect || !answerDiff ? (
                     String(submittedAnswer ?? '')
                   ) : (
-                    renderDifference(
-                      answerDiff.given,
-                      'text-[#FF6B6B] font-black'
-                    )
+                    renderDifference(answerDiff.given, 'text-[#FF6B6B] font-black')
                   )}
                 </p>
               </div>
 
-              {/* Correct Target Answer */}
-              <div className="border-2 border-black bg-[#A3E636] p-2.5 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
-                <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-black/70">
+              {/* Target Answer */}
+              <div className="border-2 border-black bg-white p-2.5 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000]">
+                <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-600">
                   CORRECT ROMAJI
                 </span>
                 <p className="mt-0.5 sm:mt-1 font-mono text-sm sm:text-base font-black text-black">
@@ -325,27 +354,25 @@ function Assessment({
 
             {currentCard?.english && (
               <p className="font-mono text-[11px] sm:text-xs font-bold text-neutral-300">
-                MEANING:{' '}
-                <span className="text-white font-black">
-                  {currentCard.english}
-                </span>
+                MEANING: <span className="text-white font-black">{currentCard.english}</span>
               </p>
             )}
 
             {/* Next Card Ready Trigger */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t-2 border-black/40 pt-2.5 sm:pt-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t-2 border-white/10 pt-2.5 sm:pt-3">
               {!currentReady ? (
                 <button
                   type="button"
                   onClick={() => onNextCard?.()}
-                  className="border-2 border-black bg-[#A3E636] px-4 py-2 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  style={{ backgroundColor: themeAccent }}
+                  className="cursor-pointer border-2 border-black px-4 py-2 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                 >
                   Ready for Next →
                 </button>
               ) : (
-                <div className="inline-flex items-center justify-center gap-2 border-2 border-black bg-[#FFDE59] px-3 py-1.5 font-mono text-[11px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
-                  <span className="h-2 w-2 animate-ping bg-black" />
-                  <span>{isLastCard && !otherSubmitted ? 'Waiting for Other Player...' : 'Waiting for Next Card...'}</span>
+                <div className="inline-flex items-center justify-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000]">
+                  <span className="h-2 w-2 animate-ping" style={{ backgroundColor: themeAccent }} />
+                  <span>{isLastCard && !otherSubmitted ? 'Waiting for Opponent...' : 'Waiting for Next Card...'}</span>
                 </div>
               )}
 
@@ -361,25 +388,25 @@ function Assessment({
         )}
 
         {/* 4. Opponent Status HUD Bar */}
-        <div className="flex items-center justify-between gap-2 border-t-2 border-neutral-700/60 pt-3 sm:pt-4">
+        <div className="flex items-center justify-between gap-2 border-t-2 border-white/10 pt-3 sm:pt-4">
           {showOpponentStatus ? (
-            <div className="flex items-center gap-2 sm:gap-3 border-2 border-black bg-[#252c3d] px-2.5 py-1.5 sm:px-3.5 sm:py-2 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
+            <div className="flex items-center gap-2 sm:gap-3 border-2 border-black bg-[#151922] px-2.5 py-1.5 sm:px-3.5 sm:py-2 shadow-[1.5px_1.5px_0px_0px_#000]">
               <span className="font-mono text-[10px] sm:text-xs font-black uppercase text-white truncate">
                 VS {otherPlayer ? otherPlayer.name : 'OPPONENT'}:
               </span>
               <div>
                 {otherPlayer && otherSubmitted && otherCorrect && (
-                  <span className="border border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
+                  <span className="border-2 border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
                     ✔ Correct
                   </span>
                 )}
                 {otherPlayer && otherSubmitted && !otherCorrect && (
-                  <span className="border border-black bg-[#FF6B6B] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
+                  <span className="border-2 border-black bg-[#FF6B6B] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
                     ✖ Wrong
                   </span>
                 )}
                 {otherPlayer && !otherSubmitted && (
-                  <span className="border border-black bg-neutral-700 px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase text-neutral-300">
+                  <span className="border border-black bg-[#1f2637] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase text-neutral-400">
                     Typing...
                   </span>
                 )}
@@ -400,6 +427,8 @@ function Assessment({
               id="show-opponent"
               checked={showOpponentStatus}
               onCheckedChange={setShowOpponentStatus}
+              style={showOpponentStatus ? { backgroundColor: themeAccent } : undefined}
+              className="border-2 border-black"
             />
             <LegacyLabel
               htmlFor="show-opponent"
@@ -413,5 +442,3 @@ function Assessment({
     </main>
   );
 }
-
-export default Assessment;
