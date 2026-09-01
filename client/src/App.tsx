@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect, Suspense } from 'react';
 import type { MutableRefObject } from 'react';
 import type { Socket } from 'socket.io-client';
 import AppHeader from './components/layout/AppHeader';
@@ -19,11 +19,12 @@ import useAppNavigation from './hooks/useAppNavigation';
 import { AppProvider } from './contexts/AppContext';
 import { RoomProvider } from './contexts/RoomContext';
 import { CelebrationProvider } from './contexts/CelebrationContext';
+import UpdatePasswordPage from './components/auth/UpdatePasswordPage';
 
 function App() {
   const [selectedKana, setSelectedKana] = useState<Set<string>>(new Set());
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user, authLoading, authRequired, getDisplayName, handleLogout: signOut } = useAuth();
+  const { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout: signOut } = useAuth({ showToast });
   const { toast, showToast, clearToast } = useToast();
   const setToast = useCallback((nextToast: ToastValue) => {
     if (!nextToast) {
@@ -178,6 +179,22 @@ function App() {
   }), [friendsState, grammarQuestions, roomManager, isPreparingAssessment, isSocketReady,
     kanaCards, prefillRoomCode, results, room, roomCode, socket, username]);
 
+  // Force password update screen if in recovery mode
+  if (isPasswordRecovery) {
+    return (
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center font-mono text-white bg-[#11141d]">Loading Protocol...</div>}>
+        <UpdatePasswordPage
+          showToast={showToast}
+          onSuccess={() => {
+            setIsPasswordRecovery(false);
+            window.location.hash = '';
+            window.location.reload();
+          }}
+        />
+      </Suspense>
+    );
+  }
+  
   return (
     <div className="app-container min-h-screen">
       <CelebrationProvider>

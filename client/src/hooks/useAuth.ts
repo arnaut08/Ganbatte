@@ -10,6 +10,9 @@ type UseAuthOptions = {
 export default function useAuth(options?: UseAuthOptions) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(
+    () => typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+  );
   const authRequired = Boolean(supabase);
 
   useEffect(() => {
@@ -23,16 +26,16 @@ export default function useAuth(options?: UseAuthOptions) {
 
     supabase.auth.getSession().then(({ data }) => {
       const nextUser = data.session?.user || null;
-      setUser((current) => mergeUser(current, nextUser));
+      if (!window.location.hash.includes('type=recovery')) {
+        setUser((current) => mergeUser(current, nextUser));
+      }
       setAuthLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       const nextUser = session?.user || null;
-      setUser((current) => mergeUser(current, nextUser));
       setAuthLoading(false);
 
-      // Handle specific auth landing events from URL tokens
       if (event === 'SIGNED_IN') {
         const hash = window.location.hash;
         
@@ -40,15 +43,23 @@ export default function useAuth(options?: UseAuthOptions) {
           if (hash.includes('type=signup') || hash.includes('type=email_change')) {
             options?.showToast?.('Email verified successfully! Welcome to the arena.', 'success');
             window.history.replaceState(null, '', window.location.pathname);
+            setUser((current) => mergeUser(current, nextUser));
           } else if (hash.includes('type=recovery')) {
-            options?.showToast?.('Recovery session initialized. Update your password below.', 'warning');
+            setIsPasswordRecovery(true);
+            options?.showToast?.('Recovery session initialized. Update your password below.', 'neutral');
+            // Do NOT set regular user state yet so they stay on the reset screen
+            return;
           }
         }
+      }
+      
+      if (!isPasswordRecovery) {
+        setUser((current) => mergeUser(current, nextUser));
       }
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [options]);
+  }, [options, isPasswordRecovery]);
 
   const getDisplayName = useCallback(() => {
     const fullName = user?.user_metadata?.full_name?.trim();
@@ -65,7 +76,8 @@ export default function useAuth(options?: UseAuthOptions) {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setUser(null);
+    setIsPasswordRecovery(false);
   }, []);
 
-  return { user, authLoading, authRequired, getDisplayName, handleLogout };
+  return { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout };
 }

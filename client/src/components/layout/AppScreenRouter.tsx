@@ -155,8 +155,6 @@ function LegacyAppScreenRouter({
   // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
   const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating;
 
-  // Show password update page if the URL contains a recovery hash
-  const isRecoveryFlow = window.location.hash.includes('type=recovery');
 
   if (isFullyHydrating) {
     return (
@@ -168,22 +166,6 @@ function LegacyAppScreenRouter({
           <p className="text-sm font-bold uppercase">Syncing active match state &amp; cards...</p>
         </div>
       </div>
-    );
-  }
-
-  // If recovery flow is active and user has a recovery session, force the update view
-  if (isRecoveryFlow) {
-
-    return (
-      <Suspense fallback={<GenericRouteSkeleton status={status} />}>
-        <UpdatePasswordPage
-          onSuccess={() => {
-            window.location.hash = '';
-            window.location.reload();
-          }}
-          showToast={showToast}
-        />
-      </Suspense>
     );
   }
 
