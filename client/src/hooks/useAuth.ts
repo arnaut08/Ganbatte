@@ -38,12 +38,16 @@ export default function useAuth(options?: UseAuthOptions) {
 
       if (event === 'SIGNED_IN') {
         const hash = window.location.hash;
-        
+
         if (hash) {
           if (hash.includes('type=signup') || hash.includes('type=email_change')) {
-            options?.showToast?.('Email verified successfully! Welcome to the arena.', 'success');
-            window.history.replaceState(null, '', window.location.pathname);
             setUser((current) => mergeUser(current, nextUser));
+            window.history.replaceState(null, '', window.location.pathname);
+
+            // Defer the toast slightly to ensure the layout has mounted and can render it
+            setTimeout(() => {
+              options?.showToast?.('Email verified successfully! Welcome to the arena.', 'success');
+            }, 100);
           } else if (hash.includes('type=recovery')) {
             setIsPasswordRecovery(true);
             options?.showToast?.('Recovery session initialized. Update your password below.', 'neutral');
@@ -52,7 +56,7 @@ export default function useAuth(options?: UseAuthOptions) {
           }
         }
       }
-      
+
       if (!isPasswordRecovery) {
         setUser((current) => mergeUser(current, nextUser));
       }
