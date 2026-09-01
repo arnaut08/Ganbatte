@@ -28,6 +28,8 @@ export type Room = ApiRecord & RoomSelectionHint & {
   cards?: ApiRecord[];
   players: RoomPlayer[];
   currentCardIndex?: number;
+  winnerUserId?: string | null;
+  forfeitedByUserId?: string | null;
 };
 
 /** Normalized per-player result shown on the results screen. */

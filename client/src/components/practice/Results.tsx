@@ -18,7 +18,7 @@ type ResultsProps = {
   kanaCards?: ResultCard[];
   username?: string;
   user?: { id?: string } | null;
-  room?: { selectedGroups?: string[]; deckType?: string } | null;
+  room?: { selectedGroups?: string[]; deckType?: string; winnerUserId?: string | null } | null;
   isHost?: boolean;
   onReplaySet?: () => void;
   onStartNewSession?: () => void;
@@ -243,9 +243,11 @@ export default function Results({
 
       {/* 2. Podium Scoreboard */}
       <div className="grid gap-2.5 sm:gap-4 sm:grid-cols-2">
-        {results.map((player, idx) => {
+          {results.map((player, idx) => {
           const stats = computeStats(player.answers || []);
-          const isWinner = results.length > 1 && stats.percentage === maxScore;
+            const isWinner = results.length > 1 && (room?.winnerUserId
+              ? player.userId === room.winnerUserId
+              : stats.percentage === maxScore);
 
           return (
             <div

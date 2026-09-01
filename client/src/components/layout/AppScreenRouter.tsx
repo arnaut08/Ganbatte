@@ -70,12 +70,14 @@ function LegacyAppScreenRouter({
   grammarQuestions,
   room,
   isPreparingAssessment,
+  isHydratingActiveMatch,
   handleStartAssessment,
   handleLeaveRoom,
   socket,
   handleInviteFriend,
   handleNextCard,
   handleSubmitAnswer,
+  handleForfeitMatch,
   kanaCards,
   handleUseHint,
   results,
@@ -112,10 +114,14 @@ function LegacyAppScreenRouter({
 
   const hasValidResults = Array.isArray(results) && results.length > 0;
   const isResultsScreen = status === 'results';
+  const activeCards = (kanaCards && kanaCards.length > 0) ? kanaCards : (room?.cards ?? []);
+  const isAssessmentDataReady = activeCards.length > 0 && room?.players && room.players.length > 0;
+  const isFullyHydrating = isHydratingActiveMatch
+    || (status === 'assessment' && !isAssessmentDataReady && Boolean(room));
 
   const shouldRenderRoomLobby = status === 'lobby' && Boolean(room);
-  const shouldRenderAssessment = status === 'assessment' && Boolean(room);
-  const shouldRenderPreparing = status === 'assessment-preparing';
+  const shouldRenderAssessment = status === 'assessment' && Boolean(room) && isAssessmentDataReady;
+  const shouldRenderPreparing = (status === 'assessment-preparing' || isFullyHydrating) && !isAssessmentDataReady;
   const shouldRenderResults = isResultsScreen && hasValidResults;
 
   const isOtherKnownScreen = [
@@ -136,16 +142,27 @@ function LegacyAppScreenRouter({
 
   const shouldRenderHome =
     status === 'selector' ||
-    (!isOtherKnownScreen &&
+    (!isFullyHydrating && !isOtherKnownScreen &&
       !shouldRenderRoomLobby &&
       !shouldRenderAssessment &&
       !shouldRenderPreparing &&
       !shouldRenderResults);
 
-  const activeCards = (kanaCards && kanaCards.length > 0) ? kanaCards : (room?.cards ?? []);
-
   // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
   const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating;
+
+  if (isFullyHydrating) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#11141d] px-4 text-white font-mono">
+        <div className="w-full max-w-md space-y-3 border-2 border-black bg-[#1f2637] p-6 text-center shadow-[6px_6px_0px_0px_#000]">
+          <span className="text-xs font-black uppercase tracking-widest text-[#FFDE59]">
+            // SYS: RE-ESTABLISHING SESSION
+          </span>
+          <p className="text-sm font-bold uppercase">Syncing active match state &amp; cards...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Suspense fallback={<GenericRouteSkeleton status={status} />}>
@@ -295,12 +312,14 @@ function LegacyAppScreenRouter({
                 onBack={handleGoBack}
                 onNextCard={handleNextCard}
                 onSubmitAnswer={handleSubmitAnswer}
+                onForfeit={handleForfeitMatch}
               />
             ) : (
               <Assessment
                 room={room}
                 kanaCards={activeCards}
                 onSubmitAnswer={handleSubmitAnswer}
+                onForfeit={handleForfeitMatch}
                 onUseHint={handleUseHint}
                 onNextCard={handleNextCard}
                 username={username}

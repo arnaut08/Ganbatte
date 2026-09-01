@@ -26,17 +26,19 @@ type GrammarPracticeProps = {
   username?: string;
   onNextCard?: (() => void) | null;
   onSubmitAnswer?: ((answer: unknown) => void) | null;
+  onForfeit?: (() => void) | null;
   forceShowResults?: boolean;
 };
 type LegacyProps = { children?: ReactNode; className?: string;[key: string]: unknown };
 const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
 const LegacyInput = Input as unknown as ComponentType<LegacyProps>;
 
-function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, forceShowResults = false }: GrammarPracticeProps) {
+function GrammarPractice({ questions = [], onBack, room = null, username = '', onNextCard = null, onSubmitAnswer = null, onForfeit = null, forceShowResults = false }: GrammarPracticeProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [showResults, setShowResults] = useState(Boolean(forceShowResults));
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
+  const [showForfeitConfirmation, setShowForfeitConfirmation] = useState(false);
   const [grammarMastery, setGrammarMastery] = useState<GrammarOverviewResponse | null>(null);
   const [isGeneratingSet, setIsGeneratingSet] = useState(false);
   const savedResult = useRef(false);
@@ -684,6 +686,27 @@ function GrammarPractice({ questions = [], onBack, room = null, username = '', o
         questionCount={questions.length}
         progress={progress}
       />
+
+      {onForfeit && (
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setShowForfeitConfirmation(true)} className="border-2 border-black bg-[#FF6B6B] px-2 py-1 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000]">
+            Forfeit Match
+          </button>
+        </div>
+      )}
+
+      {showForfeitConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" role="dialog" aria-modal="true" aria-labelledby="grammar-forfeit-title">
+          <div className="w-full max-w-sm border-2 border-black bg-[#1f2637] p-5 text-white shadow-[6px_6px_0px_0px_#000]">
+            <h2 id="grammar-forfeit-title" className="font-mono text-lg font-black uppercase">Forfeit match?</h2>
+            <p className="mt-2 font-mono text-xs text-neutral-300">This will count as a loss and award the win to your opponent.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowForfeitConfirmation(false)} className="border-2 border-black bg-white px-3 py-2 font-mono text-xs font-black uppercase text-black">Cancel</button>
+              <button type="button" onClick={() => { setShowForfeitConfirmation(false); onForfeit?.(); }} className="border-2 border-black bg-[#FF6B6B] px-3 py-2 font-mono text-xs font-black uppercase text-black">Forfeit Match</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. Main Question & Interactive Arena Card */}
       <div className="relative overflow-hidden border-2 border-black bg-[#1f2637] p-3.5 sm:p-7 shadow-[3px_3px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000]">

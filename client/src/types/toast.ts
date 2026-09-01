@@ -1,6 +1,6 @@
 /** Shared toast notification types. Used by the toast hook, socket layer and UI. */
 
-export type ToastType = 'success' | 'warning' | 'error';
+export type ToastType = 'success' | 'warning' | 'error' | 'neutral';
 
 export type ToastAction = { label: string; onClick: () => void };
 

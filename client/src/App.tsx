@@ -53,6 +53,7 @@ function App() {
     setSelectorScreen,
     appHomeKey,
   } = navigation;
+  const isMatchLocked = status === 'assessment' || status === 'assessment-preparing';
 
   const friendsState = useFriends({ user, status, showToast });
 
@@ -70,8 +71,15 @@ function App() {
   });
   roomManagerRef.current = roomManager;
   const { roomCode, room, username, kanaCards, results, grammarQuestions, prefillRoomCode, isPreparingAssessment, socket, isSocketReady } = roomManager;
+  const hasAssessmentData = (kanaCards.length > 0 || Boolean(room?.cards?.length))
+    && Boolean(room?.players?.length);
+  const isRestoringMatch = roomManager.isHydratingActiveMatch || (status === 'assessment' && !hasAssessmentData);
 
   const handleLogout = async () => {
+    if (isMatchLocked) {
+      showToast('Cannot sign out during an active match. Finish or forfeit first.', 'error');
+      return;
+    }
     setIsLoggingOut(true);
     setStatus('selector');
     setSelectorScreen('home');
@@ -91,6 +99,14 @@ function App() {
       setIsLoggingOut(false);
       console.error('Logout failed:', error);
     }
+  };
+
+  const handleHomeNavigation = () => {
+    if (isMatchLocked) {
+      showToast('Cannot leave during an active match. Finish or forfeit first.', 'error');
+      return;
+    }
+    navigation.handleBackToPractice();
   };
 
   const appContextValue = useMemo(() => ({
@@ -138,6 +154,7 @@ function App() {
     friendSearchResults: friendsState.friendSearchResults,
     isFriendSearchLoading: friendsState.isFriendSearchLoading,
     isPreparingAssessment,
+    isHydratingActiveMatch: roomManager.isHydratingActiveMatch,
     handleCreateRoom: roomManager.handleCreateRoom,
     handleJoinRoom: roomManager.handleJoinRoom,
     handleReturnToRoom: roomManager.handleReturnToRoom,
@@ -153,6 +170,7 @@ function App() {
     handleNextCard: roomManager.handleNextCard,
     handleSubmitAnswer: roomManager.handleSubmitAnswer,
     handleUseHint: roomManager.handleUseHint,
+    handleForfeitMatch: roomManager.handleForfeitMatch,
     handleReplayAssessment: roomManager.handleReplayAssessment,
     handleStartNewSession: roomManager.handleStartNewSession,
     handleRequestHost: roomManager.handleRequestHost,
@@ -171,16 +189,18 @@ function App() {
           }}
         />
 
-        <AppHeader
-          onHome={navigation.handleBackToPractice}
-          onOpenFriends={navigation.handleOpenFriends}
-          onLogout={handleLogout}
-          onOpenHistory={navigation.handleOpenHistory}
-          onOpenPassport={navigation.handleOpenPassport}
-          isAuthenticated={Boolean(user)}
-          user={user}
-          pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
-        />
+        {!isRestoringMatch && (
+          <AppHeader
+            onHome={handleHomeNavigation}
+            onOpenFriends={navigation.handleOpenFriends}
+            onLogout={handleLogout}
+            onOpenHistory={navigation.handleOpenHistory}
+            onOpenPassport={navigation.handleOpenPassport}
+            isAuthenticated={Boolean(user)}
+            user={user}
+            pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
+          />
+        )}
 
         <AppProvider value={appContextValue}>
           <RoomProvider value={roomContextValue}>

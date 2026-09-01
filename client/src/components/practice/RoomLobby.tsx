@@ -57,6 +57,7 @@ export default function RoomLobby({
   const themeLabel = isKanji ? '02 // KANJI 1v1' : isGrammar ? '04 // GRAMMAR 1v1' : '01 // KANA 1v1';
 
   const onlineFriends = friends.filter((friend) => friend.online && (friend.user_id || friend.id));
+  const isRoomFull = (room?.players?.length || 0) >= 2;
 
   const handleCopyLink = async () => {
     try {
@@ -95,7 +96,7 @@ export default function RoomLobby({
       </div>
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-12 lg:items-start">
-        {/* LEFT COLUMN: Access Code & Invite Controls */}
+        {/* LEFT COLUMN: Access Code & Conditional Invite Controls / Status Panel */}
         <div className="space-y-4 sm:space-y-5 lg:col-span-7">
           {/* Room Code Panel */}
           <div
@@ -113,106 +114,123 @@ export default function RoomLobby({
                 {roomCode}
               </span>
             </div>
-            {isHost && (
+            {isHost && !isRoomFull && (
               <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">
                 Share this code to invite your opponent
               </p>
             )}
+            {isRoomFull && (
+              <p className="font-mono text-[10px] font-black uppercase tracking-wider text-[#A3E636] sm:text-xs" style={{ color: themeAccent }}>
+                // LOBBY CAPACITY REACHED - READY FOR LAUNCH
+              </p>
+            )}
           </div>
 
-          {/* Invitation Controls */}
-          <div className="space-y-3 sm:space-y-4">
-            {/* Direct Link Bar */}
-            <div className="border-2 border-black bg-[#1f2637] p-3.5 shadow-[3px_3px_0px_0px_#000] sm:p-4">
-              <label
-                className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]"
-                style={{ color: themeAccent }}
-              >
-                // DIRECT INVITE LINK
-              </label>
-              <div className="mt-1.5 flex gap-2 sm:gap-2.5">
-                <LegacyInput
-                  value={joinLink}
-                  readOnly
-                  className="h-9 flex-1 border-2 border-black bg-[#151922] px-3 font-mono text-[10px] font-bold text-white shadow-none focus-visible:ring-0 sm:h-10 sm:text-xs"
-                />
-                <LegacyButton
-                  onClick={handleCopyLink}
-                  className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border-2 border-black bg-white px-3 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-10 sm:px-4 sm:text-xs"
-                  style={{ backgroundColor: copied ? themeAccent : '#FFFFFF' }}
+          {/* Conditional Invitation Controls or Balanced Full State Panel */}
+          {!isRoomFull ? (
+            <div className="space-y-3 sm:space-y-4">
+              {/* Direct Link Bar */}
+              <div className="border-2 border-black bg-[#1f2637] p-3.5 shadow-[3px_3px_0px_0px_#000] sm:p-4">
+                <label
+                  className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]"
+                  style={{ color: themeAccent }}
                 >
-                  {copied ? <CheckIcon className="h-4 w-4 text-black" /> : <CopyIcon className="h-4 w-4" />}
-                  {copied ? 'Copied' : 'Copy'}
-                </LegacyButton>
-              </div>
-            </div>
-
-            {/* Online Friends Picker */}
-            <div className="border-2 border-black bg-[#1f2637] p-3.5 shadow-[3px_3px_0px_0px_#000] sm:p-4">
-              <div className="flex items-center justify-between gap-2 sm:gap-4">
-                <div className="flex flex-col gap-0.5 sm:gap-1">
-                  <span
-                    className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]"
-                    style={{ color: themeAccent }}
+                  // DIRECT INVITE LINK
+                </label>
+                <div className="mt-1.5 flex gap-2 sm:gap-2.5">
+                  <LegacyInput
+                    value={joinLink}
+                    readOnly
+                    className="h-9 flex-1 border-2 border-black bg-[#151922] px-3 font-mono text-[10px] font-bold text-white shadow-none focus-visible:ring-0 sm:h-10 sm:text-xs"
+                  />
+                  <LegacyButton
+                    onClick={handleCopyLink}
+                    className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border-2 border-black bg-white px-3 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-10 sm:px-4 sm:text-xs"
+                    style={{ backgroundColor: copied ? themeAccent : '#FFFFFF' }}
                   >
-                    // ONLINE FRIENDS
-                  </span>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span
-                      className="h-2 w-2 border border-black sm:h-2.5 sm:w-2.5"
-                      style={{ backgroundColor: onlineFriends.length > 0 ? themeAccent : '#6b7280' }}
-                    />
-                    <span className="font-mono text-xs font-bold text-white sm:text-sm">
-                      {onlineFriends.length > 0
-                        ? `${onlineFriends.length} friend${onlineFriends.length > 1 ? 's' : ''} available`
-                        : 'No friends online'}
-                    </span>
-                  </div>
+                    {copied ? <CheckIcon className="h-4 w-4 text-black" /> : <CopyIcon className="h-4 w-4" />}
+                    {copied ? 'Copied' : 'Copy'}
+                  </LegacyButton>
                 </div>
-
-                <LegacyButton
-                  size="sm"
-                  onClick={() => setIsInviteOpen((prev) => !prev)}
-                  disabled={onlineFriends.length === 0}
-                  className="h-8 shrink-0 cursor-pointer border-2 border-black bg-white px-3 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-9 sm:px-3.5 sm:text-xs"
-                >
-                  {isInviteOpen ? 'Close' : `Invite (${onlineFriends.length})`}
-                </LegacyButton>
               </div>
 
-              {/* Scrollable Friend List */}
-              {isInviteOpen && onlineFriends.length > 0 && (
-                <div className="mt-3 border-t-2 border-white/10 pt-3">
-                  <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
-                    {onlineFriends.map((friend) => (
-                      <div
-                        key={friend.user_id || friend.id}
-                        className="flex items-center justify-between gap-2 border-2 border-black bg-[#151922] p-2.5 shadow-[1.5px_1.5px_0px_0px_#000]"
-                      >
-                        <span className="truncate font-mono text-xs font-black uppercase text-white">
-                          {friend.display_name || 'Friend'}
-                        </span>
-                        <LegacyButton
-                          size="sm"
-                          onClick={() => {
-                            const friendId = friend.user_id ?? friend.id;
-                            if (friendId) {
-                              onInviteFriend?.(friendId);
-                              setIsInviteOpen(false);
-                            }
-                          }}
-                          style={{ backgroundColor: themeAccent }}
-                          className="h-7 shrink-0 cursor-pointer border-2 border-black px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px]"
-                        >
-                          Invite
-                        </LegacyButton>
-                      </div>
-                    ))}
+              {/* Online Friends Picker */}
+              <div className="border-2 border-black bg-[#1f2637] p-3.5 shadow-[3px_3px_0px_0px_#000] sm:p-4">
+                <div className="flex items-center justify-between gap-2 sm:gap-4">
+                  <div className="flex flex-col gap-0.5 sm:gap-1">
+                    <span
+                      className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]"
+                      style={{ color: themeAccent }}
+                    >
+                      // ONLINE FRIENDS
+                    </span>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span
+                        className="h-2 w-2 border border-black sm:h-2.5 sm:w-2.5"
+                        style={{ backgroundColor: onlineFriends.length > 0 ? themeAccent : '#6b7280' }}
+                      />
+                      <span className="font-mono text-xs font-bold text-white sm:text-sm">
+                        {onlineFriends.length > 0
+                          ? `${onlineFriends.length} friend${onlineFriends.length > 1 ? 's' : ''} available`
+                          : 'No friends online'}
+                      </span>
+                    </div>
                   </div>
+
+                  <LegacyButton
+                    size="sm"
+                    onClick={() => setIsInviteOpen((prev) => !prev)}
+                    disabled={onlineFriends.length === 0}
+                    className="h-8 shrink-0 cursor-pointer border-2 border-black bg-white px-3 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-9 sm:px-3.5 sm:text-xs"
+                  >
+                    {isInviteOpen ? 'Close' : `Invite (${onlineFriends.length})`}
+                  </LegacyButton>
                 </div>
-              )}
+
+                {/* Scrollable Friend List */}
+                {isInviteOpen && onlineFriends.length > 0 && (
+                  <div className="mt-3 border-t-2 border-white/10 pt-3">
+                    <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
+                      {onlineFriends.map((friend) => (
+                        <div
+                          key={friend.user_id || friend.id}
+                          className="flex items-center justify-between gap-2 border-2 border-black bg-[#151922] p-2.5 shadow-[1.5px_1.5px_0px_0px_#000]"
+                        >
+                          <span className="truncate font-mono text-xs font-black uppercase text-white">
+                            {friend.display_name || 'Friend'}
+                          </span>
+                          <LegacyButton
+                            size="sm"
+                            onClick={() => {
+                              const friendId = friend.user_id ?? friend.id;
+                              if (friendId) {
+                                onInviteFriend?.(friendId);
+                                setIsInviteOpen(false);
+                              }
+                            }}
+                            style={{ backgroundColor: themeAccent }}
+                            className="h-7 shrink-0 cursor-pointer border-2 border-black px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px]"
+                          >
+                            Invite
+                          </LegacyButton>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Balanced Status Card to fill layout space when room is full */
+            <div className="border-2 border-black bg-[#1f2637] p-5 text-center shadow-[3px_3px_0px_0px_#000] sm:p-6 space-y-3">
+              <span className="font-mono text-[10px] font-black uppercase tracking-widest" style={{ color: themeAccent }}>
+                // SQUAD ASSEMBLED
+              </span>
+              <p className="font-mono text-xs text-neutral-300 leading-relaxed">
+                Both combatants are locked into the lobby. The host can now initiate the sequence.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: Player Roster & Actions */}
@@ -265,10 +283,10 @@ export default function RoomLobby({
                     <div className="flex shrink-0 items-center">
                       <span
                         className={`border-2 border-black px-1.5 py-0.5 font-mono text-[8px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000] sm:text-[9px] ${presence === 'disconnected'
-                            ? 'bg-[#FF6B6B]'
-                            : presence === 'away'
-                              ? 'bg-[#FFDE59]'
-                              : 'bg-white'
+                          ? 'bg-[#FF6B6B]'
+                          : presence === 'away'
+                            ? 'bg-[#FFDE59]'
+                            : 'bg-white'
                           }`}
                       >
                         {presence === 'disconnected'
@@ -314,8 +332,8 @@ export default function RoomLobby({
                 disabled={!isReady || isPreparingAssessment || !isHost}
                 style={isReady && !isPreparingAssessment && isHost ? { backgroundColor: themeAccent } : undefined}
                 className={`h-10 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none whitespace-nowrap leading-none sm:h-11 ${!isReady || isPreparingAssessment || !isHost
-                    ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
-                    : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000]'
+                  ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
+                  : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000]'
                   }`}
               >
                 {isPreparingAssessment

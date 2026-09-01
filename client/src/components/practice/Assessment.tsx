@@ -25,6 +25,7 @@ type AssessmentProps = {
   onSubmitAnswer?: (answer: string) => void;
   onUseHint?: (cardIndex: number) => void;
   onNextCard?: () => void;
+  onForfeit?: () => void;
   username?: string;
 };
 
@@ -43,11 +44,13 @@ export default function Assessment({
   onSubmitAnswer,
   onUseHint,
   onNextCard,
+  onForfeit,
   username,
 }: AssessmentProps) {
   const [answer, setAnswer] = useState('');
   const [showOpponentStatus, setShowOpponentStatus] = useState(true);
   const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
+  const [showForfeitConfirmation, setShowForfeitConfirmation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const submissionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -206,35 +209,40 @@ export default function Assessment({
               >
                 TARGET PROMPT
               </span>
-              <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-400 truncate">
-                OP: {username}
-              </span>
             </div>
 
-            {/* Anchored Top-Right Hint Button */}
-            {isKanjiAssessment && !submitted && (
-              <div>
-                {canUseHint ? (
-                  <button
-                    type="button"
-                    onClick={() => onUseHint?.(cardIndex)}
-                    className="flex cursor-pointer items-center gap-1.5 border-2 border-black bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#70CFF8] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                    title="Reveal English meaning hint"
-                  >
-                    <QuestionMarkCircledIcon className="h-3.5 w-3.5 text-black" />
-                    <span>HINT ({2 - totalHintsUsed} LEFT)</span>
-                  </button>
-                ) : currentHintsUsed > 0 ? (
-                  <span className="font-mono text-[9px] sm:text-[10px] font-bold text-[#70CFF8]">
-                    HINT ACTIVE
-                  </span>
-                ) : (
-                  <span className="font-mono text-[9px] sm:text-[10px] font-bold text-neutral-500">
-                    NO HINTS LEFT
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {username && (
+                <span className="border-2 border-black bg-[#1f2637] px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-300 shadow-[1px_1px_0px_0px_#000]">
+                  OP: {username}
+                </span>
+              )}
+
+              {/* Anchored Top-Right Hint Button */}
+              {isKanjiAssessment && !submitted && (
+                <div>
+                  {canUseHint ? (
+                    <button
+                      type="button"
+                      onClick={() => onUseHint?.(cardIndex)}
+                      className="flex cursor-pointer items-center gap-1.5 border-2 border-black bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#70CFF8] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                      title="Reveal English meaning hint"
+                    >
+                      <QuestionMarkCircledIcon className="h-3.5 w-3.5 text-black" />
+                      <span>HINT ({2 - totalHintsUsed} LEFT)</span>
+                    </button>
+                  ) : currentHintsUsed > 0 ? (
+                    <span className="font-mono text-[9px] sm:text-[10px] font-bold text-[#70CFF8]">
+                      HINT ACTIVE
+                    </span>
+                  ) : (
+                    <span className="font-mono text-[9px] sm:text-[10px] font-bold text-neutral-500">
+                      NO HINTS LEFT
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Target Japanese Text */}
@@ -299,8 +307,8 @@ export default function Assessment({
                 disabled={!answer.trim() || isSubmittingLocal}
                 style={{ backgroundColor: answer.trim() && !isSubmittingLocal ? themeAccent : undefined }}
                 className={`h-10 sm:h-13 min-w-[100px] sm:min-w-[130px] border-2 border-black px-4 sm:px-6 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all whitespace-nowrap ${!answer.trim() || isSubmittingLocal
-                    ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
-                    : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                  ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
+                  : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
                   }`}
               >
                 {isSubmittingLocal ? 'Submitting...' : 'Submit →'}
@@ -387,41 +395,9 @@ export default function Assessment({
           </div>
         )}
 
-        {/* 4. Opponent Status HUD Bar */}
-        <div className="flex items-center justify-between gap-2 border-t-2 border-white/10 pt-3 sm:pt-4">
-          {showOpponentStatus ? (
-            <div className="flex items-center gap-2 sm:gap-3 border-2 border-black bg-[#151922] px-2.5 py-1.5 sm:px-3.5 sm:py-2 shadow-[1.5px_1.5px_0px_0px_#000]">
-              <span className="font-mono text-[10px] sm:text-xs font-black uppercase text-white truncate">
-                VS {otherPlayer ? otherPlayer.name : 'OPPONENT'}:
-              </span>
-              <div>
-                {otherPlayer && otherSubmitted && otherCorrect && (
-                  <span className="border-2 border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
-                    ✔ Correct
-                  </span>
-                )}
-                {otherPlayer && otherSubmitted && !otherCorrect && (
-                  <span className="border-2 border-black bg-[#FF6B6B] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
-                    ✖ Wrong
-                  </span>
-                )}
-                {otherPlayer && !otherSubmitted && (
-                  <span className="border border-black bg-[#1f2637] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase text-neutral-400">
-                    Typing...
-                  </span>
-                )}
-                {!otherPlayer && (
-                  <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-400">
-                    Waiting...
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div />
-          )}
-
-          {/* Toggle Switch */}
+        {/* 4. Bottom Controls: Toggle on Left, Conditional Status in Center, Forfeit on Right */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t-2 border-white/10 pt-3 sm:pt-4">
+          {/* Left: HUD Toggle Switch */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <LegacySwitch
               id="show-opponent"
@@ -434,11 +410,68 @@ export default function Assessment({
               htmlFor="show-opponent"
               className="font-mono text-[10px] sm:text-xs font-bold uppercase tracking-wider text-neutral-400 cursor-pointer select-none"
             >
-              Opponent HUD
+              HUD
             </LegacyLabel>
           </div>
+
+          {/* Center: Conditional Opponent Status Box (Fixed Width to Avoid Drifting) */}
+          <div className="min-w-[200px] sm:min-w-[240px] flex justify-center">
+            {showOpponentStatus ? (
+              <div className="flex items-center gap-2 sm:gap-3 border-2 border-black bg-[#151922] px-2.5 py-1.5 sm:px-3.5 sm:py-2 shadow-[1.5px_1.5px_0px_0px_#000]">
+                <span className="font-mono text-[10px] sm:text-xs font-black uppercase text-white truncate">
+                  VS {otherPlayer ? otherPlayer.name : 'OPPONENT'}:
+                </span>
+                <div>
+                  {otherPlayer && otherSubmitted && otherCorrect && (
+                    <span className="border-2 border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
+                      ✔ Correct
+                    </span>
+                  )}
+                  {otherPlayer && otherSubmitted && !otherCorrect && (
+                    <span className="border-2 border-black bg-[#FF6B6B] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
+                      ✖ Wrong
+                    </span>
+                  )}
+                  {otherPlayer && !otherSubmitted && (
+                    <span className="border border-black bg-[#1f2637] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase text-neutral-400">
+                      Typing...
+                    </span>
+                  )}
+                  {!otherPlayer && (
+                    <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-400">
+                      Waiting...
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Right: High-Visibility Neo-Brutalist Forfeit Button */}
+          {onForfeit && (
+            <button
+              type="button"
+              onClick={() => setShowForfeitConfirmation(true)}
+              className="cursor-pointer border-2 border-black bg-[#FF6B6B] px-4 py-2 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] hover:bg-[#ff5252] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all self-end sm:self-auto"
+            >
+              Forfeit Match →
+            </button>
+          )}
         </div>
       </div>
+
+      {showForfeitConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" role="dialog" aria-modal="true" aria-labelledby="forfeit-title">
+          <div className="w-full max-w-sm border-2 border-black bg-[#1f2637] p-5 text-white shadow-[6px_6px_0px_0px_#000]">
+            <h2 id="forfeit-title" className="font-mono text-lg font-black uppercase">Forfeit match?</h2>
+            <p className="mt-2 font-mono text-xs text-neutral-300">This will count as a loss and award the win to your opponent.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowForfeitConfirmation(false)} className="cursor-pointer border-2 border-black bg-white px-3 py-2 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">Cancel</button>
+              <button type="button" onClick={() => { setShowForfeitConfirmation(false); onForfeit?.(); }} className="cursor-pointer border-2 border-black bg-[#FF6B6B] px-3 py-2 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">Forfeit Match</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

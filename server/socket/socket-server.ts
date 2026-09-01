@@ -439,6 +439,24 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
     socket.on('start-assessment', startAssessment);
 
+    socket.on('forfeit-match', (roomCode: RoomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      const forfeitingPlayer = room?.players.find((player) => player.id === socket.id);
+      const winner = room?.players.find((player) => player.id !== socket.id && player.connected !== false);
+      if (!room || !forfeitingPlayer || !winner || room.players.length < 2) return;
+      if (room.status !== 'active' && room.status !== 'preparing') return;
+
+      room.status = 'completed';
+      room.winnerUserId = winner.userId ?? null;
+      room.forfeitedByUserId = forfeitingPlayer.userId ?? null;
+      io.to(roomCode).emit('assessment-completed', {
+        room,
+        results: buildAssessmentResults(room),
+        winnerUserId: room.winnerUserId,
+        forfeitedByUserId: room.forfeitedByUserId,
+      });
+    });
+
     socket.on('replay-assessment', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;

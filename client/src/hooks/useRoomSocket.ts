@@ -353,7 +353,7 @@ export default function useRoomSocket({
     newSocket.on('assessment-action-requested', (data: SocketPayload) => {
       if (data?.hostSocketId && data.hostSocketId !== newSocket.id) return;
       const actionLabel = data?.action === 'replay' ? 'Start a New Assessment' : 'Start New Session';
-      setToast({ message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`, type: 'warning' });
+      setToast({ message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`, type: 'neutral' });
     });
 
     newSocket.on('player-exited-lobby', (data: SocketPayload) => {
@@ -393,7 +393,7 @@ export default function useRoomSocket({
 
     newSocket.on('friend-request-received', () => {
       refreshFriendRequests(true);
-      setToast({ message: 'You received a new friend request.', type: 'success' });
+      setToast({ message: 'You received a new friend request.', type: 'neutral' });
     });
 
     newSocket.on('friend-request-accepted', (data: SocketPayload) => {
@@ -408,7 +408,7 @@ export default function useRoomSocket({
 
     newSocket.on('friend-online', (data: SocketPayload) => {
       refreshFriends(true);
-      setToast({ message: `${data?.displayName || 'Your friend'} is online.`, type: 'success' });
+      setToast({ message: `${data?.displayName || 'Your friend'} is online.`, type: 'neutral' });
     });
 
     newSocket.on('room-invite-received', (data: SocketPayload) => {
@@ -419,7 +419,7 @@ export default function useRoomSocket({
           : 'Kana';
       setToast({
         message: `${data?.inviterName || 'A friend'} invited you to a ${assessmentLabel} assessment.`,
-        type: 'warning',
+        type: 'neutral',
         actions: [
           {
             label: 'Join',
