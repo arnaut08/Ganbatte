@@ -5,6 +5,7 @@ export interface RoomCallbackResult { success: boolean; message?: string; room?:
 export type RoomCallback = (result: string | Room | RoomCallbackResult) => void;
 
 export interface ClientToServerEvents {
+  'authenticate-socket': (accessToken: string) => void;
   'create-room': (hostName: Username, sessionKey: SessionKey, userId?: string, callback?: RoomCallback) => void;
   'join-room': (roomCode: RoomCode, username: Username, sessionKey: SessionKey, userId?: string, callback?: RoomCallback) => void;
   'rejoin-room': (roomCode: RoomCode, username: Username, sessionKey: SessionKey, userId?: string, callback?: RoomCallback) => void;
