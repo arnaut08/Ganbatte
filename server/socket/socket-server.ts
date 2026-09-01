@@ -53,7 +53,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     pingTimeout: 60000,
     connectionStateRecovery: {
       maxDisconnectionDuration: 2 * 60 * 1000, // Retain session for 2 minutes
-      skipMiddlewares: false,                  // Must be false to re-populate socket.data.user
+      skipMiddlewares: false,                   // Must be false to re-populate socket.data.user
     },
   });
 
@@ -80,10 +80,6 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
     socket.data.user = data.user;
 
-    // Do not forcibly disconnect a previous browser session. Browser switches
-    // and background tabs may briefly have more than one live socket; the
-    // latest socket remains the presence owner while old sockets can finish
-    // their reconnect/rejoin lifecycle naturally.
     await claimUserConnection(data.user.id, socket.id);
 
     socket.data.connectionRefresh = setInterval(() => {
@@ -100,6 +96,19 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
     const userRoom = socket.data.user?.id ? `user:${socket.data.user.id}` : null;
     if (userRoom) socket.join(userRoom);
+
+    // Allow dynamic runtime authentication sync when verified post-login/signup
+    socket.on('authenticate-socket', async (accessToken: string) => {
+      if (!isSupabaseConfigured() || !accessToken) return;
+      const { data, error } = await getSupabaseClient().auth.getUser(accessToken);
+      if (!error && data.user) {
+        socket.data.user = data.user;
+        const newUserRoom = `user:${data.user.id}`;
+        socket.join(newUserRoom);
+        await claimUserConnection(data.user.id, socket.id);
+        console.log(`Socket dynamically authenticated: ${socket.id} for user ${data.user.id}`);
+      }
+    });
 
     const notifyFriendsThatUserIsOnline = async (): Promise<void> => {
       const userId = socket.data.user?.id;
@@ -858,7 +867,6 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       const socketId = socket.id;
       const userId = socket.data.user?.id;
       const activeSocketId = userId ? await getUserSocketId(userId) : null;
-      // A newer browser/tab owns this user connection. Leave presence intact.
       if (activeSocketId && activeSocketId !== socketId) return;
 
       if (userId) await releaseUserConnection(userId, socketId).catch(console.error);

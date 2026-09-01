@@ -19,6 +19,7 @@ import { isStudyCard } from '../types';
 import { canStartAssessment } from '../utils/roomStatus';
 import { clearRoomQueryParam, clearRoomSession, getSessionKey, readRoomSession, saveRoomSession } from '../utils/roomSession';
 import useRoomSocket from './useRoomSocket';
+import { supabase } from '../config/supabase';
 
 type NavigationState = {
   status: AppStatus;
@@ -153,6 +154,25 @@ export default function useRoomManager({
   });
   const activeSocket = socket as unknown as Socket | null;
   socketRef.current = socket;
+
+  // Sync / Re-authenticate socket when user logs in post email-verification
+  useEffect(() => {
+    if (!activeSocket) return;
+
+    if (user?.id) {
+      supabase.auth.getSession().then(({ data }) => {
+        const token = data.session?.access_token;
+        if (token) {
+          activeSocket.auth = { ...(activeSocket.auth || {}), accessToken: token };
+          if (!activeSocket.connected) {
+            activeSocket.connect();
+          } else {
+            activeSocket.emit('authenticate-socket', token);
+          }
+        }
+      });
+    }
+  }, [user?.id, activeSocket]);
 
   useEffect(() => {
     if (!user?.id) {
