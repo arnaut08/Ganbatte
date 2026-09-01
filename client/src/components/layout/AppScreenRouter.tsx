@@ -29,6 +29,7 @@ type ScreenRouterProps = AppContextValue & RoomContextValue;
 
 function LegacyAppScreenRouter({
   authLoading,
+  isLoggingOut,
   authRequired,
   user,
   status,
@@ -144,7 +145,7 @@ function LegacyAppScreenRouter({
   const activeCards = (kanaCards && kanaCards.length > 0) ? kanaCards : (room?.cards ?? []);
 
   // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
-  const shouldShowAuth = (authRequired && !user) || isStampAnimating;
+  const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating;
 
   return (
     <Suspense fallback={<GenericRouteSkeleton status={status} />}>

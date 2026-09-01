@@ -308,8 +308,10 @@ export default function useRoomManager({
     handleLeaveRoom,
     handleStartNewSession,
     handleGenerateCards,
+    clearRoomState,
     setGrammarQuestions,
   }), [
+    clearRoomState,
     grammarQuestions,
     handleCreateRoom,
     handleDeclineRoomResume,

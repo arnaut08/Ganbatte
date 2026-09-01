@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import type { Socket } from 'socket.io-client';
 import AppHeader from './components/layout/AppHeader';
@@ -22,6 +22,7 @@ import { CelebrationProvider } from './contexts/CelebrationContext';
 
 function App() {
   const [selectedKana, setSelectedKana] = useState<Set<string>>(new Set());
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, authLoading, authRequired, getDisplayName, handleLogout: signOut } = useAuth();
   const { toast, showToast, clearToast } = useToast();
   const setToast = useCallback((nextToast: ToastValue) => {
@@ -34,6 +35,10 @@ function App() {
   const socketRef = useRef<Socket | null>(null);
   const roomCodeRef = useRef<string | null>(null);
   const roomManagerRef = useRef<ReturnType<typeof useRoomManager> | null>(null);
+
+  useEffect(() => {
+    if (!user) setIsLoggingOut(false);
+  }, [user]);
   const navigation = useAppNavigation({
     socketRef,
     roomCodeRef,
@@ -67,6 +72,10 @@ function App() {
   const { roomCode, room, username, kanaCards, results, grammarQuestions, prefillRoomCode, isPreparingAssessment, socket, isSocketReady } = roomManager;
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+    setStatus('selector');
+    setSelectorScreen('home');
+
     if (socket) {
       socket.disconnect();
     }
@@ -74,19 +83,19 @@ function App() {
     clearRoomSession();
     friendsState.clearSocialDataCache();
     localStorage.removeItem('ganbatte-session-key');
-    roomManager.handleDeclineRoomResume();
-    setStatus('selector');
-    setSelectorScreen('home');
+    roomManager.clearRoomState();
 
     try {
       await signOut();
     } catch (error) {
+      setIsLoggingOut(false);
       console.error('Logout failed:', error);
     }
   };
 
   const appContextValue = useMemo(() => ({
     authLoading,
+    isLoggingOut,
     authRequired,
     user,
     appHomeKey,
@@ -111,7 +120,7 @@ function App() {
     handleOpenKanaFilter: navigation.handleOpenKanaFilter,
     handleKanaSelectionChange: navigation.handleKanaSelectionChange,
     handleApplyKanaFilters: navigation.handleApplyKanaFilters,
-  }), [authLoading, authRequired, appHomeKey, navigation, selectedKana, selectorScreen, status, user]);
+  }), [authLoading, authRequired, appHomeKey, isLoggingOut, navigation, selectedKana, selectorScreen, status, user]);
 
   const roomContextValue = useMemo(() => ({
     socket,
