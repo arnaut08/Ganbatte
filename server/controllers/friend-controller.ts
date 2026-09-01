@@ -100,37 +100,60 @@ export async function searchUsers(req: Request, res: Response): Promise<void> {
 
 export async function getFriendRequests(req: Request, res: Response): Promise<void> {
   const user = req.user!;
-
   const supabase = getSupabaseClient();
+
   const { data: requests, error } = await supabase
     .from('friend_requests')
-    .select('id, sender_id, receiver_id, status, created_at, profiles!friend_requests_sender_id_fkey(id, display_name)')
+    .select(`
+      id,
+      sender_id,
+      receiver_id,
+      status,
+      created_at,
+      sender:profiles!friend_requests_sender_id_fkey(id, display_name),
+      receiver:profiles!friend_requests_receiver_id_fkey(id, display_name)
+    `)
     .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Failed to load friend requests:', error);
-    res.status(500).json({ error: 'Unable to search users.' });
+    res.status(500).json({ error: 'Unable to load friend requests.' });
     return;
   }
 
-  const typedRequests = (requests || []) as unknown as FriendRequestRow[];
-  const onlineIds = await getUsersPresenceStatus(typedRequests.map((request) => request.sender_id));
-  const results = typedRequests.map((request) => ({
-    id: request.id,
-    sender_id: request.sender_id,
-    receiver_id: request.receiver_id,
-    status: request.status,
-    created_at: request.created_at,
-    direction: request.sender_id === user.id ? 'outgoing' : 'incoming',
-    sender: {
-      id: request.profiles?.id,
-      user_id: request.profiles?.id,
-      display_name: request.profiles?.display_name,
-      online: onlineIds.includes(String(request.sender_id)),
-    },
-  }));
+  const rawRequests = requests || [];
+  const counterpartIds = rawRequests.map((r) =>
+    r.sender_id === user.id ? String(r.receiver_id) : String(r.sender_id)
+  );
+  const onlineIds = await getUsersPresenceStatus(counterpartIds);
+
+  const results = rawRequests.map((request: any) => {
+    const isOutgoing = String(request.sender_id) === String(user.id);
+    const counterpartProfile = isOutgoing ? request.receiver : request.sender;
+    const counterpartId = isOutgoing ? request.receiver_id : request.sender_id;
+
+    return {
+      id: request.id,
+      sender_id: request.sender_id,
+      receiver_id: request.receiver_id,
+      status: request.status,
+      created_at: request.created_at,
+      direction: isOutgoing ? 'outgoing' : 'incoming',
+      sender: {
+        id: counterpartProfile?.id || counterpartId,
+        user_id: counterpartProfile?.id || counterpartId,
+        display_name: counterpartProfile?.display_name || 'User',
+        online: onlineIds.includes(String(counterpartId)),
+      },
+      receiver: {
+        id: request.receiver?.id || request.receiver_id,
+        user_id: request.receiver?.id || request.receiver_id,
+        display_name: request.receiver?.display_name || 'User',
+      },
+    };
+  });
 
   res.json(results);
 }
@@ -156,6 +179,7 @@ export async function createFriendRequest(req: Request<{ userId: string }>, res:
     return;
   }
 
+  // 1. Check if already friends
   const { data: existingFriendship, error: friendshipError } = await supabase
     .from('friendships')
     .select('user_id')
@@ -174,6 +198,7 @@ export async function createFriendRequest(req: Request<{ userId: string }>, res:
     return;
   }
 
+  // 2. Check if a request exists between these two users
   const { data: existingRequest, error: requestError } = await supabase
     .from('friend_requests')
     .select('id, sender_id, receiver_id, status')
@@ -187,14 +212,21 @@ export async function createFriendRequest(req: Request<{ userId: string }>, res:
   }
 
   if (existingRequest) {
+    // If there is already an active pending request in either direction
     if (existingRequest.status === 'pending') {
-      res.status(409).json({ error: 'A friend request already exists.' });
+      res.status(409).json({ error: 'A friend request is already pending.' });
       return;
     }
 
+    // Re-activate previously rejected/canceled request with CORRECT sender and receiver IDs
     const { error: updateError } = await supabase
       .from('friend_requests')
-      .update({ status: 'pending', updated_at: new Date().toISOString() })
+      .update({
+        sender_id: user.id,          // Set current caller as sender
+        receiver_id: targetUserId,    // Set target as receiver
+        status: 'pending',
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', String(existingRequest.id));
 
     if (updateError) {
@@ -219,6 +251,7 @@ export async function createFriendRequest(req: Request<{ userId: string }>, res:
     return;
   }
 
+  // 3. Brand new request if no previous record exists
   const { data: newRequest, error: insertError } = await supabase
     .from('friend_requests')
     .insert({ sender_id: user.id, receiver_id: targetUserId, status: 'pending' })
