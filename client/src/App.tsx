@@ -24,7 +24,6 @@ import UpdatePasswordPage from './components/auth/UpdatePasswordPage';
 function App() {
   const [selectedKana, setSelectedKana] = useState<Set<string>>(new Set());
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout: signOut } = useAuth({ showToast });
   const { toast, showToast, clearToast } = useToast();
   const setToast = useCallback((nextToast: ToastValue) => {
     if (!nextToast) {
@@ -33,6 +32,7 @@ function App() {
     }
     showToast(nextToast.message, nextToast.type, nextToast.actions);
   }, [clearToast, showToast]);
+  const { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout: signOut } = useAuth({ showToast });
   const socketRef = useRef<Socket | null>(null);
   const roomCodeRef = useRef<string | null>(null);
   const roomManagerRef = useRef<ReturnType<typeof useRoomManager> | null>(null);
