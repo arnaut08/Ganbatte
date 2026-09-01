@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useCallback } from 'react';
 import { useAppContext, type AppContextValue } from '../../contexts/AppContext';
 import { useRoomContext, type RoomContextValue } from '../../contexts/RoomContext';
 import { isGrammarAnswer, isGrammarQuestion } from '../../types';
@@ -28,25 +28,79 @@ const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScree
 type ScreenRouterProps = AppContextValue & RoomContextValue;
 
 function LegacyAppScreenRouter({
-  authLoading, authRequired, user, status, selectorScreen, appHomeKey, setSelectorScreen,
-  handleCreateRoom, handleJoinRoom, handleOpenKanaStudy, handleOpenKanjiStudy, handleStartKanjiLearning,
-  handleOpenVocabStudy, handleStartVocabLearning, handleOpenGrammarStudy, handleStartGrammarStudy,
-  handleStartGrammarPractice, handleOpenGrammarPractice, prefillRoomCode, isSocketReady, roomCode, currentSessionKey,
-  username, friends, friendSearchResults, isFriendSearchLoading, handleSearchUsers,
-  handleRemoveFriend, handleGoBack, handleContinueKanaIntro, handleOpenKanaFilter,
-  handleApplyKanaFilters, handleKanaSelectionChange, selectedKana, friendRequests,
-  handleSendFriendRequest, handleAcceptFriendRequest, handleRejectFriendRequest,
-  grammarQuestions, room, isPreparingAssessment, handleStartAssessment, handleLeaveRoom,
-  socket, handleInviteFriend, handleNextCard, handleSubmitAnswer, kanaCards, handleUseHint,
-  results, isCurrentPlayerHost, handleReplayAssessment, handleStartNewSession, handleRequestHost,
+  authLoading,
+  authRequired,
+  user,
+  status,
+  selectorScreen,
+  appHomeKey,
+  setSelectorScreen,
+  handleCreateRoom,
+  handleJoinRoom,
+  handleOpenKanaStudy,
+  handleOpenKanjiStudy,
+  handleStartKanjiLearning,
+  handleOpenVocabStudy,
+  handleStartVocabLearning,
+  handleOpenGrammarStudy,
+  handleStartGrammarStudy,
+  handleStartGrammarPractice,
+  handleOpenGrammarPractice,
+  prefillRoomCode,
+  isSocketReady,
+  roomCode,
+  currentSessionKey,
+  username,
+  friends,
+  friendSearchResults,
+  isFriendSearchLoading,
+  handleSearchUsers,
+  handleRemoveFriend,
+  handleGoBack,
+  handleContinueKanaIntro,
+  handleOpenKanaFilter,
+  handleApplyKanaFilters,
+  handleKanaSelectionChange,
+  selectedKana,
+  friendRequests,
+  handleSendFriendRequest,
+  handleAcceptFriendRequest,
+  handleRejectFriendRequest,
+  grammarQuestions,
+  room,
+  isPreparingAssessment,
+  handleStartAssessment,
+  handleLeaveRoom,
+  socket,
+  handleInviteFriend,
+  handleNextCard,
+  handleSubmitAnswer,
+  kanaCards,
+  handleUseHint,
+  results,
+  isCurrentPlayerHost,
+  handleReplayAssessment,
+  handleStartNewSession,
+  handleRequestHost,
   handleOpenHistory,
 }: ScreenRouterProps) {
+  // Hold screen while AuthPage stamp animation runs
+  const [isStampAnimating, setIsStampAnimating] = useState(false);
+
+  const handleAuthSuccess = useCallback(() => {
+    setIsStampAnimating(false);
+  }, []);
+
+  const handleStartAuthAnimation = useCallback(() => {
+    setIsStampAnimating(true);
+  }, []);
+
   const grammarSessionQuestions = (room?.cards ?? []).filter(isGrammarQuestion);
   const grammarRoomView = room
     ? {
       code: room.code,
       currentCardIndex: room.currentCardIndex,
-      players: room.players.map((player) => ({
+      players: (room.players || []).map((player) => ({
         name: player.name,
         userId: player.userId,
         ready: player.ready,
@@ -58,11 +112,9 @@ function LegacyAppScreenRouter({
   const hasValidResults = Array.isArray(results) && results.length > 0;
   const isResultsScreen = status === 'results';
 
-  // If status is a multiplayer screen (lobby/assessment) but room is missing,
-  // or status is results but results are missing, fall back to AppHome.
   const shouldRenderRoomLobby = status === 'lobby' && Boolean(room);
   const shouldRenderAssessment = status === 'assessment' && Boolean(room);
-  const shouldRenderPreparing = status === 'assessment-preparing' && room?.deckType === 'grammar';
+  const shouldRenderPreparing = status === 'assessment-preparing';
   const shouldRenderResults = isResultsScreen && hasValidResults;
 
   const isOtherKnownScreen = [
@@ -89,12 +141,20 @@ function LegacyAppScreenRouter({
       !shouldRenderPreparing &&
       !shouldRenderResults);
 
+  const activeCards = (kanaCards && kanaCards.length > 0) ? kanaCards : (room?.cards ?? []);
+
+  // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
+  const shouldShowAuth = (authRequired && !user) || isStampAnimating;
+
   return (
-    <Suspense fallback={<GenericRouteSkeleton />}>
+    <Suspense fallback={<GenericRouteSkeleton status={status} />}>
       {authLoading ? (
-        status === 'selector' ? <HomeSkeleton /> : <GenericRouteSkeleton />
-      ) : authRequired && !user ? (
-        <AuthPage />
+        status === 'selector' ? <HomeSkeleton /> : <GenericRouteSkeleton status={status} />
+      ) : shouldShowAuth ? (
+        <AuthPage
+          onStartSuccessAnimation={handleStartAuthAnimation}
+          onSuccessComplete={handleAuthSuccess}
+        />
       ) : (
         <>
           {shouldRenderHome && (
@@ -197,8 +257,14 @@ function LegacyAppScreenRouter({
 
           {shouldRenderPreparing && (
             <AssessmentLoadingScreen
-              title="Preparing the grammar deck"
-              description="Generating the question set and getting both players ready."
+              title={
+                room?.deckType === 'grammar'
+                  ? 'Preparing the grammar deck'
+                  : room?.deckType === 'kanji'
+                    ? 'Preparing the kanji drill'
+                    : 'Preparing the reading deck'
+              }
+              description="Generating the question set and synchronizing operators..."
             />
           )}
 
@@ -232,7 +298,7 @@ function LegacyAppScreenRouter({
             ) : (
               <Assessment
                 room={room}
-                kanaCards={kanaCards}
+                kanaCards={activeCards}
                 onSubmitAnswer={handleSubmitAnswer}
                 onUseHint={handleUseHint}
                 onNextCard={handleNextCard}
@@ -258,7 +324,7 @@ function LegacyAppScreenRouter({
               <Results
                 results={results}
                 roomCode={roomCode}
-                kanaCards={kanaCards}
+                kanaCards={activeCards}
                 username={username}
                 user={user}
                 room={room}
@@ -275,10 +341,8 @@ function LegacyAppScreenRouter({
   );
 }
 
-function AppScreenRouter() {
+export default function AppScreenRouter() {
   const appContext = useAppContext();
   const roomContext = useRoomContext();
   return <LegacyAppScreenRouter {...appContext} {...roomContext} />;
 }
-
-export default AppScreenRouter;
