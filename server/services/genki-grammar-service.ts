@@ -94,7 +94,7 @@ const MATCHING_PAIRS = [
 ];
 
 type GrammarLesson = typeof GENKI_GRAMMAR_LESSONS[number];
-export interface AssessmentQuestion { id: string; lesson: number; type: string; prompt: string; explanation: string; difficulty: string; [key: string]: unknown }
+export interface AssessmentQuestion { id: string; lesson: number; type: string; prompt: string; explanation: string; difficulty: string;[key: string]: unknown }
 
 function clampCount(value: unknown): number {
   return Math.min(Math.max(Number(value) || 1, 1), 25);
@@ -270,41 +270,47 @@ export function resolveGeminiModel(modelName: string | undefined): string {
   return normalized && candidates.has(normalized) ? normalized : FALLBACK_GEMINI_MODEL;
 }
 
-export function createGeminiPrompt({ maxLesson = 12, count = 10, mode = 'assessment' }: { maxLesson?: number; count?: number; mode?: 'practice' | 'assessment' } = {}): string {
+export function createGeminiPrompt({
+  maxLesson = 12,
+  count = 10,
+  mode = 'assessment'
+}: {
+  maxLesson?: number;
+  count?: number;
+  mode?: 'practice' | 'assessment';
+} = {}): string {
   const lessonScope = mode === 'practice'
     ? `Only use grammar concepts from lesson ${maxLesson}.`
     : `Only use grammar concepts from lessons 1 through ${maxLesson}.`;
+
   const questionInstructions = mode === 'assessment'
     ? `Generate exactly ${ASSESSMENT_QUESTION_TOTAL} questions total in valid JSON only: 4 multiple-choice, 4 fill-in-the-blank, 2 matching, 4 translation, and 4 comprehension questions.`
     : `Generate exactly ${count} questions total in valid JSON only, using all five question types when the requested count allows it.`;
 
-  // Recency weighting only applies to assessments spanning multiple lessons.
-  // Practice mode targets a single lesson, so including this line would force
-  // Gemini to pull in earlier lessons despite the lessonScope instruction.
   const recencyWeighting = mode === 'assessment'
-    ? `Weight the distribution of questions strictly in descending order of recency: Lesson L must have strictly more questions than Lesson L-1 across the entire range from Lesson 1 up to ${maxLesson}.`
+    ? `Weight question distribution toward higher lessons: at least 50% of questions must test concepts from lesson ${maxLesson}. Earlier lessons (1 to ${Math.max(1, maxLesson - 1)}) should be sampled lightly as foundational context.`
     : '';
 
   return [
-    'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1',
+    'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1 (JLPT N5 level).',
     lessonScope,
     recencyWeighting,
     questionInstructions,
-    'Please do not use Kanji characters in any of the questions.',
-    'If the correctAnswer is in Japanese, please provide correctAnswerRomaji for each question which contains the romaji representation of the correctAnswer.',
+    'Please do not use Kanji characters in any of the questions (use Hiragana and Katakana only).',
+    'If the correctAnswer is in Japanese, please provide correctAnswerRomaji for each question containing the romaji representation of the correctAnswer.',
     'Use question types from: multiple-choice, fill-in-the-blank, matching, translation, comprehension.',
     'For translation items, the user sees an English sentence and must provide a Japanese answer.',
     'Return a JSON object with a top-level "questions" array.',
     'Each question must include: id, lesson, type, prompt, explanation, difficulty.',
     'For multiple-choice: include choices and correctAnswer.',
-    'For fill-in-the-blank: include correctAnswer and acceptedAnswers if useful. Please ensure that the correctAnswer does not include any character from the prompt.',
-    'For matching: include leftItems, rightItems, and correctPairs. Make sure that the leftItems and rightItems are shuffled and not in the same order as correctPairs.',
+    'For fill-in-the-blank: include correctAnswer and acceptedAnswers if useful. Ensure that the correctAnswer does not include any character from the prompt.',
+    'For matching: include leftItems, rightItems, and correctPairs. Ensure leftItems and rightItems are shuffled and not in the same order as correctPairs.',
     'For translation: include englishText, correctAnswer, and acceptedAnswers.',
     'For comprehension: include choices and correctAnswer.',
     'Keep all content aligned to Genki Volume 1 only.',
     'Do not include markdown fences or extra commentary.',
-    `Please generate fresh content and avoid reusing questions in previously generated assessments.`
-  ].join('\n');
+    'Please generate fresh content and avoid reusing questions in previously generated assessments.'
+  ].filter(Boolean).join('\n');
 }
 
 function normalizeQuestion(item: Record<string, unknown>, index: number): AssessmentQuestion {
