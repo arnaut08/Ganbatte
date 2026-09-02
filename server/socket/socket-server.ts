@@ -25,8 +25,9 @@ import {
   type SessionKey,
   type Username,
 } from '../utils/validation.js';
-import { generateRandomKanjiCards, type KanjiCard, type PracticeCard } from '../services/card-service.js';
+import { generateRandomKanjiCards, generateRandomVocabCards, type KanjiCard, type PracticeCard, type VocabCard } from '../services/card-service.js';
 import { getPersistedKanjiDeck } from '../repositories/kanji-repository.js';
+import { getPersistedVocabDeck } from '../repositories/vocab-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
@@ -38,7 +39,14 @@ import {
   roomState, type Room, type RoomCard,
 } from '../utils/socket-room-utils.js';
 
-type RoomDeckConfig = { type?: 'kana' | 'kanji' | 'grammar'; groups?: string[]; maxLesson?: number; count?: number };
+type RoomDeckConfig = { type?: 'kana' | 'kanji' | 'vocab' | 'grammar'; groups?: string[]; maxLesson?: number; count?: number };
+
+function isPracticeAnswerCorrect(answer: Answer, card: PracticeCard): boolean {
+  if (card.answerType === 'text' && card.correctAnswer) {
+    return String(answer).trim().toLowerCase() === card.correctAnswer.trim().toLowerCase();
+  }
+  return isCorrectRomajiAnswer(answer, card.romaji);
+}
 
 export async function configureSocketServer(server: HttpServer, app: Express): Promise<Server> {
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
@@ -185,7 +193,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
-      const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : 'kana';
+      const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : deckConfig?.type === 'vocab' ? 'vocab' : 'kana';
       let cards: PracticeCard[] = [];
       if (deckType === 'kanji') {
         let deck;
@@ -201,6 +209,20 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           return;
         }
         cards = generateRandomKanjiCards(deck.cards as unknown as KanjiCard[], Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10);
+      } else if (deckType === 'vocab') {
+        let deck;
+        try {
+          deck = await getPersistedVocabDeck();
+        } catch (error) {
+          console.error('Vocab room deck lookup failed:', error);
+          if (callback) callback({ success: false, message: 'Vocabulary lessons are not available.' });
+          return;
+        }
+        if (!deck) {
+          if (callback) callback({ success: false, message: 'Vocabulary lessons are not available.' });
+          return;
+        }
+        cards = generateRandomVocabCards(deck as VocabCard[], 10, Array.isArray(deckConfig?.groups) ? deckConfig.groups : []);
       }
 
       roomState.rooms.set(roomCode, {
@@ -400,7 +422,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         return player.connected !== false && status !== 'away' && status !== 'disconnected' && status !== 'offline';
       })) return;
 
-      if (room.deckType === 'grammar' || room.deckType === 'kana') {
+      if (room.deckType === 'grammar' || room.deckType === 'kana' || room.deckType === 'vocab') {
         room.status = 'preparing';
         room.currentCardIndex = 0;
         room.players.forEach((player) => {
@@ -420,7 +442,14 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
             room.cards = questions as unknown as RoomCard[];
             room.questions = questions;
           } else {
-            room.cards = await generateKanaDeck();
+            if (room.deckType === 'vocab') {
+              const deck = await getPersistedVocabDeck();
+              if (!deck) throw new Error('Vocabulary deck is unavailable');
+              room.cards = generateRandomVocabCards(deck, 10, room.selectedGroups || []);
+              if (room.cards.length === 0) throw new Error('Selected vocabulary stages contain no items');
+            } else {
+              room.cards = await generateKanaDeck();
+            }
           }
         } catch (error) {
           console.error(`Failed to generate ${room.deckType} assessment deck:`, error);
@@ -429,7 +458,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           room.status = 'waiting';
           io.to(roomCode).emit('assessment-generation-failed', {
             room,
-            message: `${room.deckType === 'kana' ? 'Kana' : 'Grammar'} assessment deck could not be generated. Please try again.`,
+            message: `${room.deckType === 'kana' ? 'Kana' : room.deckType === 'vocab' ? 'Vocabulary' : 'Grammar'} assessment deck could not be generated. Please try again.`,
           });
           return;
         }
@@ -439,6 +468,18 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           room.cards = deck
             ? generateRandomKanjiCards(deck.cards as unknown as KanjiCard[], room.selectedGroups || [], 10)
             : [];
+        } else if (room.deckType === 'vocab') {
+          try {
+            const deck = await getPersistedVocabDeck();
+            if (!deck) throw new Error('Vocabulary deck is unavailable');
+            room.cards = generateRandomVocabCards(deck, 10, room.selectedGroups || []);
+            if (room.cards.length === 0) throw new Error('Selected vocabulary stages contain no items');
+          } catch (error) {
+            console.error('Vocab assessment deck generation failed:', error);
+            room.status = 'waiting';
+            socket.emit('assessment-action-denied', { message: 'Vocabulary assessments are not available.' });
+            return;
+          }
         } else {
           try {
             room.cards = await generateKanaDeck();
@@ -600,7 +641,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           if (room.deckType === 'grammar') {
             player.ready = false;
           } else {
-            player.ready = Boolean(currentCard && isCorrectRomajiAnswer(parsedAnswer.data, currentCard.romaji));
+            player.ready = Boolean(currentCard && isPracticeAnswerCorrect(parsedAnswer.data, currentCard));
           }
 
           io.to(roomCode).emit('answer-submitted', {

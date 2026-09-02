@@ -51,13 +51,16 @@ export default function RoomLobby({
     (currentSessionKey && hostPlayer?.sessionKey === currentSessionKey);
 
   const isKanji = room?.deckType === 'kanji';
+  const isVocab = room?.deckType === 'vocab';
   const isGrammar = room?.deckType === 'grammar';
   const themeAccent = getDeckAccent(room?.deckType);
   const themeLabel = room?.deckType === 'kanji'
     ? '02 // KANJI 1v1'
-    : room?.deckType === 'grammar'
-      ? '04 // GRAMMAR 1v1'
-      : '01 // KANA 1v1';
+    : room?.deckType === 'vocab'
+      ? '03 // VOCAB 1v1'
+      : room?.deckType === 'grammar'
+        ? '04 // GRAMMAR 1v1'
+        : '01 // KANA 1v1';
 
   const onlineFriends = friends.filter((friend) => friend.online && (friend.user_id || friend.id));
   const isRoomFull = (room?.players?.length || 0) >= 2;
@@ -368,7 +371,7 @@ export default function RoomLobby({
                 <span>
                   Each round displays the identical{' '}
                   <strong className="text-white">
-                    {isKanji ? 'Kanji prompt' : isGrammar ? 'Grammar question' : 'Kana sentence'}
+                    {isKanji ? 'Kanji prompt' : isVocab ? 'Vocabulary prompt' : isGrammar ? 'Grammar question' : 'Kana sentence'}
                   </strong>{' '}
                   simultaneously.
                 </span>

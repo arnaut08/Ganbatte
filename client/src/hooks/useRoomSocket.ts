@@ -428,6 +428,8 @@ export default function useRoomSocket({
     newSocket.on('room-invite-received', (data: SocketPayload) => {
       const assessmentLabel = data?.deckType === 'kanji'
         ? 'Kanji'
+        : data?.deckType === 'vocab'
+          ? 'Vocabulary'
         : data?.deckType === 'grammar'
           ? 'Grammar'
           : 'Kana';
