@@ -6,6 +6,9 @@ export type RoomStatus = 'waiting' | 'preparing' | 'active' | 'completed';
 /** Player presence states broadcast by the socket server. */
 export type PlayerPresence = 'online' | 'away' | 'offline' | 'disconnected' | 'in_lobby' | 'ready';
 
+/** Format of the 1v1 match. */
+export type MatchMode = 'standard' | 'gauntlet';
+
 /** A player currently (or previously) part of a room. */
 export type RoomPlayer = ApiRecord & {
   id?: string;
@@ -24,12 +27,16 @@ export type RoomPlayer = ApiRecord & {
 export type Room = ApiRecord & RoomSelectionHint & {
   code?: string;
   status?: RoomStatus;
+  mode?: MatchMode;
+  seed?: number;
   deckType?: Deck;
+  grammarLevel?: number;
   cards?: ApiRecord[];
   players: RoomPlayer[];
   currentCardIndex?: number;
   winnerUserId?: string | null;
   forfeitedByUserId?: string | null;
+  winnerSocketId?: string;
 };
 
 /** Normalized per-player result shown on the results screen. */
@@ -48,6 +55,8 @@ export type RoomSelectionHint = {
 /** Options used to create a room deck (normalized before being sent). */
 export type DeckOptions = {
   type?: Deck;
+  mode?: MatchMode;
+  seed?: number;
   groups?: unknown[];
   maxLesson?: number;
   count?: number;

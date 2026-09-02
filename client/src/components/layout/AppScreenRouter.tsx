@@ -27,6 +27,7 @@ const GrammarPractice = lazy(() => import('../practice/GrammarPractice'));
 const FriendsPanel = lazy(() => import('../social/FriendsPanel'));
 const ProfileScreen = lazy(() => import('../profile/ProfileScreen'));
 const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScreen'));
+const GauntletPvpScreen = lazy(() => import('../gauntlet/GauntletPvpScreen'));
 
 type ScreenRouterProps = AppContextValue & RoomContextValue;
 
@@ -81,6 +82,9 @@ function LegacyAppScreenRouter({
   isPreparingAssessment,
   isHydratingActiveMatch,
   handleStartAssessment,
+  handleStartGauntlet,
+  handleReturnGauntletToLobby,
+  handleReturnToRoom,
   handleLeaveRoom,
   socket,
   handleInviteFriend,
@@ -99,6 +103,14 @@ function LegacyAppScreenRouter({
 }: ScreenRouterProps) {
   // Hold screen while AuthPage stamp animation runs
   const [isStampAnimating, setIsStampAnimating] = useState(false);
+
+  const gauntletSeed = (room?.code || '').split('').reduce(
+    (seed, character) => ((seed * 31) + character.charCodeAt(0)) % 2147483647,
+    7,
+  );
+  const opponentUserId = room?.players.find(
+    (player) => player.userId && player.userId !== user?.id,
+  )?.userId;
 
   const handleAuthSuccess = useCallback(() => {
     setIsStampAnimating(false);
@@ -193,6 +205,21 @@ function LegacyAppScreenRouter({
             setIsEmailVerifiedSignup?.(false);
             setSelectorScreen?.('home');
           }}
+        />
+      ) : status === 'gauntlet' ? (
+        <GauntletPvpScreen
+          roomId={room?.code || 'local-gauntlet'}
+          userId={user?.id || 'local-player'}
+          opponentUserId={opponentUserId || 'opponent'}
+          seed={gauntletSeed || 20260902}
+          deckType={room?.deckType}
+          selectedGroups={room?.selectedGroups}
+          matchWinnerUserId={room?.winnerUserId}
+          matchWinnerSocketId={room?.winnerSocketId as string | undefined}
+          currentSocketId={socket?.id}
+          onForfeit={handleForfeitMatch}
+          onReturnToLobby={handleReturnGauntletToLobby}
+          onExit={handleReturnToRoom}
         />
       ) : (
         <>
@@ -325,6 +352,7 @@ function LegacyAppScreenRouter({
               roomCode={roomCode}
               room={room}
               onStartAssessment={handleStartAssessment}
+              onOpenGauntlet={handleStartGauntlet}
               onLeaveRoom={handleLeaveRoom}
               currentSocketId={socket?.id || ''}
               currentUserId={user?.id || null}
@@ -389,6 +417,7 @@ function LegacyAppScreenRouter({
               />
             )
           )}
+
         </>
       )}
     </Suspense>

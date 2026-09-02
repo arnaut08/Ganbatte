@@ -1,7 +1,7 @@
 import { useState, type ComponentType, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CopyIcon, CheckIcon } from '@radix-ui/react-icons';
+import { CopyIcon, CheckIcon, LightningBoltIcon } from '@radix-ui/react-icons';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
 import { getDeckAccent } from '../../utils/deck-theme';
 import type { Friend, Room } from '../../types';
@@ -10,6 +10,7 @@ type RoomLobbyProps = {
   roomCode: string;
   room: Room;
   onStartAssessment: () => void;
+  onOpenGauntlet?: () => void;
   onLeaveRoom: () => void;
   currentSocketId?: string;
   currentUserId?: string | null;
@@ -31,6 +32,7 @@ export default function RoomLobby({
   roomCode,
   room,
   onStartAssessment,
+  onOpenGauntlet,
   onLeaveRoom,
   currentSocketId,
   currentUserId,
@@ -50,17 +52,22 @@ export default function RoomLobby({
     (currentUserId && hostPlayer?.userId === currentUserId) ||
     (currentSessionKey && hostPlayer?.sessionKey === currentSessionKey);
 
+  const isGauntlet = room?.mode === 'gauntlet';
   const isKanji = room?.deckType === 'kanji';
   const isVocab = room?.deckType === 'vocab';
   const isGrammar = room?.deckType === 'grammar';
-  const themeAccent = getDeckAccent(room?.deckType);
-  const themeLabel = room?.deckType === 'kanji'
-    ? '02 // KANJI 1v1'
-    : room?.deckType === 'vocab'
-      ? '03 // VOCAB 1v1'
-      : room?.deckType === 'grammar'
-        ? '04 // GRAMMAR 1v1'
-        : '01 // KANA 1v1';
+
+  // Gauntlet highlights with high-visibility red; standard uses deck accents
+  const themeAccent = isGauntlet ? '#FF6B6B' : getDeckAccent(room?.deckType);
+  const themeLabel = isGauntlet
+    ? <><LightningBoltIcon className="inline-block h-3 w-3" aria-hidden="true" /> ARCADE // SURVIVAL GAUNTLET</>
+    : isKanji
+      ? '02 // KANJI 1v1'
+      : isVocab
+        ? '03 // VOCAB 1v1'
+        : isGrammar
+          ? '04 // GRAMMAR 1v1'
+          : '01 // KANA 1v1';
 
   const onlineFriends = friends.filter((friend) => friend.online && (friend.user_id || friend.id));
   const isRoomFull = (room?.players?.length || 0) >= 2;
@@ -72,6 +79,14 @@ export default function RoomLobby({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // no-op
+    }
+  };
+
+  const handlePrimaryLaunch = () => {
+    if (isGauntlet && onOpenGauntlet) {
+      onOpenGauntlet();
+    } else {
+      onStartAssessment();
     }
   };
 
@@ -102,7 +117,7 @@ export default function RoomLobby({
       </div>
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-12 lg:items-start">
-        {/* LEFT COLUMN: Access Code & Conditional Invite Controls / Status Panel */}
+        {/* LEFT COLUMN: Access Code & Invite Controls */}
         <div className="space-y-4 sm:space-y-5 lg:col-span-7">
           {/* Room Code Panel */}
           <div
@@ -126,13 +141,13 @@ export default function RoomLobby({
               </p>
             )}
             {isRoomFull && (
-              <p className="font-mono text-[10px] font-black uppercase tracking-wider text-[#A3E636] sm:text-xs" style={{ color: themeAccent }}>
-                // LOBBY CAPACITY REACHED - READY FOR LAUNCH
+              <p className="font-mono text-[10px] font-black uppercase tracking-wider sm:text-xs" style={{ color: themeAccent }}>
+                // SQUAD ASSEMBLED - READY FOR LAUNCH
               </p>
             )}
           </div>
 
-          {/* Conditional Invitation Controls or Balanced Full State Panel */}
+          {/* Conditional Invitation Controls */}
           {!isRoomFull ? (
             <div className="space-y-3 sm:space-y-4">
               {/* Direct Link Bar */}
@@ -193,7 +208,6 @@ export default function RoomLobby({
                   </LegacyButton>
                 </div>
 
-                {/* Scrollable Friend List */}
                 {isInviteOpen && onlineFriends.length > 0 && (
                   <div className="mt-3 border-t-2 border-white/10 pt-3">
                     <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
@@ -227,21 +241,19 @@ export default function RoomLobby({
               </div>
             </div>
           ) : (
-            /* Balanced Status Card to fill layout space when room is full */
-            <div className="border-2 border-black bg-[#1f2637] p-5 text-center shadow-[3px_3px_0px_0px_#000] sm:p-6 space-y-3">
+            <div className="border-2 border-black bg-[#1f2637] p-5 text-center shadow-[3px_3px_0px_0px_#000] sm:p-6 space-y-2">
               <span className="font-mono text-[10px] font-black uppercase tracking-widest" style={{ color: themeAccent }}>
                 // SQUAD ASSEMBLED
               </span>
               <p className="font-mono text-xs text-neutral-300 leading-relaxed">
-                Both combatants are locked into the lobby. The host can now initiate the sequence.
+                Both combatants are ready. The host can now launch the session.
               </p>
             </div>
           )}
         </div>
 
-        {/* RIGHT COLUMN: Player Roster & Actions */}
+        {/* RIGHT COLUMN: Player Roster & Primary Actions */}
         <div className="space-y-4 sm:space-y-5 lg:col-span-5">
-          {/* Players Card */}
           <div className="border-2 border-black bg-[#1f2637] p-4 text-white shadow-[4px_4px_0px_0px_#000] sm:p-6 sm:shadow-[6px_6px_0px_0px_#000]">
             <div className="mb-3 flex items-center justify-between border-b-2 border-white/10 pb-2.5 sm:mb-4 sm:pb-3">
               <h3 className="font-mono text-xs font-black uppercase tracking-wider text-white sm:text-sm">
@@ -289,10 +301,10 @@ export default function RoomLobby({
                     <div className="flex shrink-0 items-center">
                       <span
                         className={`border-2 border-black px-1.5 py-0.5 font-mono text-[8px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000] sm:text-[9px] ${presence === 'disconnected'
-                          ? 'bg-[#FF6B6B]'
-                          : presence === 'away'
-                            ? 'bg-[#FFDE59]'
-                            : 'bg-white'
+                            ? 'bg-[#FF6B6B]'
+                            : presence === 'away'
+                              ? 'bg-[#FFDE59]'
+                              : 'bg-white'
                           }`}
                       >
                         {presence === 'disconnected'
@@ -308,7 +320,6 @@ export default function RoomLobby({
                 );
               })}
 
-              {/* Empty Slot */}
               {(room?.players?.length || 0) === 1 && (
                 <div className="flex items-center gap-2.5 border-2 border-dashed border-white/20 bg-[#151922]/50 p-2.5 sm:gap-3 sm:p-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-dashed border-white/20 font-mono text-xs font-black text-neutral-500 sm:h-9 sm:w-9">
@@ -322,7 +333,7 @@ export default function RoomLobby({
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* Actions */}
             <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3">
               <LegacyButton
                 size="lg"
@@ -334,12 +345,12 @@ export default function RoomLobby({
 
               <LegacyButton
                 size="lg"
-                onClick={onStartAssessment}
+                onClick={handlePrimaryLaunch}
                 disabled={!isReady || isPreparingAssessment || !isHost}
                 style={isReady && !isPreparingAssessment && isHost ? { backgroundColor: themeAccent } : undefined}
                 className={`h-10 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none whitespace-nowrap leading-none sm:h-11 ${!isReady || isPreparingAssessment || !isHost
-                  ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
-                  : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000]'
+                    ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
+                    : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000]'
                   }`}
               >
                 {isPreparingAssessment
@@ -347,49 +358,74 @@ export default function RoomLobby({
                   : !isHost
                     ? 'Wait for Host'
                     : isReady
-                      ? 'Start Match →'
+                      ? isGauntlet
+                        ? <span className="flex items-center justify-center gap-1">Start Gauntlet <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /></span>
+                        : 'Start Match →'
                       : 'Waiting...'}
               </LegacyButton>
             </div>
           </div>
 
-          {/* Rulebook */}
+          {/* Dynamic Rulebook */}
           <div className="border-2 border-black bg-[#1f2637] p-4 text-white shadow-[3px_3px_0px_0px_#000] sm:p-5 sm:shadow-[4px_4px_0px_0px_#000]">
             <h3
               className="mb-2 font-mono text-[10px] font-black uppercase tracking-widest sm:text-xs"
               style={{ color: themeAccent }}
             >
-              // HOW TO PLAY
+              // {isGauntlet ? 'GAUNTLET RULES' : 'HOW TO PLAY'}
             </h3>
             <ul className="space-y-2 font-mono text-[11px] font-medium leading-snug text-neutral-300 sm:text-xs">
-              <li className="flex gap-2">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
-                <span>The host shares the room code or direct link with their opponent.</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
-                <span>
-                  Each round displays the identical{' '}
-                  <strong className="text-white">
-                    {isKanji ? 'Kanji prompt' : isVocab ? 'Vocabulary prompt' : isGrammar ? 'Grammar question' : 'Kana sentence'}
-                  </strong>{' '}
-                  simultaneously.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
-                <span>
-                  {isKanji
-                    ? 'Submit the accurate reading or meaning.'
-                    : isGrammar
-                      ? 'Select the structure, then lock in your answer.'
-                      : 'Input the accurate romaji reading and submit.'}
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
-                <span>Final accuracy metrics and head-to-head standings are revealed at match end.</span>
-              </li>
+              {isGauntlet ? (
+                <>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FF6B6B]" />
+                    <span>Tiles drop down identical matrix tracks on both devices simultaneously.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FF6B6B]" />
+                    <span>Type the correct Romaji reading before a tile hits the red danger line.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FF6B6B]" />
+                    <span>3 strikes ends your run. Every 5-streak triggers a speed surge on your opponent.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FF6B6B]" />
+                    <span>Last player surviving in the arena wins.</span>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
+                    <span>The host shares the room code or direct link with their opponent.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
+                    <span>
+                      Each round displays the identical{' '}
+                      <strong className="text-white">
+                        {isKanji ? 'Kanji prompt' : isVocab ? 'Vocabulary prompt' : isGrammar ? 'Grammar question' : 'Kana sentence'}
+                      </strong>{' '}
+                      simultaneously.
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
+                    <span>
+                      {isKanji
+                        ? 'Submit the accurate reading or meaning.'
+                        : isGrammar
+                          ? 'Select the structure, then lock in your answer.'
+                          : 'Input the accurate romaji reading and submit.'}
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
+                    <span>Final accuracy metrics and head-to-head standings are revealed at match end.</span>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </div>

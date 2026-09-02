@@ -201,6 +201,8 @@ function App() {
     handleAcceptFriendRequest: friendsState.handleAcceptFriendRequest,
     handleRejectFriendRequest: friendsState.handleRejectFriendRequest,
     handleStartAssessment: roomManager.handleStartAssessment,
+    handleStartGauntlet: roomManager.handleStartGauntlet,
+    handleReturnGauntletToLobby: roomManager.handleReturnGauntletToLobby,
     handleLeaveRoom: roomManager.handleLeaveRoom,
     handleInviteFriend: roomManager.handleInviteFriend,
     handleNextCard: roomManager.handleNextCard,

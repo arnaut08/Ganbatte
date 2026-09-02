@@ -7,6 +7,7 @@ import KanaFilterSkeleton from '../../learning/kana/KanaFilterSkeleton';
 import KanaRecallSkeleton from '../../learning/kana/KanaRecallSkeleton';
 import AssessmentHistorySkeleton from '../../profile/AssessmentHistorySkeleton';
 import AssessmentLoadingScreen from '../../practice/AssessmentLoadingScreen';
+import GauntletSkeleton from '../../skeletons/GauntletSkeleton';
 import { getDeckAccent } from '../../../utils/deck-theme';
 import {
   AssessmentSkeleton,
@@ -22,6 +23,7 @@ export function resolveRouteSkeleton(status: string | undefined, deckType?: Deck
   const assessmentAccent = getDeckAccent(deckType);
 
   switch (status) {
+    case 'gauntlet': return <GauntletSkeleton />;
     case 'selector': return <HomeSkeleton />;
     case 'friends': return <FriendsSkeleton />;
     case 'lobby': return <RoomLobbySkeleton accent={assessmentAccent} />;
