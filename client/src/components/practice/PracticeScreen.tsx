@@ -96,7 +96,7 @@ function CreateRoomCard({
         </span>
       </div>
 
-      <div className="relative z-10 space-y-3.5 sm:space-y-5">
+      <div className="relative z-20 space-y-3.5 sm:space-y-5">
         <div>
           <div className="mb-1.5 sm:mb-2 flex items-center justify-between">
             <span className="border-2 border-black bg-[#FFDE59] px-1.5 py-0.5 sm:px-2 text-[9px] sm:text-[11px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-none">
@@ -124,7 +124,7 @@ function CreateRoomCard({
               <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59]">
                 {isGauntlet ? (
                   <span className="inline-flex items-center gap-1">
-                    // ARCADE SURVIVAL
+                    <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /> ARCADE SURVIVAL
                   </span>
                 ) : (
                   '// CLASSIC 1v1 ASSESSMENT'
@@ -137,8 +137,8 @@ function CreateRoomCard({
                 type="button"
                 onClick={() => setMode('standard')}
                 className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'standard'
-                    ? 'border-2 border-black bg-[#FFDE59] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                    : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                  ? 'border-2 border-black bg-[#FFDE59] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                  : 'border-2 border-transparent text-neutral-400 hover:text-white'
                   }`}
               >
                 Standard Duel
@@ -150,13 +150,14 @@ function CreateRoomCard({
                   setMode('gauntlet');
                   if (deckType === 'vocab' || deckType === 'grammar') {
                     setDeckType('kana');
+                    onClearSelectedGroups(); // Prevent carry-over when forcing Kana
                   }
                   setIsGroupMenuOpen(false);
                   setIsGrammarMenuOpen(false);
                 }}
                 className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all flex items-center justify-center gap-1 ${mode === 'gauntlet'
-                    ? 'border-2 border-black bg-[#FF6B6B] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                    : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                  ? 'border-2 border-black bg-[#FF6B6B] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                  : 'border-2 border-transparent text-neutral-400 hover:text-white'
                   }`}
               >
                 <span className="flex items-center gap-1">
@@ -179,7 +180,6 @@ function CreateRoomCard({
               )}
             </div>
 
-            {/* Dynamic Grid: 2 columns in Gauntlet mode, 4 in Standard mode */}
             <div
               className={`grid ${isGauntlet ? 'grid-cols-2' : 'grid-cols-4'
                 } gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1`}
@@ -189,6 +189,9 @@ function CreateRoomCard({
                   key={type}
                   type="button"
                   onClick={() => {
+                    if (deckType !== type) {
+                      onClearSelectedGroups(); // Flush selections when changing decks
+                    }
                     setDeckType(type as Deck);
                     setIsGroupMenuOpen(false);
                     setIsGrammarMenuOpen(false);
@@ -197,8 +200,8 @@ function CreateRoomCard({
                     backgroundColor: deckType === type ? color : 'transparent',
                   }}
                   className={`py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all cursor-pointer ${deckType === type
-                      ? 'border-2 border-black text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                      : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                    ? 'border-2 border-black text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                    : 'border-2 border-transparent text-neutral-400 hover:text-white'
                     }`}
                 >
                   {label}
@@ -239,8 +242,8 @@ function CreateRoomCard({
                           setIsGrammarMenuOpen(false);
                         }}
                         className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${grammarLevel === lvl
-                            ? 'bg-[#C084FC] text-black font-black'
-                            : 'text-white hover:bg-[#C084FC] hover:text-black'
+                          ? 'bg-[#C084FC] text-black font-black'
+                          : 'text-white hover:bg-[#C084FC] hover:text-black'
                           }`}
                       >
                         <span className="mr-2">{grammarLevel === lvl ? '✓' : ' '}</span>
@@ -285,8 +288,8 @@ function CreateRoomCard({
                         setIsGroupMenuOpen(false);
                       }}
                       className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${selectedGroups.length === 0
-                          ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black`
-                          : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
+                        ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black`
+                        : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
                         }`}
                     >
                       <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ' '}</span>
@@ -300,8 +303,8 @@ function CreateRoomCard({
                           type="button"
                           onClick={() => handleGroupToggle(item.id)}
                           className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${isSelected
-                              ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black hover:text-black`
-                              : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
+                            ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black hover:text-black`
+                            : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
                             }`}
                         >
                           <span className="mr-2">{isSelected ? '✓' : ' '}</span>
@@ -331,7 +334,6 @@ function CreateRoomCard({
         </div>
       </div>
 
-      {/* Form with relative z-10 so the opaque button stays above the background watermark */}
       <form onSubmit={onCreateRoom} className="relative z-10 mt-4 sm:mt-6">
         <LegacyButton
           type="submit"
