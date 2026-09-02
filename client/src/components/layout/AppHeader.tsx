@@ -44,6 +44,8 @@ export default function AppHeader({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
+  const [accountTier, setAccountTier] = useState<string>('Test');
+
   const userInitial = (
     user?.user_metadata?.full_name ||
     user?.email?.split('@')[0] ||
@@ -51,7 +53,9 @@ export default function AppHeader({
   )
     .charAt(0)
     .toUpperCase();
+
   const avatarUrl = user?.user_metadata?.avatar_url || profileAvatarUrl;
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner';
 
   useEffect(() => {
     const client = supabase;
@@ -69,6 +73,9 @@ export default function AppHeader({
       .then(({ data }) => {
         if (!isMounted) return;
         setProfileAvatarUrl(data?.avatar_url ?? null);
+        if (data?.account_tier) {
+          setAccountTier(data.account_tier);
+        }
         if (data) {
           onProfileLoaded({
             id: data.id,
@@ -100,7 +107,7 @@ export default function AppHeader({
   return (
     <header
       className={`sticky top-0 z-50 w-full px-4 sm:px-8 transition-colors duration-200 ${isScrolled
-          ? 'bg-[#1a1f2c]/75 backdrop-blur-md border-b border-black/30'
+          ? 'bg-[#1a1f2c]/85 backdrop-blur-md border-b border-black/30'
           : 'bg-transparent border-b border-transparent'
         }`}
     >
@@ -121,7 +128,7 @@ export default function AppHeader({
               <span className="font-mono text-base sm:text-2xl font-black uppercase tracking-tight text-white leading-none">
                 GANBATTE
               </span>
-              <span className="shrink-0 border-2 border-black bg-[#A3E636] px-1 py-0.5 sm:px-1.5 font-mono text-[9px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] leading-none">
+              <span className="shrink-0 border-2 border-black bg-[#FFDE59] px-1 py-0.5 sm:px-1.5 font-mono text-[9px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] leading-none">
                 頑張って
               </span>
             </div>
@@ -131,7 +138,7 @@ export default function AppHeader({
           </div>
         </button>
 
-        {/* Right: Social & Profile HUD Actions */}
+        {/* Right: Actions */}
         {isAuthenticated && (
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {/* Friends Button */}
@@ -139,7 +146,7 @@ export default function AppHeader({
               <TypedButton
                 variant="neutral"
                 size="icon"
-                className="h-8 w-8 sm:h-10 sm:w-10 cursor-pointer rounded-none border-2 border-black bg-[#252c3d] text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[2.5px_2.5px_0px_0px_#000] transition-all hover:bg-[#343d52] hover:text-[#FFDE59] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                className="h-9 w-9 sm:h-11 sm:w-11 cursor-pointer rounded-none border-2 border-black bg-[#1f2637] text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:bg-[#283248] hover:text-[#FFDE59] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                 aria-label="Open friends"
                 title="Friends"
                 onClick={onOpenFriends}
@@ -153,79 +160,96 @@ export default function AppHeader({
               )}
             </div>
 
-            {/* User Dropdown */}
+            {/* User Dropdown Trigger */}
             <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <TypedButton
                   variant="neutral"
                   size="icon"
-                  className="h-9 w-9 sm:h-11 sm:w-11 cursor-pointer border-2 border-black bg-[#A3E636] p-0 text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  className="h-9 w-9 sm:h-11 sm:w-11 cursor-pointer rounded-none border-2 border-black bg-[#FFDE59] p-0 text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   aria-label="Open user menu"
                   aria-expanded={isMenuOpen}
                   title="User menu"
                 >
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover select-none pointer-events-none" />
                   ) : (
-                    <span className="font-mono text-sm sm:text-lg font-black uppercase">{userInitial}</span>
+                    <span className="font-mono text-sm sm:text-lg font-black uppercase text-black">{userInitial}</span>
                   )}
                 </TypedButton>
               </DropdownMenuTrigger>
 
+              {/* Neo-Brutalist Dropdown Shell */}
               <TypedDropdownMenuContent
                 align="end"
                 sideOffset={8}
-                className="w-60 sm:w-64 border-2 border-black bg-[#1f2637] p-1.5 shadow-[5px_5px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000]"
+                className="w-64 border-2 border-black bg-[#1f2637] p-2 shadow-[5px_5px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] space-y-1.5"
               >
-                {/* User Info Header */}
-                <div className="mb-1.5 flex items-center gap-2.5 border-2 border-black bg-[#151922] p-2 sm:p-2.5">
-                  <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center border-2 border-black bg-[#A3E636] font-mono text-xs sm:text-sm font-black text-black shadow-[1.5px_1.5px_0px_0px_#000]">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-                    ) : userInitial}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-mono text-xs font-black uppercase tracking-tight text-white leading-tight">
-                      {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner'}
-                    </p>
-                    <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-[#A3E636]">
-                      <span className="h-1.5 w-1.5 bg-[#A3E636]" /> ONLINE
-                    </span>
-                  </div>
-                </div>
-
+                {/* User Identity Dossier Header */}
                 <TypedDropdownMenuItem
                   onSelect={onOpenProfile}
-                  className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 sm:px-3 sm:py-2 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#A3E636] hover:text-black focus:border-black focus:bg-[#A3E636] focus:text-black"
+                  className="group flex cursor-pointer items-center justify-between border-2 border-black border-l-4 border-l-[#FFDE59] bg-[#151922] p-2.5 transition-all hover:bg-[#1a2130] focus:bg-[#1a2130] outline-none"
                 >
-                  <span>Edit Profile</span>
-                  <span className="text-sm font-bold">&rarr;</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-black shadow-[1.5px_1.5px_0px_0px_#000] overflow-hidden">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="font-mono text-xs font-black text-[#FFDE59]">{userInitial}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate font-mono text-xs font-black uppercase text-white leading-tight">
+                        {userName}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59]">
+                          {accountTier}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="font-mono text-[10px] font-black text-neutral-500 group-hover:text-[#FFDE59] transition-colors ml-1">
+                    EDIT ↺
+                  </span>
                 </TypedDropdownMenuItem>
 
+                {/* Menu Item: Mastery Passport */}
                 <TypedDropdownMenuItem
                   onSelect={onOpenPassport}
-                  className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 sm:px-3 sm:py-2 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#252c3d] focus:border-black focus:bg-[#252c3d]"
+                  className="group flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-2 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#151922] hover:text-[#FFDE59] focus:border-black focus:bg-[#151922] focus:text-[#FFDE59] outline-none hover:translate-x-[1px]"
                 >
-                  <span>Mastery Passport</span>
-                  <span className="text-sm font-bold">&rarr;</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-neutral-500 group-hover:text-[#FFDE59]">&gt;</span>
+                    Mastery Passport
+                  </span>
+                  <span className="font-mono text-xs text-neutral-500 group-hover:text-[#FFDE59] transition-transform group-hover:translate-x-0.5">&rarr;</span>
                 </TypedDropdownMenuItem>
 
+                {/* Menu Item: Assessment History */}
                 <TypedDropdownMenuItem
                   onSelect={onOpenHistory}
-                  className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 sm:px-3 sm:py-2 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#FFDE59] hover:text-black focus:border-black focus:bg-[#FFDE59] focus:text-black"
+                  className="group flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-2 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#151922] hover:text-[#FFDE59] focus:border-black focus:bg-[#151922] focus:text-[#FFDE59] outline-none hover:translate-x-[1px]"
                 >
-                  <span>Assessment History</span>
-                  <span className="text-sm font-bold">&rarr;</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-neutral-500 group-hover:text-[#FFDE59]">&gt;</span>
+                    Assessment History
+                  </span>
+                  <span className="font-mono text-xs text-neutral-500 group-hover:text-[#FFDE59] transition-transform group-hover:translate-x-0.5">&rarr;</span>
                 </TypedDropdownMenuItem>
 
-                <div className="my-1 border-t-2 border-black/40" />
+                <div className="border-t border-black/40 my-1" />
 
+                {/* Menu Item: Log Out */}
                 <TypedDropdownMenuItem
                   onSelect={onLogout}
-                  className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 sm:px-3 sm:py-2 font-mono text-xs font-black uppercase text-[#FF6B6B] transition-all hover:border-black hover:bg-[#FF6B6B] hover:text-black focus:border-black focus:bg-[#FF6B6B] focus:text-black"
+                  className="group flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-2 font-mono text-xs font-black uppercase text-[#FF6B6B] transition-all hover:border-black hover:bg-[#151922] hover:text-[#FF6B6B] focus:border-black focus:bg-[#151922] focus:text-[#FF6B6B] outline-none hover:translate-x-[1px]"
                 >
-                  <span>Log Out</span>
-                  <span className="font-mono text-xs font-bold">[ESC]</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-[#FF6B6B]/60 group-hover:text-[#FF6B6B]">&gt;</span>
+                    Log Out
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-[#FF6B6B]/70">[ESC]</span>
                 </TypedDropdownMenuItem>
               </TypedDropdownMenuContent>
             </DropdownMenu>
