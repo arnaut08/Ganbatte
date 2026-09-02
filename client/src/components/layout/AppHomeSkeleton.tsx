@@ -1,52 +1,55 @@
-import React from 'react';
-
 export function HomeSkeleton() {
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-3 pb-8 sm:pt-8 sm:pb-16 px-3 sm:px-4 animate-pulse">
-      {/* Top Pill Badge Skeleton */}
-      <div className="h-5 sm:h-6 w-56 sm:w-72 bg-white/10 rounded-full border border-white/15 mb-3 sm:mb-6" />
-
-      {/* Hero Title Skeleton */}
-      <div className="h-7 sm:h-12 w-3/4 max-w-xl bg-white/20 rounded-md mb-2 sm:mb-4" />
-
-      {/* Subtitle Lines Skeleton */}
-      <div className="space-y-1.5 sm:space-y-2 w-full max-w-md flex flex-col items-center mb-5 sm:mb-10">
-        <div className="h-2.5 sm:h-3.5 w-full bg-white/10 rounded" />
-        <div className="h-2.5 sm:h-3.5 w-2/3 bg-white/10 rounded" />
-      </div>
-
-      {/* Two Feature Cards Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-6 w-full max-w-3xl">
-        {/* Foundation Card Skeleton */}
-        <div className="h-44 sm:h-64 rounded-none border-2 border-black/40 bg-white/5 p-3.5 sm:p-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.3)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] flex flex-col justify-between">
-          <div className="space-y-2.5 sm:space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="h-4 sm:h-5 w-24 sm:w-28 bg-white/15 rounded" />
-              <div className="h-3 sm:h-4 w-16 sm:w-20 bg-white/10 rounded" />
+    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-3 pb-20 animate-pulse sm:p-4 sm:pb-24">
+      <div className="w-full max-w-5xl">
+        <div className="space-y-3 sm:space-y-6">
+          <section className="mx-auto w-full max-w-4xl space-y-2 border-2 border-black bg-[#151922] p-2.5 text-white shadow-[3px_3px_0px_0px_#000] sm:space-y-3 sm:p-4 sm:shadow-[6px_6px_0px_0px_#000]">
+            <div className="flex items-center justify-between gap-2 border-b-2 border-white/20 pb-2">
+              <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                <div className="h-4 w-16 border border-black bg-[#A3E636]/50 sm:h-5 sm:w-20" />
+                <div className="h-3 w-24 bg-white/20 sm:w-32" />
+              </div>
+              <div className="flex shrink-0 gap-1.5 sm:gap-2">
+                <div className="h-5 w-12 border-2 border-black bg-[#252c3d] sm:h-6 sm:w-16" />
+                <div className="h-5 w-12 border-2 border-black bg-[#252c3d] sm:h-6 sm:w-16" />
+              </div>
             </div>
-            <div className="h-5 sm:h-7 w-28 sm:w-36 bg-white/20 rounded" />
-            <div className="space-y-1 sm:space-y-2 pt-1 sm:pt-2">
-              <div className="h-2.5 sm:h-3 w-full bg-white/10 rounded" />
-              <div className="h-2.5 sm:h-3 w-4/5 bg-white/10 rounded" />
+
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((pillar) => (
+                <div key={pillar} className="border-2 border-black bg-[#1f2637] border-l-4 p-2 sm:p-3" style={{ borderLeftColor: ['#FFDE59', '#70CFF8', '#A3E636', '#C084FC'][pillar - 1] }}>
+                  <div className="flex items-center justify-between">
+                    <div className="h-2.5 w-16 bg-white/20 sm:h-3 sm:w-20" />
+                    <div className="h-3 w-3 bg-white/20 sm:h-3.5 sm:w-3.5" />
+                  </div>
+                  <div className="mt-0.5 flex items-baseline justify-between">
+                    <div className="h-2.5 w-14 bg-white/10 sm:h-3 sm:w-16" />
+                    <div className="h-2.5 w-10 bg-white/20 sm:h-3 sm:w-12" />
+                  </div>
+                  <div className="mt-1 h-1.5 w-full border border-black bg-[#151922] sm:h-2" />
+                </div>
+              ))}
             </div>
+          </section>
+
+          <div className="mx-auto grid max-w-4xl gap-3 sm:gap-6 md:grid-cols-2">
+            {[1, 2].map((card) => (
+              <section key={card} className="flex flex-col justify-between border-2 border-black border-l-8 bg-[#1f2637] p-3.5 shadow-[4px_4px_0px_0px_#000] sm:p-6 sm:shadow-[7px_7px_0px_0px_#000]" style={{ borderLeftColor: card === 1 ? '#FFDE59' : '#70CFF8' }}>
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="h-4 w-28 border-2 border-black bg-white/20 sm:h-5 sm:w-36" />
+                    <div className="h-3 w-20 bg-white/10 sm:h-4 sm:w-24" />
+                  </div>
+                  <div className="mt-1 h-6 w-40 bg-white/25 sm:h-8 sm:w-52" />
+                  <div className="mt-1.5 hidden space-y-1.5 sm:block">
+                    <div className="h-3 w-full bg-white/10" />
+                    <div className="h-3 w-4/5 bg-white/10" />
+                  </div>
+                </div>
+                <div className="h-10 w-full border-2 border-black bg-white/20 shadow-[2.5px_2.5px_0px_0px_#000] sm:h-16 sm:shadow-[4px_4px_0px_0px_#000]" />
+              </section>
+            ))}
           </div>
-          <div className="h-8 sm:h-11 w-full bg-white/15 border-2 border-black/30 rounded-none" />
-        </div>
-
-        {/* Assessment Card Skeleton */}
-        <div className="h-44 sm:h-64 rounded-none border-2 border-black/40 bg-white/5 p-3.5 sm:p-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.3)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] flex flex-col justify-between">
-          <div className="space-y-2.5 sm:space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="h-4 sm:h-5 w-24 sm:w-28 bg-white/15 rounded" />
-              <div className="h-3 sm:h-4 w-16 sm:w-20 bg-white/10 rounded" />
-            </div>
-            <div className="h-5 sm:h-7 w-32 sm:w-44 bg-white/20 rounded" />
-            <div className="space-y-1 sm:space-y-2 pt-1 sm:pt-2">
-              <div className="h-2.5 sm:h-3 w-full bg-white/10 rounded" />
-              <div className="h-2.5 sm:h-3 w-4/5 bg-white/10 rounded" />
-            </div>
-          </div>
-          <div className="h-8 sm:h-11 w-full bg-white/15 border-2 border-black/30 rounded-none" />
         </div>
       </div>
     </div>

@@ -209,7 +209,7 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
       )}
 
       {/* SKELETON */}
-      {vocabLoading && <GroupMapSkeleton count={6} accentColor="#A3E636" />}
+      {vocabLoading && <GroupMapSkeleton count={6} accentColor="#A3E636" deck="vocab" withFilter />}
 
       {/* ERROR */}
       {vocabError && !vocabLoading && (

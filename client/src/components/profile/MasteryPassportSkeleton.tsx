@@ -1,8 +1,8 @@
 export function MasteryPassportSkeleton() {
   return (
-    <main className="container mx-auto max-w-5xl space-y-4 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28 animate-pulse">
+    <main className="container mx-auto max-w-5xl space-y-3 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-8 pb-20 sm:pb-28 animate-pulse">
       {/* 1. Header Section Skeleton */}
-      <div className="flex items-center gap-2.5 sm:gap-4">
+      <div className="flex items-start gap-2.5 sm:gap-4">
         {/* Back Button */}
         <div className="h-8 w-8 sm:h-11 sm:w-11 shrink-0 border-2 border-black bg-[#252c3d] shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]" />
 
@@ -15,7 +15,7 @@ export function MasteryPassportSkeleton() {
       </div>
 
       {/* 2. Top Stats Strip Skeleton (3 Cards) */}
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
