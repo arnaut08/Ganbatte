@@ -267,7 +267,7 @@ export default function useRoomManager({
   const handleStartAssessment = useCallback(() => {
     if (!activeSocket || !roomCode || !room || !isCurrentPlayerHost) return;
     if (!canStartAssessment(room.players)) return;
-    if (room.deckType === 'grammar') {
+    if (room.deckType === 'grammar' || room.deckType === 'kana') {
       setIsPreparingAssessment(true);
       transitionToStatus('assessment-preparing');
     }

@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useCallback } from 'react';
 import { useAppContext, type AppContextValue } from '../../contexts/AppContext';
 import { useRoomContext, type RoomContextValue } from '../../contexts/RoomContext';
 import { isGrammarAnswer, isGrammarQuestion } from '../../types';
+import { getDeckAccent } from '../../utils/deck-theme';
 import { resolveRouteSkeleton } from './skeletons/RouteSkeletonResolver';
 import AssessmentLoadingScreen from '../practice/AssessmentLoadingScreen';
 import useToast from '@/hooks/useToast';
@@ -122,8 +123,7 @@ function LegacyAppScreenRouter({
   const isResultsScreen = status === 'results';
   const activeCards = (kanaCards && kanaCards.length > 0) ? kanaCards : (room?.cards ?? []);
   const isAssessmentDataReady = activeCards.length > 0 && room?.players && room.players.length > 0;
-  const isFullyHydrating = isHydratingActiveMatch
-    || (status === 'assessment' && !isAssessmentDataReady && Boolean(room));
+  const isFullyHydrating = isHydratingActiveMatch;
 
   const shouldRenderRoomLobby = status === 'lobby' && Boolean(room);
   const shouldRenderAssessment = status === 'assessment' && Boolean(room) && isAssessmentDataReady;
@@ -298,6 +298,7 @@ function LegacyAppScreenRouter({
                     : 'Preparing the reading deck'
               }
               description="Generating the question set and synchronizing operators..."
+              accent={getDeckAccent(room?.deckType)}
             />
           )}
 

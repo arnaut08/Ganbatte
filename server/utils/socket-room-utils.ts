@@ -1,5 +1,3 @@
-import { generateRandomCards } from '../services/card-service.js';
-import { KANA_SENTENCES } from '../data/kana-sentences.js';
 import type { PracticeCard } from '../services/card-service.js';
 
 export type RoomCard = PracticeCard;
@@ -35,7 +33,7 @@ export function advanceRoomIfReady(io: SocketServer, roomCode: string): void {
   if (!room) return;
 
   const allReady = room.players.length > 0 && room.players.every((player) => player.ready === true);
-  const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+  const kanaCards = room.cards;
 
   if (allReady) {
     room.currentCardIndex++;
@@ -66,7 +64,7 @@ export function tryAdvanceIfAllSubmitted(io: SocketServer, roomCode: string): vo
   const room = roomState.rooms.get(roomCode);
   if (!room) return;
 
-  const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+  const kanaCards = room.cards;
   const idx = room.currentCardIndex;
   const allSubmitted = room.players.length > 0 && room.players.every((player) => (player.answers || [])[idx] !== undefined);
 
@@ -97,6 +95,5 @@ export const roomSocketData = {
   rooms: roomState.rooms,
   roomCleanupTimers: roomState.roomCleanupTimers,
   DISCONNECT_GRACE_PERIOD_MS: roomState.DISCONNECT_GRACE_PERIOD_MS,
-  KANA_SENTENCES,
   tryAdvanceIfAllSubmitted,
 };
