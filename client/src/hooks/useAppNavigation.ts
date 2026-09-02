@@ -21,6 +21,7 @@ const screenPriority: Record<AppStatus, number> = {
   'grammar-study': 0,
   'grammar-practice': 0,
   history: 0,
+  profile: 0,
   lobby: 0,
   assessment: 1,
   results: 1,
@@ -143,6 +144,17 @@ export default function useAppNavigation({
     setAppHomeKey((value) => value + 1);
   }, [showToast]);
 
+  const handleBackToHome = useCallback(() => {
+    if (statusRef.current === 'assessment' || statusRef.current === 'assessment-preparing') {
+      showToast('Cannot navigate away during an active match. Finish or forfeit first.', 'error');
+      return;
+    }
+    setStatus('selector');
+    setSelectorScreen('home');
+    setScreenHistory(['selector']);
+    setAppHomeKey((value) => value + 1);
+  }, [showToast]);
+
   const handleOpenGrammarPractice = useCallback(
     async (maxLesson = 12, count = 10, mode = 'practice') => {
       try {
@@ -175,6 +187,7 @@ export default function useAppNavigation({
       navigateToScreen,
       handleGoBack,
       handleBackToPractice,
+      handleBackToHome,
 
       // Navigation Actions
       handleOpenKanaStudy: () => navigateToScreen('kana-intro'),
@@ -196,10 +209,12 @@ export default function useAppNavigation({
       handleOpenGrammarPractice,
       handleOpenHistory: () => navigateToScreen('history'),
       handleOpenFriends: () => navigateToScreen('friends'),
+      handleOpenProfile: () => navigateToScreen('profile'),
       handleOpenPassport: () => navigateToScreen('passport'),
     }),
     [
       appHomeKey,
+      handleBackToHome,
       handleBackToPractice,
       handleGoBack,
       handleOpenGrammarPractice,

@@ -33,9 +33,11 @@ export default function useFriends({ user, status, showToast }: FriendsOptions) 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [isFriendSearchLoading, setIsFriendSearchLoading] = useState(false);
   const socialDataCacheRef = useRef<SocialDataCache>({ userId: null, friendsLoaded: false, requestsLoaded: false });
+  const friendDataRequestRef = useRef<Promise<void> | null>(null);
 
   const clearSocialDataCache = useCallback(() => {
     socialDataCacheRef.current = { userId: null, friendsLoaded: false, requestsLoaded: false };
+    friendDataRequestRef.current = null;
   }, []);
 
   const refreshFriends = useCallback(async (force = false) => {
@@ -81,14 +83,22 @@ export default function useFriends({ user, status, showToast }: FriendsOptions) 
     }
     const cache = socialDataCacheRef.current;
     if (!force && cache.userId === user.id && cache.friendsLoaded && cache.requestsLoaded) return;
-    try {
-      const [friendsData, requestsData] = await Promise.all([getFriends(), getFriendRequests()]);
-      setFriends(Array.isArray(friendsData) ? friendsData : []);
-      setFriendRequests(Array.isArray(requestsData) ? requestsData : []);
-      socialDataCacheRef.current = { userId: user.id, friendsLoaded: true, requestsLoaded: true };
-    } catch (error) {
-      console.error('Failed to refresh friends and requests:', error);
-    }
+    if (friendDataRequestRef.current) return friendDataRequestRef.current;
+
+    const request = Promise.all([getFriends(), getFriendRequests()])
+      .then(([friendsData, requestsData]) => {
+        setFriends(Array.isArray(friendsData) ? friendsData : []);
+        setFriendRequests(Array.isArray(requestsData) ? requestsData : []);
+        socialDataCacheRef.current = { userId: user.id, friendsLoaded: true, requestsLoaded: true };
+      })
+      .catch((error) => {
+        console.error('Failed to refresh friends and requests:', error);
+      })
+      .finally(() => {
+        friendDataRequestRef.current = null;
+      });
+    friendDataRequestRef.current = request;
+    return request;
   }, [clearSocialDataCache, user]);
 
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function useFriends({ user, status, showToast }: FriendsOptions) 
       clearSocialDataCache();
       return;
     }
-    refreshFriendData(true);
+    refreshFriendData();
   }, [clearSocialDataCache, refreshFriendData, user]);
 
   useEffect(() => {

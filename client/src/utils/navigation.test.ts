@@ -74,6 +74,10 @@ test('getBackDestination returns selector from overlay screens', () => {
     { nextStatus: 'selector', nextSelectorScreen: 'home' },
   );
   assert.deepEqual(
+    getBackDestination({ currentStatus: 'profile', selectorScreen: 'practice' }),
+    { nextStatus: 'selector', nextSelectorScreen: 'practice' },
+  );
+  assert.deepEqual(
     getBackDestination({ currentStatus: 'passport', selectorScreen: 'learning' }),
     { nextStatus: 'selector', nextSelectorScreen: 'learning' },
   );

@@ -100,7 +100,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
   });
 
   io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id} (Recovered: ${socket.recovered})`);
+    console.log(`User connected: ${socket.id} (Recovered: ${socket.recovered}). Total connected users: ${io.engine.clientsCount}`);
 
     const userRoom = socket.data.user?.id ? `user:${socket.data.user.id}` : null;
     if (userRoom) socket.join(userRoom);
@@ -910,6 +910,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         reason,
         details,
         userId: socket.data.user?.id,
+        totalConnectedUsers: io.engine.clientsCount,
       });
 
       if (socket.data.connectionRefresh) {

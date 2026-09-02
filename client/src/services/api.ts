@@ -44,6 +44,7 @@ const PROTECTED_PATH_PREFIXES = [
   '/api/rooms',
   '/api/generate-cards',
   '/api/vocab',
+  '/api/account',
 ];
 
 const pendingRequests = new Map<string, Promise<unknown>>();
@@ -381,4 +382,8 @@ export function rejectFriendRequest(requestId: string): Promise<ApiRecord> {
 
 export function removeFriend(userId: string): Promise<ApiRecord> {
   return request(`/api/friends/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+}
+
+export function deleteAccount(): Promise<void> {
+  return request('/api/account', { method: 'DELETE' });
 }

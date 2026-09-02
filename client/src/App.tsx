@@ -12,7 +12,7 @@ import {
 } from './utils/roomSession';
 import useAuth from './hooks/useAuth';
 import useToast from './hooks/useToast';
-import type { ToastValue } from './types';
+import type { ToastValue, UserProfileRecord } from './types';
 import useRoomManager from './hooks/useRoomManager';
 import useFriends from './hooks/useFriends';
 import useAppNavigation from './hooks/useAppNavigation';
@@ -20,10 +20,12 @@ import { AppProvider } from './contexts/AppContext';
 import { RoomProvider } from './contexts/RoomContext';
 import { CelebrationProvider } from './contexts/CelebrationContext';
 import UpdatePasswordPage from './components/auth/UpdatePasswordPage';
+import { deleteAccount } from './services/api';
 
 function App() {
   const [selectedKana, setSelectedKana] = useState<Set<string>>(new Set());
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [profile, setProfile] = useState<UserProfileRecord>();
   const { toast, showToast, clearToast } = useToast();
   const setToast = useCallback((nextToast: ToastValue) => {
     if (!nextToast) {
@@ -102,12 +104,38 @@ function App() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (isMatchLocked) {
+      showToast('Cannot delete your account during an active match. Finish or forfeit first.', 'error');
+      return;
+    }
+
+    await deleteAccount();
+    setStatus('selector');
+    setSelectorScreen('home');
+
+    if (socket) {
+      socket.disconnect();
+    }
+
+    clearRoomSession();
+    friendsState.clearSocialDataCache();
+    localStorage.removeItem('ganbatte-session-key');
+    roomManager.clearRoomState();
+
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Account deletion sign-out failed:', error);
+    }
+  };
+
   const handleHomeNavigation = () => {
     if (isMatchLocked) {
       showToast('Cannot leave during an active match. Finish or forfeit first.', 'error');
       return;
     }
-    navigation.handleBackToPractice();
+    navigation.handleBackToHome();
   };
 
   const appContextValue = useMemo(() => ({
@@ -115,6 +143,9 @@ function App() {
     isLoggingOut,
     authRequired,
     user,
+    profile,
+    onProfileSaved: setProfile,
+    handleDeleteAccount,
     appHomeKey,
     status,
     getDisplayName,
@@ -124,6 +155,7 @@ function App() {
     setSelectorScreen,
     handleBackToPractice: navigation.handleBackToPractice,
     handleOpenFriends: navigation.handleOpenFriends,
+    handleOpenProfile: navigation.handleOpenProfile,
     handleOpenHistory: navigation.handleOpenHistory,
     handleGoBack: navigation.handleGoBack,
     handleOpenKanaStudy: navigation.handleOpenKanaStudy,
@@ -140,7 +172,7 @@ function App() {
     handleOpenKanaFilter: navigation.handleOpenKanaFilter,
     handleKanaSelectionChange: navigation.handleKanaSelectionChange,
     handleApplyKanaFilters: navigation.handleApplyKanaFilters,
-  }), [authLoading, authRequired, appHomeKey, isLoggingOut, navigation, selectedKana, selectorScreen, status, user, isEmailVerifiedSignup, setIsEmailVerifiedSignup]);
+  }), [authLoading, authRequired, appHomeKey, handleDeleteAccount, isLoggingOut, navigation, profile, selectedKana, selectorScreen, status, user, isEmailVerifiedSignup, setIsEmailVerifiedSignup]);
 
   const roomContextValue = useMemo(() => ({
     socket,
@@ -213,6 +245,8 @@ function App() {
           <AppHeader
             onHome={handleHomeNavigation}
             onOpenFriends={navigation.handleOpenFriends}
+            onOpenProfile={navigation.handleOpenProfile}
+            onProfileLoaded={setProfile}
             onLogout={handleLogout}
             onOpenHistory={navigation.handleOpenHistory}
             onOpenPassport={navigation.handleOpenPassport}

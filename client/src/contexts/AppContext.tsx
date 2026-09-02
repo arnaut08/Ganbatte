@@ -1,12 +1,15 @@
 import { createContext, useContext, type Dispatch, type SetStateAction, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import type { AppStatus, SelectorScreen } from '../types';
+import type { AppStatus, SelectorScreen, UserProfileRecord } from '../types';
 
 export type AppContextValue = {
   authLoading: boolean;
   isLoggingOut: boolean;
   authRequired: boolean;
   user: User | null;
+  profile?: UserProfileRecord;
+  onProfileSaved: (profile: UserProfileRecord) => void;
+  handleDeleteAccount: () => Promise<void>;
   isEmailVerifiedSignup: boolean;
   setIsEmailVerifiedSignup: Dispatch<SetStateAction<boolean>>;
   getDisplayName: () => string;
@@ -16,6 +19,7 @@ export type AppContextValue = {
   setSelectorScreen: Dispatch<SetStateAction<SelectorScreen>>;
   handleBackToPractice: () => void;
   handleOpenFriends: () => void;
+  handleOpenProfile: () => void;
   handleOpenHistory: () => void;
   handleGoBack: () => void;
   handleOpenKanaStudy: () => void;
