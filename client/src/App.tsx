@@ -135,7 +135,7 @@ function App() {
       showToast('Cannot leave during an active match. Finish or forfeit first.', 'error');
       return;
     }
-    navigation.handleBackToPractice();
+    navigation.handleBackToHome();
   };
 
   const appContextValue = useMemo(() => ({
