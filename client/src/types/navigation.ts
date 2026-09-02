@@ -22,6 +22,7 @@ export type AppStatus =
   | 'history'
   | 'lobby'
   | 'assessment'
+  | 'gauntlet'
   | 'results'
   | 'assessment-preparing';
 

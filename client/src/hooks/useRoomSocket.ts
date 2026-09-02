@@ -62,12 +62,19 @@ type SocketPayload = {
   exitedPlayerWasHost?: boolean;
   deckType?: string;
   roomCode?: string;
+  seed?: number;
   inviterName?: string;
   inviterUserId?: string;
   inviterSocketId?: string;
   accepted?: boolean;
   inviteeName?: string;
   forfeitingPlayerName?: string;
+  winnerUserId?: string | null;
+  winnerPlayerName?: string;
+  returnedBySocketId?: string;
+  returnedByPlayerName?: string;
+  winnerSocketId?: string;
+  loserSocketId?: string;
   friend?: IdentityPayload;
   receiver?: IdentityPayload;
   displayName?: string;
@@ -309,6 +316,11 @@ export default function useRoomSocket({
       forceRoomStatus('assessment');
     });
 
+    newSocket.on('gauntlet-started', (data: SocketPayload) => {
+      if (data?.room) setRoom(data.room);
+      forceRoomStatus('gauntlet');
+    });
+
     newSocket.on('assessment-generation-failed', (data: SocketPayload) => {
       setIsPreparingAssessment(false);
       if (data?.room) {
@@ -352,6 +364,14 @@ export default function useRoomSocket({
       clearRoomQueryParam();
     });
 
+    newSocket.on('gauntlet-match-completed', (data: SocketPayload) => {
+      if (!data?.room) return;
+      setRoom({ ...data.room, winnerSocketId: data.winnerSocketId });
+      setResults(null);
+      setIsPreparingAssessment(false);
+      forceRoomStatus('gauntlet');
+    });
+
     newSocket.on('match-forfeited', (data: SocketPayload) => {
       setToast({
         message: `${data?.forfeitingPlayerName || 'Your opponent'} forfeited the match. You win!`,
@@ -366,6 +386,12 @@ export default function useRoomSocket({
       setResults(null);
       setIsPreparingAssessment(false);
       forceRoomStatus('lobby');
+      if (data.returnedBySocketId !== newSocket.id) {
+        setToast({
+          message: `${data.returnedByPlayerName || 'Your opponent'} returned the room to the lobby.`,
+          type: 'neutral',
+        });
+      }
     });
 
     newSocket.on('assessment-action-denied', (data: SocketPayload) => {

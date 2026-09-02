@@ -108,6 +108,8 @@ export default function useRoomManager({
     if (!hostName) return;
     const normalizedDeckOptions = {
       type: deckOptions?.type === 'grammar' ? 'grammar' : deckOptions?.type === 'kanji' ? 'kanji' : deckOptions?.type === 'vocab' ? 'vocab' : 'kana',
+      mode: deckOptions?.mode || 'standard',
+      seed: deckOptions?.seed,
       groups: Array.isArray(deckOptions?.groups) ? deckOptions.groups : [],
       maxLesson: deckOptions?.type === 'grammar' ? Number(deckOptions.maxLesson) || 3 : undefined,
       count: deckOptions?.type === 'grammar' ? Number(deckOptions.count) || 5 : undefined,
@@ -174,6 +176,29 @@ export default function useRoomManager({
     }
   }, [user?.id, activeSocket]);
 
+  // Listener for real-time Gauntlet launch event from server
+  useEffect(() => {
+    if (!activeSocket) return;
+
+    const handleGauntletStarted = ({ room: serverRoom, seed }: { room: Room; seed?: number }) => {
+      setIsPreparingAssessment(false);
+      setRoom({
+        ...serverRoom,
+        mode: 'gauntlet',
+        status: 'active',
+        seed: seed ?? serverRoom.seed,
+      });
+      setScreenHistory((prev) => [...prev, 'gauntlet']);
+      transitionToStatus('gauntlet');
+    };
+
+    activeSocket.on('gauntlet-started', handleGauntletStarted);
+
+    return () => {
+      activeSocket.off('gauntlet-started', handleGauntletStarted);
+    };
+  }, [activeSocket, setScreenHistory, transitionToStatus]);
+
   useEffect(() => {
     if (!user?.id) {
       activeMatchCheckRef.current = null;
@@ -198,7 +223,7 @@ export default function useRoomManager({
         setRoom(null);
         setResults(null);
         setIsPreparingAssessment(false);
-        if (status === 'assessment' || status === 'assessment-preparing') {
+        if (status === 'assessment' || status === 'assessment-preparing' || status === 'gauntlet') {
           setStatus('selector');
           setSelectorScreen('practice');
           setScreenHistory(['selector']);
@@ -219,8 +244,15 @@ export default function useRoomManager({
           if (ack?.success && ack.room) {
             setRoom(ack.room);
             setKanaCards((ack.room.cards ?? []).filter(isStudyCard));
-            if (ack.room.status === 'preparing') transitionToStatus('assessment-preparing');
-            else if (ack.room.status === 'active') transitionToStatus('assessment');
+            if (ack.room.status === 'preparing') {
+              transitionToStatus('assessment-preparing');
+            } else if (ack.room.status === 'active') {
+              if (ack.room.mode === 'gauntlet') {
+                transitionToStatus('gauntlet');
+              } else {
+                transitionToStatus('assessment');
+              }
+            }
           }
           resolve();
         });
@@ -239,7 +271,11 @@ export default function useRoomManager({
     }
     if (room.status === 'active' && status === 'assessment-preparing') {
       setIsPreparingAssessment(false);
-      transitionToStatus('assessment');
+      if (room.mode === 'gauntlet') {
+        transitionToStatus('gauntlet');
+      } else {
+        transitionToStatus('assessment');
+      }
     }
   }, [room, status, transitionToStatus]);
 
@@ -274,6 +310,11 @@ export default function useRoomManager({
     activeSocket.emit('start-assessment', roomCode);
   }, [activeSocket, isCurrentPlayerHost, room, roomCode, transitionToStatus]);
 
+  const handleStartGauntlet = useCallback(() => {
+    if (!activeSocket || !roomCode || !room || room.players.length < 2) return;
+    activeSocket.emit('start-gauntlet', roomCode);
+  }, [activeSocket, room, roomCode]);
+
   const handleReplayAssessment = useCallback(() => {
     if (!activeSocket || !roomCode || !room) return;
     if (!isCurrentPlayerHost) {
@@ -285,7 +326,7 @@ export default function useRoomManager({
 
   const handleRequestHost = useCallback((action: string) => {
     if (activeSocket && roomCode && room) activeSocket.emit('request-assessment-action', roomCode, action);
-  }, [activeSocket, roomCode]);
+  }, [activeSocket, roomCode, room]);
 
   const handleSubmitAnswer = useCallback((answer: unknown) => {
     if (activeSocket && roomCode) activeSocket.emit('submit-answer', roomCode, answer);
@@ -297,6 +338,10 @@ export default function useRoomManager({
 
   const handleForfeitMatch = useCallback(() => {
     if (activeSocket && roomCode) activeSocket.emit('forfeit-match', roomCode);
+  }, [activeSocket, roomCode]);
+
+  const handleReturnGauntletToLobby = useCallback(() => {
+    if (activeSocket && roomCode) activeSocket.emit('return-to-lobby', roomCode);
   }, [activeSocket, roomCode]);
 
   const handleNextCard = useCallback(() => {
@@ -349,7 +394,9 @@ export default function useRoomManager({
   const handleReturnToRoom = useCallback(() => {
     const savedSession = readRoomSession();
     if (room && roomCode) {
-      const nextStatus = room.status === 'active' ? 'assessment' : 'lobby';
+      const nextStatus = room.status === 'active'
+        ? (room.mode === 'gauntlet' ? 'gauntlet' : 'assessment')
+        : 'lobby';
       if (activeSocket && nextStatus === 'lobby') activeSocket.emit('set-player-presence', roomCode, 'in_lobby');
       setStatus(nextStatus);
       return;
@@ -370,7 +417,9 @@ export default function useRoomManager({
       }
       setRoom(rejoinedRoom);
       setKanaCards((rejoinedRoom.cards ?? []).filter(isStudyCard));
-      const nextStatus = rejoinedRoom.status === 'active' ? 'assessment' : 'lobby';
+      const nextStatus = rejoinedRoom.status === 'active'
+        ? (rejoinedRoom.mode === 'gauntlet' ? 'gauntlet' : 'assessment')
+        : 'lobby';
       if (nextStatus === 'lobby') activeSocket.emit('set-player-presence', savedRoomCode, 'in_lobby');
       setStatus(nextStatus);
     });
@@ -386,11 +435,13 @@ export default function useRoomManager({
     isCurrentPlayerHost,
     handleInviteFriend,
     handleStartAssessment,
+    handleStartGauntlet,
     handleReplayAssessment,
     handleRequestHost,
     handleSubmitAnswer,
     handleUseHint,
     handleForfeitMatch,
+    handleReturnGauntletToLobby,
     handleNextCard,
     handleLeaveRoom,
     handleStartNewSession,
@@ -411,10 +462,12 @@ export default function useRoomManager({
     handleReplayAssessment,
     handleRequestHost,
     handleStartAssessment,
+    handleStartGauntlet,
     handleStartNewSession,
     handleSubmitAnswer,
     handleUseHint,
     handleForfeitMatch,
+    handleReturnGauntletToLobby,
     isPreparingAssessment,
     isHydratingActiveMatch,
     isSocketReady,

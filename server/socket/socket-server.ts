@@ -39,7 +39,13 @@ import {
   roomState, type Room, type RoomCard,
 } from '../utils/socket-room-utils.js';
 
-type RoomDeckConfig = { type?: 'kana' | 'kanji' | 'vocab' | 'grammar'; groups?: string[]; maxLesson?: number; count?: number };
+type RoomDeckConfig = {
+  type?: 'kana' | 'kanji' | 'vocab' | 'grammar';
+  mode?: 'standard' | 'gauntlet';
+  groups?: string[];
+  maxLesson?: number;
+  count?: number;
+};
 
 function isPracticeAnswerCorrect(answer: Answer, card: PracticeCard): boolean {
   if (card.answerType === 'text' && card.correctAnswer) {
@@ -194,8 +200,9 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
       const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : deckConfig?.type === 'vocab' ? 'vocab' : 'kana';
+      const deckMode = deckConfig?.mode === 'gauntlet' ? 'gauntlet' : 'standard';
       let cards: PracticeCard[] = [];
-      if (deckType === 'kanji') {
+      if (deckMode !== 'gauntlet' && deckType === 'kanji') {
         let deck;
         try {
           deck = await getPersistedKanjiDeck();
@@ -209,7 +216,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           return;
         }
         cards = generateRandomKanjiCards(deck.cards as unknown as KanjiCard[], Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10);
-      } else if (deckType === 'vocab') {
+      } else if (deckMode !== 'gauntlet' && deckType === 'vocab') {
         let deck;
         try {
           deck = await getPersistedVocabDeck();
@@ -224,7 +231,10 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         }
         cards = generateRandomVocabCards(deck as VocabCard[], 10, Array.isArray(deckConfig?.groups) ? deckConfig.groups : []);
       }
-
+      const initialSeed = roomCode.split('').reduce(
+        (value, character) => ((value * 31) + character.charCodeAt(0)) % 2147483647,
+        7,
+      );
       roomState.rooms.set(roomCode, {
         code: roomCode,
         players: [{
@@ -241,6 +251,8 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         leftPlayers: [],
         cards,
         deckType,
+        mode: deckMode,
+        seed: initialSeed,
         selectedGroups: Array.isArray(deckConfig?.groups) ? deckConfig.groups : [],
         grammarSettings: deckType === 'grammar' ? {
           maxLesson: Number(deckConfig?.maxLesson) || 3,
@@ -504,6 +516,25 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
     socket.on('start-assessment', startAssessment);
 
+    socket.on('start-gauntlet', (roomCode: RoomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      const player = room?.players.find((candidate) => candidate.id === socket.id);
+      if (!room || !player || room.players.length < 2 || room.status !== 'waiting') return;
+
+      const seed = roomCode.split('').reduce(
+        (value, character) => ((value * 31) + character.charCodeAt(0)) % 2147483647,
+        7,
+      );
+
+      // 1. Mutate room state
+      room.status = 'active';
+      room.mode = 'gauntlet';
+      room.seed = seed;
+
+      // 2. Broadcast to both players
+      io.to(roomCode).emit('gauntlet-started', { room, seed });
+    });
+
     socket.on('forfeit-match', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       const forfeitingPlayer = room?.players.find((player) => player.id === socket.id);
@@ -517,13 +548,18 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       if (winner.id) {
         io.to(winner.id).emit('match-forfeited', {
           forfeitingPlayerName: forfeitingPlayer.name,
+          winnerUserId: room.winnerUserId,
+          winnerPlayerName: winner.name,
         });
       }
-      io.to(roomCode).emit('assessment-completed', {
+      const completionEvent = room.mode === 'gauntlet' ? 'gauntlet-match-completed' : 'assessment-completed';
+      io.to(roomCode).emit(completionEvent, {
         room,
         results: buildAssessmentResults(room),
         winnerUserId: room.winnerUserId,
         forfeitedByUserId: room.forfeitedByUserId,
+        winnerSocketId: winner.id,
+        loserSocketId: forfeitingPlayer.id,
       });
     });
 
@@ -541,12 +577,15 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     socket.on('return-to-lobby', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
-      if (room.players[0]?.id !== socket.id) {
+      if (room.mode !== 'gauntlet' && room.players[0]?.id !== socket.id) {
         socket.emit('assessment-action-denied', { message: 'Waiting for the host to return the room to the lobby.' });
         return;
       }
 
       room.status = 'waiting';
+      room.winnerUserId = null;
+      room.forfeitedByUserId = null;
+      delete room.winnerSocketId;
       room.currentCardIndex = 0;
       room.players.forEach((player) => {
         player.answers = [];
@@ -555,7 +594,11 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         player.status = 'in_lobby';
         player.presence = 'online';
       });
-      io.to(roomCode).emit('room-returned-to-lobby', { room });
+      io.to(roomCode).emit('room-returned-to-lobby', {
+        room,
+        returnedBySocketId: socket.id,
+        returnedByPlayerName: room.players.find((player) => player.id === socket.id)?.name,
+      });
     });
 
     socket.on('exit-lobby', (roomCode: RoomCode, callback: RoomCallback) => {

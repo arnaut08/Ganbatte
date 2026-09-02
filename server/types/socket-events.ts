@@ -18,6 +18,7 @@ export interface ClientToServerEvents {
   'forfeit-match': (roomCode: RoomCode) => void;
   'leave-room': (roomCode: RoomCode, callback: RoomCallback) => void;
   'start-assessment': (roomCode: RoomCode, refreshDeck?: boolean) => void;
+  'start-gauntlet': (roomCode: RoomCode) => void;
   'replay-assessment': (roomCode: RoomCode) => void;
   'return-to-lobby': (roomCode: RoomCode) => void;
   'exit-lobby': (roomCode: RoomCode, callback: RoomCallback) => void;

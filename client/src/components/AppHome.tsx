@@ -19,7 +19,7 @@ import {
   getVocabOverview,
   getGrammarOverview,
 } from '../services/api';
-import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview, VocabStage } from '../types';
+import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview, VocabStage, MatchMode } from '../types';
 
 type LegacyProps = {
   children?: ReactNode;
@@ -132,6 +132,7 @@ export default function AppHome({
   };
 
   const [joinCode, setJoinCode] = useState(roomCode || '');
+  const [mode, setMode] = useState<MatchMode>('standard');
   const [deckType, setDeckType] = useState<Deck>('kana');
   const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState<Array<string | number>>([]);
@@ -226,8 +227,8 @@ export default function AppHome({
     const normalizedGroups = deckType === 'kanji' || deckType === 'vocab' ? selectedGroups : [];
     const normalizedSettings: DeckOptions =
       deckType === 'grammar'
-        ? { type: 'grammar', groups: [], maxLesson: grammarLevel, count: 5 }
-        : { type: deckType, groups: normalizedGroups };
+        ? { type: 'grammar', mode, groups: [], maxLesson: grammarLevel, count: 5 }
+        : { type: deckType, mode, groups: normalizedGroups };
 
     onCreateRoom(normalizedSettings);
   };
@@ -263,8 +264,8 @@ export default function AppHome({
                   {/* Daily Streak Badge */}
                   <div
                     className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${(profileStreak?.currentStreak ?? 0) > 0
-                      ? 'bg-[#FFDE59] text-black'
-                      : 'bg-[#252c3d] text-neutral-400'
+                        ? 'bg-[#FFDE59] text-black'
+                        : 'bg-[#252c3d] text-neutral-400'
                       }`}
                     title={profileStreak?.longestStreak ? `Longest streak: ${profileStreak.longestStreak} days` : undefined}
                   >
@@ -279,7 +280,8 @@ export default function AppHome({
 
                   {/* Combined Reviews Badge */}
                   <div
-                    className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${totalDueReviews > 0 ? 'bg-[#FF6B6B] text-black' : 'bg-[#252c3d] text-neutral-400'}`}
+                    className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${totalDueReviews > 0 ? 'bg-[#FF6B6B] text-black' : 'bg-[#252c3d] text-neutral-400'
+                      }`}
                   >
                     <TimerIcon
                       className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${totalDueReviews > 0 ? 'text-black' : 'text-neutral-400'}`}
@@ -536,6 +538,8 @@ export default function AppHome({
             joinCode={joinCode}
             setJoinCode={setJoinCode}
             joinCodeInputRef={joinCodeInputRef}
+            mode={mode}
+            setMode={setMode}
             deckType={deckType}
             setDeckType={setDeckType}
             grammarLevel={grammarLevel}
@@ -550,21 +554,6 @@ export default function AppHome({
           />
         )}
       </div>
-      {/* Ambient Widescreen Terminal Ticker & Watermarks */}
-      {/* <div className="pointer-events-none fixed inset-0 z-0 hidden select-none overflow-hidden lg:block">
-        <div className="absolute bottom-4 inset-x-8 flex items-center justify-between font-mono text-[9px] font-bold tracking-widest text-white/40 border-t border-white/20 pt-2">
-          <div className="flex items-center gap-4">
-            <span>SYS://GANBATTE-CORE-v2.6</span>
-            <span>// LOC: TOKYO_SECTOR_01</span>
-            <span>// LAT: 35.6762° N, 139.6503° E</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>MEMORY: 64KB // OK</span>
-            <span>BUFFER: SYNCHRONIZED</span>
-            <span className="text-[#A3E636]">SECURE_AUTH // ACTIVE</span>
-          </div>
-        </div>
-      </div> */}
     </div>
   );
 }
