@@ -25,10 +25,10 @@ import {
   type SessionKey,
   type Username,
 } from '../utils/validation.js';
-import { generateRandomCards, generateRandomKanjiCards, type KanjiCard, type PracticeCard } from '../services/card-service.js';
+import { generateRandomKanjiCards, type KanjiCard, type PracticeCard } from '../services/card-service.js';
 import { getPersistedKanjiDeck } from '../repositories/kanji-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
-import { KANA_SENTENCES } from '../data/kana-sentences.js';
+import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
 import {
   advanceRoomIfReady,
@@ -201,8 +201,6 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           return;
         }
         cards = generateRandomKanjiCards(deck.cards as unknown as KanjiCard[], Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10);
-      } else if (deckType === 'kana') {
-        cards = generateRandomCards(KANA_SENTENCES, 10);
       }
 
       roomState.rooms.set(roomCode, {
@@ -402,7 +400,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         return player.connected !== false && status !== 'away' && status !== 'disconnected' && status !== 'offline';
       })) return;
 
-      if (room.deckType === 'grammar') {
+      if (room.deckType === 'grammar' || room.deckType === 'kana') {
         room.status = 'preparing';
         room.currentCardIndex = 0;
         room.players.forEach((player) => {
@@ -413,17 +411,27 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         io.to(roomCode).emit('assessment-preparing', { room });
 
         try {
-          const questions = await generateGrammarAssessment({
-            maxLesson: room.grammarSettings?.maxLesson || 3,
-            count: room.grammarSettings?.count || 5,
-            mode: 'assessment',
-          });
-          room.cards = questions as unknown as RoomCard[];
-          room.questions = questions;
+          if (room.deckType === 'grammar') {
+            const questions = await generateGrammarAssessment({
+              maxLesson: room.grammarSettings?.maxLesson || 3,
+              count: room.grammarSettings?.count || 5,
+              mode: 'assessment',
+            });
+            room.cards = questions as unknown as RoomCard[];
+            room.questions = questions;
+          } else {
+            room.cards = await generateKanaDeck();
+          }
         } catch (error) {
-          console.error('Failed to generate grammar assessment deck:', error);
+          console.error(`Failed to generate ${room.deckType} assessment deck:`, error);
           room.cards = [];
           room.questions = [];
+          room.status = 'waiting';
+          io.to(roomCode).emit('assessment-generation-failed', {
+            room,
+            message: `${room.deckType === 'kana' ? 'Kana' : 'Grammar'} assessment deck could not be generated. Please try again.`,
+          });
+          return;
         }
       } else if (refreshDeck) {
         if (room.deckType === 'kanji') {
@@ -432,7 +440,14 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
             ? generateRandomKanjiCards(deck.cards as unknown as KanjiCard[], room.selectedGroups || [], 10)
             : [];
         } else {
-          room.cards = generateRandomCards(KANA_SENTENCES, 10);
+          try {
+            room.cards = await generateKanaDeck();
+          } catch (error) {
+            console.error('Kana assessment deck generation failed:', error);
+            room.status = 'waiting';
+            socket.emit('assessment-action-denied', { message: 'Kana assessments are not available.' });
+            return;
+          }
         }
       }
 
@@ -598,7 +613,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           const allSubmitted = room.players.length > 0 && room.players.every((entry) => entry.answers[idx] !== undefined);
           if (allSubmitted) {
             console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
-            const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+            const kanaCards = room.cards;
             const isFinalCard = idx >= kanaCards.length - 1;
             const allAnswersCorrect = room.players.every((entry) => entry.ready === true);
 
@@ -626,7 +641,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         player.ready = false;
       });
 
-      const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+      const kanaCards = room.cards;
       if (room.currentCardIndex >= kanaCards.length) {
         room.status = 'completed';
         console.log(`assessment-completed (next-card): room=${roomCode}`);

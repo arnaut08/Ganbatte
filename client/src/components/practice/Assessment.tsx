@@ -121,7 +121,7 @@ export default function Assessment({
 
   const handleSubmit = (e?: FormEvent<HTMLFormElement> | KeyboardEvent<HTMLInputElement>) => {
     if (e) e.preventDefault();
-    const cleanAnswer = answer.trim().toLowerCase();
+    const cleanAnswer = answer.trim().replace(/\s+/g, ' ').toLowerCase();
 
     if (!cleanAnswer || submitted || isSubmittingLocal) {
       return;
@@ -307,8 +307,8 @@ export default function Assessment({
                 disabled={!answer.trim() || isSubmittingLocal}
                 style={{ backgroundColor: answer.trim() && !isSubmittingLocal ? themeAccent : undefined }}
                 className={`h-10 sm:h-13 min-w-[100px] sm:min-w-[130px] border-2 border-black px-4 sm:px-6 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all whitespace-nowrap ${!answer.trim() || isSubmittingLocal
-                  ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
-                  : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                    ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
+                    : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
                   }`}
               >
                 {isSubmittingLocal ? 'Submitting...' : 'Submit →'}
@@ -331,30 +331,39 @@ export default function Assessment({
             </div>
 
             <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
-              {/* User Answer */}
+              {/* User Answer Card */}
               <div className="border-2 border-black bg-[#1f2637] p-2.5 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000]">
-                <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-400">
+                <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-400 block mb-1">
                   YOUR INPUT
                 </span>
-                <p className="mt-0.5 sm:mt-1 font-mono text-sm sm:text-base font-black text-white">
+                <p className="font-mono text-sm sm:text-base font-black text-white tracking-wide break-all">
                   {isCorrect || !answerDiff ? (
                     String(submittedAnswer ?? '')
                   ) : (
-                    renderDifference(answerDiff.given, 'text-[#FF6B6B] font-black')
+                    renderDifference(
+                      answerDiff.given,
+                      'text-[#FF6B6B] bg-[#FF6B6B]/20 px-0.5 rounded-xs underline decoration-[#FF6B6B] decoration-2'
+                    )
                   )}
                 </p>
               </div>
 
-              {/* Target Answer */}
-              <div className="border-2 border-black bg-white p-2.5 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000]">
-                <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-600">
+              {/* Target Answer Card (Fixed Theme Consistency & High-Contrast Diff) */}
+              <div className="border-2 border-black bg-[#1f2637] p-2.5 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000]">
+                <span
+                  className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider block mb-1"
+                  style={{ color: themeAccent }}
+                >
                   CORRECT ROMAJI
                 </span>
-                <p className="mt-0.5 sm:mt-1 font-mono text-sm sm:text-base font-black text-black">
+                <p className="font-mono text-sm sm:text-base font-black text-white tracking-wide break-all">
                   {isCorrect || !answerDiff ? (
                     currentCard?.romaji
                   ) : (
-                    renderDifference(answerDiff.expected, 'font-black underline')
+                    renderDifference(
+                      answerDiff.expected,
+                      'text-[#A3E636] bg-[#A3E636]/20 px-0.5 rounded-xs underline decoration-[#A3E636] decoration-2 font-black'
+                    )
                   )}
                 </p>
               </div>
@@ -395,7 +404,7 @@ export default function Assessment({
           </div>
         )}
 
-        {/* 4. Bottom Controls: Toggle on Left, Conditional Status in Center, Forfeit on Right */}
+        {/* 4. Bottom Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t-2 border-white/10 pt-3 sm:pt-4">
           {/* Left: HUD Toggle Switch */}
           <div className="flex items-center gap-1.5 sm:gap-2">
@@ -414,7 +423,7 @@ export default function Assessment({
             </LegacyLabel>
           </div>
 
-          {/* Center: Conditional Opponent Status Box (Fixed Width to Avoid Drifting) */}
+          {/* Center: Opponent Status Box */}
           <div className="min-w-[200px] sm:min-w-[240px] flex justify-center">
             {showOpponentStatus ? (
               <div className="flex items-center gap-2 sm:gap-3 border-2 border-black bg-[#151922] px-2.5 py-1.5 sm:px-3.5 sm:py-2 shadow-[1.5px_1.5px_0px_0px_#000]">
@@ -447,7 +456,7 @@ export default function Assessment({
             ) : null}
           </div>
 
-          {/* Right: High-Visibility Neo-Brutalist Forfeit Button */}
+          {/* Right: Forfeit Button */}
           {onForfeit && (
             <button
               type="button"

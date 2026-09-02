@@ -308,6 +308,20 @@ export default function useRoomSocket({
       forceRoomStatus('assessment');
     });
 
+    newSocket.on('assessment-generation-failed', (data: SocketPayload) => {
+      setIsPreparingAssessment(false);
+      if (data?.room) {
+        setRoom(data.room);
+        setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+      }
+      setResults(null);
+      forceRoomStatus('lobby');
+      setToast({
+        message: data?.message || 'The assessment deck could not be generated. Please try again.',
+        type: 'warning',
+      });
+    });
+
     ['answer-submitted', 'hint-used', 'player-ready-updated'].forEach((eventName) => {
       newSocket.on(eventName, (data: SocketPayload) => {
         if (data?.room) setRoom(data.room);
