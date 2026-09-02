@@ -67,6 +67,7 @@ type SocketPayload = {
   inviterSocketId?: string;
   accepted?: boolean;
   inviteeName?: string;
+  forfeitingPlayerName?: string;
   friend?: IdentityPayload;
   receiver?: IdentityPayload;
   displayName?: string;
@@ -349,6 +350,13 @@ export default function useRoomSocket({
       forceRoomStatus('results');
       clearRoomSession();
       clearRoomQueryParam();
+    });
+
+    newSocket.on('match-forfeited', (data: SocketPayload) => {
+      setToast({
+        message: `${data?.forfeitingPlayerName || 'Your opponent'} forfeited the match. You win!`,
+        type: 'success',
+      });
     });
 
     newSocket.on('room-returned-to-lobby', (data: SocketPayload) => {

@@ -514,6 +514,11 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       room.status = 'completed';
       room.winnerUserId = winner.userId ?? null;
       room.forfeitedByUserId = forfeitingPlayer.userId ?? null;
+      if (winner.id) {
+        io.to(winner.id).emit('match-forfeited', {
+          forfeitingPlayerName: forfeitingPlayer.name,
+        });
+      }
       io.to(roomCode).emit('assessment-completed', {
         room,
         results: buildAssessmentResults(room),
