@@ -10,18 +10,41 @@ type AssessmentHistoryProps = {
   onBack: () => void;
 };
 
-function getDomainMeta(type: string) {
+interface GauntletDetails {
+  mode?: string;
+  score?: number;
+  result?: 'WIN' | 'DEFEAT' | string;
+  deck_type?: string;
+  opponent_score?: number;
+  selected_groups?: string[];
+  hints_used?: number[];
+  groups?: string[];
+}
+
+function getDomainMeta(type: string, details?: GauntletDetails) {
+  const isGauntlet =
+    details?.mode === 'survival-gauntlet' ||
+    (type || '').toLowerCase().includes('gauntlet');
+
+  if (isGauntlet) {
+    const deck = (details?.deck_type || '').toLowerCase();
+    if (deck === 'kanji') {
+      return { accent: '#70CFF8', label: 'GAUNTLET // KANJI', isGauntlet: true };
+    }
+    return { accent: '#FFDE59', label: 'GAUNTLET // KANA', isGauntlet: true };
+  }
+
   const normalized = (type || '').toLowerCase();
   if (normalized.includes('grammar')) {
-    return { accent: '#C084FC', label: 'GRAMMAR' };
+    return { accent: '#C084FC', label: 'GRAMMAR', isGauntlet: false };
   }
   if (normalized.includes('kanji')) {
-    return { accent: '#70CFF8', label: 'KANJI' };
+    return { accent: '#70CFF8', label: 'KANJI', isGauntlet: false };
   }
   if (normalized.includes('vocab')) {
-    return { accent: '#A3E636', label: 'VOCAB' };
+    return { accent: '#A3E636', label: 'VOCAB', isGauntlet: false };
   }
-  return { accent: '#FFDE59', label: 'KANA' };
+  return { accent: '#FFDE59', label: 'KANA', isGauntlet: false };
 }
 
 export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
@@ -151,13 +174,23 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
       {!isLoading && !error && results.length > 0 && (
         <div className="space-y-3">
           {results.map((result) => {
-            const domain = getDomainMeta(result.assessment_type);
+            const details = (result.details || {}) as GauntletDetails;
+            const isGauntlet =
+              details?.mode === 'survival-gauntlet' ||
+              result.assessment_type?.toLowerCase().includes('gauntlet');
+
+            const domain = getDomainMeta(result.assessment_type, details);
+            const isVictory = details?.result === 'WIN';
+            const gauntletScore = details?.score ?? 0;
+            const opponentScore = details?.opponent_score ?? 0;
+
+            // Standard metrics
             const isPerfect = result.score_percentage === 100;
             const isGood = result.score_percentage >= 70;
             const scoreBg = isPerfect ? 'bg-[#A3E636]' : isGood ? 'bg-[#FFDE59]' : 'bg-[#FF6B6B]';
 
-            const totalHints = Array.isArray(result.details?.hints_used)
-              ? result.details.hints_used.reduce((sum, v) => sum + Number(v || 0), 0)
+            const totalHints = Array.isArray(details?.hints_used)
+              ? details.hints_used.reduce((sum, v) => sum + Number(v || 0), 0)
               : 0;
 
             return (
@@ -166,18 +199,18 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                 style={{ borderLeftColor: domain.accent }}
                 className="flex flex-col justify-between gap-3 border-2 border-black border-l-8 bg-[#1f2637] p-3.5 text-white shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] sm:flex-row sm:items-center sm:p-4 sm:shadow-[4px_4px_0px_0px_#000]"
               >
-                {/* Left: Assessment Metadata */}
+                {/* Left: Metadata */}
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                    {/* Domain Pill */}
+                    {/* Mode / Domain Tag */}
                     <span
                       style={{ backgroundColor: domain.accent }}
                       className="border-2 border-black px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:text-[10px]"
                     >
-                      {result.assessment_type.replaceAll('-', ' ')}
+                      {domain.label}
                     </span>
 
-                    {/* Solo vs Multiplayer Tag */}
+                    {/* Opponent Tag */}
                     {result.companion_user_id ? (
                       <span className="border border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[9px] font-black uppercase text-black sm:text-[10px]">
                         VS {result.profile?.display_name || 'OPPONENT'}
@@ -188,9 +221,19 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                       </span>
                     )}
 
-                    {/* Group Pills */}
-                    {Array.isArray(result.details?.groups) &&
-                      result.details.groups.map((group) => (
+                    {/* Gauntlet Result Pill (WIN / DEFEAT) */}
+                    {isGauntlet && details?.result && (
+                      <span
+                        className={`border-2 border-black px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] ${isVictory ? 'bg-[#A3E636]' : 'bg-[#FF6B6B]'
+                          }`}
+                      >
+                        {details.result}
+                      </span>
+                    )}
+
+                    {/* Groups Filtered */}
+                    {Array.isArray(details?.groups) &&
+                      details.groups.map((group) => (
                         <span
                           key={group}
                           className="border border-white/10 bg-[#151922] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-neutral-400 sm:text-[10px]"
@@ -203,7 +246,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                   {/* Timestamp & Hints */}
                   <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] text-neutral-400 sm:text-[11px]">
                     <span>{new Date(result.created_at).toLocaleString()}</span>
-                    {totalHints > 0 && (
+                    {!isGauntlet && totalHints > 0 && (
                       <>
                         <span className="text-neutral-600">·</span>
                         <span className="text-[#70CFF8] font-bold">
@@ -214,23 +257,47 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                   </div>
                 </div>
 
-                {/* Right: Accuracy Breakdown & Score Card */}
-                <div className="flex items-center justify-between border-t-2 border-white/10 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end sm:gap-4">
-                  <div className="text-left sm:text-right">
-                    <span className="font-mono text-[9px] font-black uppercase tracking-wider text-neutral-400 sm:text-[10px]">
-                      ACCURACY
-                    </span>
-                    <p className="font-mono text-xs font-bold text-white sm:text-sm">
-                      {result.correct_questions}/{result.total_questions} CORRECT
-                    </p>
-                  </div>
+                {/* Right: Score Display */}
+                {isGauntlet ? (
+                  /* Gauntlet Specific Layout */
+                  <div className="flex items-center justify-between border-t-2 border-white/10 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end sm:gap-4">
+                    <div className="text-left sm:text-right font-mono">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-neutral-400 sm:text-[10px]">
+                        OPPONENT SCORE
+                      </span>
+                      <p className="text-xs font-bold text-neutral-300 sm:text-sm">
+                        {opponentScore.toLocaleString()} PTS
+                      </p>
+                    </div>
 
-                  <div
-                    className={`flex h-10 min-w-[56px] items-center justify-center border-2 border-black ${scoreBg} px-2 font-mono text-lg font-black text-black shadow-[2px_2px_0px_0px_#000] sm:h-12 sm:min-w-[68px] sm:text-2xl sm:shadow-[2.5px_2.5px_0px_0px_#000]`}
-                  >
-                    {result.score_percentage}%
+                    <div className="flex flex-col items-center justify-center border-2 border-black bg-[#FFDE59] px-3 py-1 font-mono text-black shadow-[2px_2px_0px_0px_#000] sm:px-4 sm:shadow-[2.5px_2.5px_0px_0px_#000]">
+                      <span className="text-[8px] font-black uppercase tracking-wider text-black/70 leading-none">
+                        FINAL SCORE
+                      </span>
+                      <span className="text-base font-black leading-tight sm:text-xl">
+                        {gauntletScore.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* Standard Assessment Layout */
+                  <div className="flex items-center justify-between border-t-2 border-white/10 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end sm:gap-4">
+                    <div className="text-left sm:text-right">
+                      <span className="font-mono text-[9px] font-black uppercase tracking-wider text-neutral-400 sm:text-[10px]">
+                        ACCURACY
+                      </span>
+                      <p className="font-mono text-xs font-bold text-white sm:text-sm">
+                        {result.correct_questions}/{result.total_questions} CORRECT
+                      </p>
+                    </div>
+
+                    <div
+                      className={`flex h-10 min-w-[56px] items-center justify-center border-2 border-black ${scoreBg} px-2 font-mono text-lg font-black text-black shadow-[2px_2px_0px_0px_#000] sm:h-12 sm:min-w-[68px] sm:text-2xl sm:shadow-[2.5px_2.5px_0px_0px_#000]`}
+                    >
+                      {result.score_percentage}%
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
