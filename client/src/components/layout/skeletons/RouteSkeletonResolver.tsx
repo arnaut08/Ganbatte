@@ -16,7 +16,7 @@ import {
   ResultsSkeleton,
 } from './RouteSkeletons';
 
-type DeckType = 'kana' | 'kanji' | 'grammar' | undefined;
+type DeckType = 'kana' | 'kanji' | 'vocab' | 'grammar' | undefined;
 
 export function resolveRouteSkeleton(status: string | undefined, deckType?: DeckType): ReactNode {
   const assessmentAccent = getDeckAccent(deckType);

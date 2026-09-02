@@ -17,7 +17,15 @@ type AssessmentRoom = {
   players?: Room['players'];
 };
 
-type AssessmentCard = Partial<Pick<KanaCard & KanjiCard, 'kana' | 'romaji' | 'english'>>;
+type AssessmentCard = Partial<Pick<KanaCard & KanjiCard, 'kana' | 'romaji' | 'english'>> & {
+  questionType?: 'multiple-choice' | 'type-in';
+  promptKind?: 'kanji' | 'english';
+  prompt?: string;
+  promptReading?: string;
+  options?: string[];
+  correctAnswer?: string;
+  answerType?: 'romaji' | 'text';
+};
 
 type AssessmentProps = {
   room?: AssessmentRoom | null;
@@ -60,9 +68,10 @@ export default function Assessment({
 
   // Domain Theme Resolution
   const isKanjiAssessment = room?.deckType === 'kanji';
+  const isVocabAssessment = room?.deckType === 'vocab';
   const isGrammarAssessment = room?.deckType === 'grammar';
-  const themeAccent = isKanjiAssessment ? '#70CFF8' : isGrammarAssessment ? '#C084FC' : '#FFDE59';
-  const domainLabel = isKanjiAssessment ? '02 // KANJI DRILL' : isGrammarAssessment ? '04 // GRAMMAR DRILL' : '01 // KANA READING';
+  const themeAccent = isKanjiAssessment ? '#70CFF8' : isVocabAssessment ? '#A3E636' : isGrammarAssessment ? '#C084FC' : '#FFDE59';
+  const domainLabel = isKanjiAssessment ? '02 // KANJI DRILL' : isVocabAssessment ? '03 // VOCAB DRILL' : isGrammarAssessment ? '04 // GRAMMAR DRILL' : '01 // KANA READING';
 
   // Safe player lookups
   const currentPlayer = room?.players?.find((p) => p.name === username);
@@ -74,6 +83,13 @@ export default function Assessment({
 
   const otherAnswer = otherPlayer?.answers?.[cardIndex];
   const otherSubmitted = otherAnswer !== undefined && otherAnswer !== null;
+  const isExactTextAnswer = isVocabAssessment && currentCard.answerType === 'text';
+
+  const answersMatch = (value: unknown) => isExactTextAnswer
+    ? String(value || '').trim().toLowerCase() === String(currentCard.correctAnswer || '').trim().toLowerCase()
+    : isKanjiAssessment || isVocabAssessment
+      ? areRomajiAnswersEqual(value, currentCard?.romaji || '')
+      : scoreRomajiAnswer(String(value), currentCard?.romaji || '').percentage === 100;
 
   // Hints calculation: max 2 overall, max 1 per card
   const totalHintsUsed = Array.isArray(currentPlayer?.hintsUsed)
@@ -87,7 +103,9 @@ export default function Assessment({
 
   const otherCorrect =
     otherSubmitted &&
-    (isKanjiAssessment
+    (isExactTextAnswer
+      ? String(otherAnswer || '').trim().toLowerCase() === String(currentCard.correctAnswer || '').trim().toLowerCase()
+      : (isKanjiAssessment || isVocabAssessment)
       ? areRomajiAnswersEqual(otherAnswer, currentCard?.romaji || '')
       : scoreRomajiAnswer(String(otherAnswer), currentCard?.romaji || '').percentage === 100);
 
@@ -127,10 +145,16 @@ export default function Assessment({
       return;
     }
 
+    submitAnswer(cleanAnswer);
+  };
+
+  const submitAnswer = (value: string) => {
+    if (!value || submitted || isSubmittingLocal) return;
+    setAnswer(value);
     setIsSubmittingLocal(true);
 
     if (typeof onSubmitAnswer === 'function') {
-      onSubmitAnswer(cleanAnswer);
+      onSubmitAnswer(value);
     }
 
     if (submissionTimeoutRef.current) {
@@ -143,11 +167,9 @@ export default function Assessment({
 
   const progress = kanaCards.length > 0 ? ((cardIndex + 1) / kanaCards.length) * 100 : 0;
   const answerScore = scoreRomajiAnswer(submittedAnswer || '', currentCard?.romaji || '');
-  const isCorrect = isKanjiAssessment
-    ? areRomajiAnswersEqual(submittedAnswer || '', currentCard?.romaji || '')
-    : answerScore.percentage === 100;
-  const answerDiff = !isCorrect && submitted
-    ? (isKanjiAssessment
+  const isCorrect = answersMatch(submittedAnswer || '');
+  const answerDiff = !isCorrect && submitted && !isExactTextAnswer
+    ? (isKanjiAssessment || isVocabAssessment
       ? buildDirectRomajiDiff(submittedAnswer || '', currentCard?.romaji || '')
       : buildRomajiDiff(submittedAnswer || '', currentCard?.romaji || ''))
     : null;
@@ -175,7 +197,7 @@ export default function Assessment({
               {domainLabel}
             </span>
             <h1 className="text-lg sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
-              {isKanjiAssessment ? 'Kanji Assessment' : isGrammarAssessment ? 'Grammar Assessment' : 'Reading Assessment'}
+              {isKanjiAssessment ? 'Kanji Assessment' : isVocabAssessment ? 'Vocab Assessment' : isGrammarAssessment ? 'Grammar Assessment' : 'Reading Assessment'}
             </h1>
           </div>
 
@@ -248,8 +270,13 @@ export default function Assessment({
           {/* Target Japanese Text */}
           <div className="my-4 sm:my-6 text-center">
             <p className="jp-font text-3xl sm:text-5xl font-black text-white tracking-wide leading-relaxed">
-              {currentCard?.kana || '...'}
+              {isVocabAssessment ? currentCard?.prompt || '...' : currentCard?.kana || '...'}
             </p>
+            {isVocabAssessment && currentCard.promptKind === 'kanji' && currentCard.promptReading && (
+              <p className="mt-1 text-center font-mono text-xs font-bold text-neutral-400 sm:text-sm">
+                {currentCard.promptReading}
+              </p>
+            )}
           </div>
 
           {/* Subtext Prompt or Active Hint Display */}
@@ -268,7 +295,9 @@ export default function Assessment({
                 className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-center"
                 style={{ color: themeAccent }}
               >
-                {isKanjiAssessment ? 'ENTER READING IN ROMAJI' : 'TRANSLITERATE TO ROMAJI'}
+                {isVocabAssessment
+                  ? currentCard.questionType === 'multiple-choice' ? 'SELECT THE CORRECT ANSWER' : currentCard.answerType === 'romaji' ? 'TYPE THE READING IN ROMAJI' : 'TYPE THE CORRECT ANSWER'
+                  : isKanjiAssessment ? 'ENTER READING IN ROMAJI' : 'TRANSLITERATE TO ROMAJI'}
               </span>
             )}
           </div>
@@ -276,6 +305,20 @@ export default function Assessment({
 
         {/* 3. Input Form / Round Evaluation */}
         {!submitted ? (
+          isVocabAssessment && currentCard.questionType === 'multiple-choice' ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(currentCard.options || []).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => submitAnswer(option)}
+                  className="min-h-12 cursor-pointer border-2 border-black bg-[#151922] px-3 py-2 text-left font-mono text-xs font-black text-white shadow-[2px_2px_0px_0px_#000] transition-all hover:bg-[#A3E636] hover:text-black active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:text-sm"
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
             <div className="flex gap-2 sm:gap-3">
               <div className="relative flex-1">
@@ -296,6 +339,8 @@ export default function Assessment({
                   placeholder={
                     isKanjiAssessment
                       ? 'Type reading in romaji...'
+                      : isVocabAssessment && currentCard.answerType === 'text'
+                        ? 'Type the answer...'
                       : 'Type romaji reading...'
                   }
                   className="h-10 sm:h-13 w-full border-2 border-black bg-[#151922] pl-8 pr-3 sm:pl-9 sm:pr-4 font-mono text-xs sm:text-base font-black text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] placeholder:font-mono placeholder:text-xs sm:placeholder:text-sm placeholder:font-bold placeholder:text-neutral-500 focus:border-white focus:outline-none"
@@ -315,6 +360,7 @@ export default function Assessment({
               </button>
             </div>
           </form>
+          )
         ) : (
           /* Round Evaluation */
           <div className="space-y-3 sm:space-y-4 border-2 border-black bg-[#151922] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000]">
@@ -354,11 +400,11 @@ export default function Assessment({
                   className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider block mb-1"
                   style={{ color: themeAccent }}
                 >
-                  CORRECT ROMAJI
+                  {isVocabAssessment && isExactTextAnswer ? 'CORRECT ANSWER' : 'CORRECT ROMAJI'}
                 </span>
                 <p className="font-mono text-sm sm:text-base font-black text-white tracking-wide break-all">
                   {isCorrect || !answerDiff ? (
-                    currentCard?.romaji
+                    isExactTextAnswer ? currentCard?.correctAnswer : currentCard?.romaji
                   ) : (
                     renderDifference(
                       answerDiff.expected,

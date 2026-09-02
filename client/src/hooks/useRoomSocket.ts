@@ -67,6 +67,7 @@ type SocketPayload = {
   inviterSocketId?: string;
   accepted?: boolean;
   inviteeName?: string;
+  forfeitingPlayerName?: string;
   friend?: IdentityPayload;
   receiver?: IdentityPayload;
   displayName?: string;
@@ -351,6 +352,13 @@ export default function useRoomSocket({
       clearRoomQueryParam();
     });
 
+    newSocket.on('match-forfeited', (data: SocketPayload) => {
+      setToast({
+        message: `${data?.forfeitingPlayerName || 'Your opponent'} forfeited the match. You win!`,
+        type: 'success',
+      });
+    });
+
     newSocket.on('room-returned-to-lobby', (data: SocketPayload) => {
       if (!data?.room) return;
       setRoom(data.room);
@@ -428,6 +436,8 @@ export default function useRoomSocket({
     newSocket.on('room-invite-received', (data: SocketPayload) => {
       const assessmentLabel = data?.deckType === 'kanji'
         ? 'Kanji'
+        : data?.deckType === 'vocab'
+          ? 'Vocabulary'
         : data?.deckType === 'grammar'
           ? 'Grammar'
           : 'Kana';

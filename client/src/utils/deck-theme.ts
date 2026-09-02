@@ -3,6 +3,7 @@ import type { Deck } from '../types';
 export const DECK_ACCENTS: Record<Deck, string> = {
   kana: '#FFDE59',
   kanji: '#70CFF8',
+  vocab: '#A3E636',
   grammar: '#C084FC',
 };
 

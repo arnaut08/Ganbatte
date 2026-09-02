@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
-import type { Deck, KanjiGroup } from '../../types';
+import type { Deck, KanjiGroup, VocabStage } from '../../types';
 
 type LegacyProps = { children?: ReactNode;[key: string]: unknown };
 
@@ -25,6 +25,7 @@ type CreateRoomCardProps = {
   onCreateRoom: (event: FormEvent<HTMLFormElement>) => void;
   isSocketReady: boolean;
   kanjiGroups: KanjiGroup[];
+  vocabStages: VocabStage[];
 };
 
 type JoinRoomCardProps = {
@@ -52,9 +53,15 @@ function CreateRoomCard({
   onCreateRoom,
   isSocketReady,
   kanjiGroups,
+  vocabStages,
 }: CreateRoomCardProps) {
   const [isGrammarMenuOpen, setIsGrammarMenuOpen] = useState(false);
   const isAnyMenuOpen = isGroupMenuOpen || isGrammarMenuOpen;
+  const isKanji = deckType === 'kanji';
+  const isVocab = deckType === 'vocab';
+  const selectionItems = isKanji
+    ? kanjiGroups.map((group) => ({ id: group.id, label: group.name }))
+    : vocabStages.map((stage) => ({ id: String(stage.stage_number), label: stage.theme }));
 
   return (
     <Card
@@ -96,10 +103,11 @@ function CreateRoomCard({
             <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
               SELECT DECK
             </span>
-            <div className="grid grid-cols-3 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
+            <div className="grid grid-cols-4 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
               {[
                 { type: 'kana', label: 'Kana', color: '#FFDE59' },
                 { type: 'kanji', label: 'Kanji', color: '#70CFF8' },
+                { type: 'vocab', label: 'Vocab', color: '#A3E636' },
                 { type: 'grammar', label: 'Grammar', color: '#C084FC' },
               ].map(({ type, label, color }) => (
                 <button
@@ -171,10 +179,10 @@ function CreateRoomCard({
           )}
 
           {/* Kanji Themes Selector */}
-          {deckType === 'kanji' && (
+          {(isKanji || isVocab) && (
             <div className="relative z-30 space-y-1 sm:space-y-1.5">
               <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-                KANJI THEMES
+                {isKanji ? 'KANJI THEMES' : 'VOCAB STAGES'}
               </span>
 
               <button
@@ -202,27 +210,27 @@ function CreateRoomCard({
                         setIsGroupMenuOpen(false);
                       }}
                       className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${selectedGroups.length === 0
-                          ? 'bg-[#70CFF8] text-black font-black'
-                          : 'text-white hover:bg-[#70CFF8] hover:text-black'
+                          ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black`
+                          : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
                         }`}
                     >
                       <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ' '}</span>
-                      All Groups
+                      {isKanji ? 'All Groups' : 'All Stages'}
                     </button>
-                    {kanjiGroups.map((group) => {
-                      const isSelected = selectedGroups.includes(group.id);
+                    {selectionItems.map((item) => {
+                      const isSelected = selectedGroups.includes(item.id);
                       return (
                         <button
-                          key={group.id}
+                          key={item.id}
                           type="button"
-                          onClick={() => handleGroupToggle(group.id)}
+                          onClick={() => handleGroupToggle(item.id)}
                           className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${isSelected
-                              ? 'bg-[#70CFF8] text-black font-black hover:bg-[#70CFF8] hover:text-black'
-                              : 'text-white hover:bg-[#70CFF8] hover:text-black'
+                              ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black hover:text-black`
+                              : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
                             }`}
                         >
                           <span className="mr-2">{isSelected ? '✓' : ' '}</span>
-                          {group.name}
+                          {item.label}
                         </button>
                       );
                     })}
@@ -235,9 +243,9 @@ function CreateRoomCard({
                   {selectedGroups.map((groupId) => (
                     <span
                       key={groupId}
-                      className="inline-flex items-center gap-1 border-2 border-black bg-[#151922] border-l-4 border-l-[#70CFF8] px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-[1px_1px_0px_0px_#000]"
+                      className={`inline-flex items-center gap-1 border-2 border-black bg-[#151922] border-l-4 ${isKanji ? 'border-l-[#70CFF8]' : 'border-l-[#A3E636]'} px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-[1px_1px_0px_0px_#000]`}
                     >
-                      {kanjiGroups.find((g) => g.id === groupId)?.name || groupId}
+                      {selectionItems.find((item) => item.id === groupId)?.label || groupId}
                     </span>
                   ))}
                 </div>
@@ -344,6 +352,7 @@ export default function PracticeScreen({
   isGroupMenuOpen,
   setIsGroupMenuOpen,
   kanjiGroups = [],
+  vocabStages = [],
 }: PracticeScreenProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 pb-20 sm:pb-24">
@@ -384,6 +393,7 @@ export default function PracticeScreen({
           onCreateRoom={onCreateRoom}
           isSocketReady={isSocketReady}
           kanjiGroups={kanjiGroups}
+          vocabStages={vocabStages}
         />
 
         <JoinRoomCard

@@ -19,7 +19,7 @@ import {
   getVocabOverview,
   getGrammarOverview,
 } from '../services/api';
-import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview } from '../types';
+import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview, VocabStage } from '../types';
 
 type LegacyProps = {
   children?: ReactNode;
@@ -81,6 +81,7 @@ export default function AppHome({
     getVocabOverview('N5')
       .then((overview) => {
         const stages = overview.stages || [];
+        setVocabStages(stages);
         const nextStats = {
           clearedStages: stages.filter((stage) => stage.is_cleared).length,
           masteredStages: stages.filter((stage) => stage.is_mastered).length,
@@ -136,6 +137,7 @@ export default function AppHome({
   const [selectedGroups, setSelectedGroups] = useState<Array<string | number>>([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const [kanjiGroups, setKanjiGroups] = useState<ApiRecord[]>([]);
+  const [vocabStages, setVocabStages] = useState<VocabStage[]>([]);
 
   // Player Passport Data States
   const [kanjiOverview, setKanjiOverview] = useState<KanjiGroupOverview[]>([]);
@@ -221,7 +223,7 @@ export default function AppHome({
     e.preventDefault();
     if (!isSocketReady) return;
 
-    const normalizedGroups = deckType === 'kanji' ? selectedGroups : [];
+    const normalizedGroups = deckType === 'kanji' || deckType === 'vocab' ? selectedGroups : [];
     const normalizedSettings: DeckOptions =
       deckType === 'grammar'
         ? { type: 'grammar', groups: [], maxLesson: grammarLevel, count: 5 }
@@ -544,6 +546,7 @@ export default function AppHome({
             isGroupMenuOpen={isGroupMenuOpen}
             setIsGroupMenuOpen={setIsGroupMenuOpen}
             kanjiGroups={kanjiGroups}
+            vocabStages={vocabStages}
           />
         )}
       </div>

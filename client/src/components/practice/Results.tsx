@@ -11,7 +11,14 @@ import { getDeckAccent } from '../../utils/deck-theme';
 import type { AssessmentResult, DiffSegment, KanaCard, KanjiCard } from '../../types';
 
 type ResultPlayer = Partial<AssessmentResult>;
-type ResultCard = Partial<KanaCard & KanjiCard>;
+type ResultCard = Partial<KanaCard & KanjiCard> & {
+  questionType?: 'multiple-choice' | 'type-in';
+  promptKind?: 'kanji' | 'english';
+  prompt?: string;
+  options?: string[];
+  correctAnswer?: string;
+  answerType?: 'romaji' | 'text';
+};
 
 type ResultsProps = {
   results?: ResultPlayer[];
@@ -78,8 +85,9 @@ export default function Results({
   }
 
   const isKanjiDeck = room?.deckType === 'kanji' || kanaCards.some((card) => card?.groupId || card?.groupName);
+  const isVocabDeck = room?.deckType === 'vocab';
   const isGrammarDeck = room?.deckType === 'grammar';
-  const themeAccent = getDeckAccent(isKanjiDeck ? 'kanji' : isGrammarDeck ? 'grammar' : 'kana');
+  const themeAccent = getDeckAccent(isKanjiDeck ? 'kanji' : isVocabDeck ? 'vocab' : isGrammarDeck ? 'grammar' : 'kana');
 
   const selectedDeckGroups = Array.isArray(room?.selectedGroups)
     ? room.selectedGroups
@@ -97,18 +105,21 @@ export default function Results({
 
     for (let i = 0; i < total; i++) {
       const submitted = answers[i];
-      const score = scoreRomajiAnswer(submitted, kanaCards[i]?.romaji);
+      const card = kanaCards[i];
+      const isExactText = isVocabDeck && card?.answerType === 'text';
+      const isCorrect = isExactText
+        ? String(submitted || '').trim().toLowerCase() === String(card?.correctAnswer || '').trim().toLowerCase()
+        : isKanjiDeck || isVocabDeck
+          ? areRomajiAnswersEqual(submitted, card?.romaji)
+          : scoreRomajiAnswer(submitted, card?.romaji).percentage === 100;
+      const score = isExactText ? { matched: isCorrect ? 1 : 0, total: 1 } : scoreRomajiAnswer(submitted, card?.romaji);
       matchedTokens += score.matched;
       totalTokens += score.total;
 
-      if (isKanjiDeck) {
-        if (areRomajiAnswersEqual(submitted, kanaCards[i]?.romaji)) correct++;
-      } else if (score.matched === score.total) {
-        correct++;
-      }
+      if (isCorrect) correct++;
     }
 
-    if (isKanjiDeck) {
+    if (isKanjiDeck || isVocabDeck) {
       return {
         correct,
         incorrect: total - correct,
@@ -182,7 +193,7 @@ export default function Results({
 
       const { error } = await supabase.from('assessment_results').insert({
         user_id: authenticatedUserId,
-        assessment_type: isKanjiDeck ? 'kanji-reading' : isGrammarDeck ? 'grammar' : 'kana-reading',
+        assessment_type: isKanjiDeck ? 'kanji-reading' : isVocabDeck ? 'vocab' : isGrammarDeck ? 'grammar' : 'kana-reading',
         score_percentage: currentStats.percentage,
         correct_questions: currentStats.correct,
         total_questions: currentStats.total,
@@ -208,7 +219,7 @@ export default function Results({
     };
 
     saveCurrentAssessmentResult();
-  }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey, isKanjiDeck, isGrammarDeck, selectedDeckGroups, recordActivity]);
+  }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey, isKanjiDeck, isVocabDeck, isGrammarDeck, selectedDeckGroups, recordActivity]);
 
   const maxScore = Math.max(
     ...results.map((p) => computeStats(p.answers || []).percentage)
@@ -368,10 +379,10 @@ export default function Results({
               <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
                 <div className="border-2 border-black bg-white p-2 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000]">
                   <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-600">
-                    TARGET ROMAJI
+                    {isVocabDeck && card.answerType === 'text' ? 'TARGET ANSWER' : 'TARGET ROMAJI'}
                   </span>
                   <p className="mt-0.5 font-mono text-xs sm:text-base font-black text-black">
-                    {card.romaji}
+                    {isVocabDeck && card.answerType === 'text' ? card.correctAnswer : card.romaji}
                   </p>
                 </div>
 
@@ -391,7 +402,9 @@ export default function Results({
                           {isUnanswered ? (
                             <span className="text-neutral-500 font-mono">[NO INPUT]</span>
                           ) : (
-                            renderDifference(String(playerAnswer || ''), card.romaji || '', 'given', isKanjiDeck)
+                            isVocabDeck && card.answerType === 'text'
+                              ? String(playerAnswer || '')
+                              : renderDifference(String(playerAnswer || ''), card.romaji || '', 'given', isKanjiDeck)
                           )}
                         </span>
                       </div>

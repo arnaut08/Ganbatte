@@ -127,7 +127,7 @@ function LegacyAppScreenRouter({
 
   const shouldRenderRoomLobby = status === 'lobby' && Boolean(room);
   const shouldRenderAssessment = status === 'assessment' && Boolean(room) && isAssessmentDataReady;
-  const shouldRenderPreparing = (status === 'assessment-preparing' || isFullyHydrating) && !isAssessmentDataReady;
+  const shouldRenderPreparing = status === 'assessment-preparing' || (isFullyHydrating && !isAssessmentDataReady);
   const shouldRenderResults = isResultsScreen && hasValidResults;
 
   const isOtherKnownScreen = [
@@ -295,6 +295,8 @@ function LegacyAppScreenRouter({
                   ? 'Preparing the grammar deck'
                   : room?.deckType === 'kanji'
                     ? 'Preparing the kanji drill'
+                    : room?.deckType === 'vocab'
+                      ? 'Preparing the vocabulary drill'
                     : 'Preparing the reading deck'
               }
               description="Generating the question set and synchronizing operators..."

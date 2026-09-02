@@ -18,6 +18,9 @@ function getDomainMeta(type: string) {
   if (normalized.includes('kanji')) {
     return { accent: '#70CFF8', label: 'KANJI' };
   }
+  if (normalized.includes('vocab')) {
+    return { accent: '#A3E636', label: 'VOCAB' };
+  }
   return { accent: '#FFDE59', label: 'KANA' };
 }
 

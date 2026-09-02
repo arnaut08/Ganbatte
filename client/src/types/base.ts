@@ -11,7 +11,7 @@ export type ApiRecord = Record<string, unknown>;
  * The deck/assessment types supported across study screens, rooms and the
  * grammar/kana/kanji APIs.
  */
-export type Deck = 'kana' | 'kanji' | 'grammar';
+export type Deck = 'kana' | 'kanji' | 'vocab' | 'grammar';
 
 /** A stored confidence attempt record for a character/kanji. */
 export type CharacterAttempt = ApiRecord & {

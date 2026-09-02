@@ -107,7 +107,7 @@ export default function useRoomManager({
     const hostName = (name || getDisplayName()).trim();
     if (!hostName) return;
     const normalizedDeckOptions = {
-      type: deckOptions?.type === 'grammar' ? 'grammar' : deckOptions?.type === 'kanji' ? 'kanji' : 'kana',
+      type: deckOptions?.type === 'grammar' ? 'grammar' : deckOptions?.type === 'kanji' ? 'kanji' : deckOptions?.type === 'vocab' ? 'vocab' : 'kana',
       groups: Array.isArray(deckOptions?.groups) ? deckOptions.groups : [],
       maxLesson: deckOptions?.type === 'grammar' ? Number(deckOptions.maxLesson) || 3 : undefined,
       count: deckOptions?.type === 'grammar' ? Number(deckOptions.count) || 5 : undefined,
@@ -267,7 +267,7 @@ export default function useRoomManager({
   const handleStartAssessment = useCallback(() => {
     if (!activeSocket || !roomCode || !room || !isCurrentPlayerHost) return;
     if (!canStartAssessment(room.players)) return;
-    if (room.deckType === 'grammar' || room.deckType === 'kana') {
+    if (room.deckType === 'grammar' || room.deckType === 'kana' || room.deckType === 'vocab') {
       setIsPreparingAssessment(true);
       transitionToStatus('assessment-preparing');
     }
