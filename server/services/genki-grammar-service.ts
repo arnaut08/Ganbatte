@@ -1,4 +1,5 @@
-import { FALLBACK_GEMINI_MODEL, GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
+import { GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
+import { fetchGeminiWithFallback } from './gemini-api-service.js';
 
 export const QUESTION_TYPES = [
   'multiple-choice',
@@ -251,24 +252,7 @@ export function getGenkiGrammarLessonMeta(maxLesson: number = 12) {
   return GENKI_GRAMMAR_LESSONS.filter((lesson) => lesson.number <= safeMaxLesson);
 }
 
-export function resolveGeminiModel(modelName: string | undefined): string {
-  const candidates = new Set([
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro',
-    'gemini-pro',
-  ]);
-
-  const normalized = typeof modelName === 'string' ? modelName.trim() : '';
-  return normalized && candidates.has(normalized) ? normalized : FALLBACK_GEMINI_MODEL;
-}
+export { resolveGeminiModel } from './gemini-api-service.js';
 
 export function createGeminiPrompt({
   maxLesson = 12,
@@ -375,11 +359,9 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10, mod
 
   try {
     const prompt = createGeminiPrompt({ maxLesson: safeMaxLesson, count: questionCount, mode });
-    const resolvedModel = resolveGeminiModel(GEMINI_MODEL);
-    console.log("Using Gemini model:", resolvedModel);
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`,
-      {
+    const { response } = await fetchGeminiWithFallback({
+      model: GEMINI_MODEL,
+      init: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -393,11 +375,7 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10, mod
           },
         }),
       },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Gemini API returned ${response.status}`);
-    }
+    });
 
     const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
     const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';

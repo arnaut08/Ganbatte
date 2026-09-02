@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { FALLBACK_GEMINI_MODEL, GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
-import { resolveGeminiModel } from './genki-grammar-service.js';
+import { GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
+import { KANA_SENTENCES } from '../data/kana-sentences.js';
+import { fetchGeminiWithFallback, GeminiRateLimitError } from './gemini-api-service.js';
 import type { PracticeCard } from './card-service.js';
 
 const KANA_DECK_SIZE = 10;
@@ -148,10 +149,11 @@ export async function generateKanaDeck(
 ): Promise<PracticeCard[]> {
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required to generate Kana assessments');
 
-    const resolvedModel = resolveGeminiModel(model ?? GEMINI_MODEL) || FALLBACK_GEMINI_MODEL;
-    const response = await fetchImpl(
-        `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`,
-        {
+    try {
+        const { response } = await fetchGeminiWithFallback({
+            fetchImpl,
+            model: model ?? GEMINI_MODEL,
+            init: {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -166,13 +168,15 @@ export async function generateKanaDeck(
                     maxOutputTokens: 4096,
                 },
             }),
-        },
-    );
-
-    if (!response.ok) throw new Error(`Gemini API returned ${response.status}`);
-    const payload = await response.json() as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || '';
-    return normalizeKanaDeck(text);
+            },
+        });
+        const payload = await response.json() as {
+            candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || '';
+        return normalizeKanaDeck(text);
+    } catch (error) {
+        if (!(error instanceof GeminiRateLimitError)) throw error;
+        return [...KANA_SENTENCES].sort(() => Math.random() - 0.5).slice(0, KANA_DECK_SIZE);
+    }
 }
