@@ -8,6 +8,7 @@ type UseAuthOptions = {
 };
 
 export default function useAuth(options?: UseAuthOptions) {
+  const showToast = options?.showToast;
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(
@@ -26,8 +27,18 @@ export default function useAuth(options?: UseAuthOptions) {
       return undefined;
     }
 
-    const mergeUser = (current: User | null, nextUser: User | null) =>
-      (current?.id ?? null) === (nextUser?.id ?? null) ? current : nextUser;
+    const mergeUser = (current: User | null, nextUser: User | null) => {
+      if (!current || !nextUser) return nextUser;
+      if (
+        current.id === nextUser.id
+        && current.email === nextUser.email
+        && current.updated_at === nextUser.updated_at
+        && JSON.stringify(current.user_metadata) === JSON.stringify(nextUser.user_metadata)
+      ) {
+        return current;
+      }
+      return nextUser;
+    };
 
     supabase.auth.getSession().then(({ data }) => {
       const nextUser = data.session?.user || null;
@@ -57,7 +68,7 @@ export default function useAuth(options?: UseAuthOptions) {
 
           if (hash.includes('type=recovery')) {
             setIsPasswordRecovery(true);
-            options?.showToast?.('Recovery session initialized. Update your password below.', 'neutral');
+            showToast?.('Recovery session initialized. Update your password below.', 'neutral');
             return;
           }
         }
@@ -69,7 +80,7 @@ export default function useAuth(options?: UseAuthOptions) {
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [options, isPasswordRecovery]);
+  }, [isPasswordRecovery, showToast]);
 
   const getDisplayName = useCallback(() => {
     const fullName = user?.user_metadata?.full_name?.trim();

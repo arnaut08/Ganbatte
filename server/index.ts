@@ -7,6 +7,7 @@ import assessmentRoutes from './routes/assessment-routes.js';
 import activityRoutes from './routes/activity-routes.js';
 import grammarLessonRoutes from './routes/grammar-lesson-routes.js';
 import vocabRoutes from './routes/vocab-routes.js';
+import accountRoutes from './routes/account-routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { configureSocketServer } from './socket/socket-server.js';
 import { warmKanaDeckCache } from './repositories/kana-repository.js';
@@ -19,6 +20,7 @@ app.use('/api', assessmentRoutes);
 app.use('/api', activityRoutes);
 app.use('/api', grammarLessonRoutes);
 app.use('/api', vocabRoutes);
+app.use('/api', accountRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });

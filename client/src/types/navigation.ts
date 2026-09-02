@@ -7,6 +7,7 @@
 export type AppStatus =
   | 'selector'
   | 'friends'
+  | 'profile'
   | 'passport'
   | 'kana-intro'
   | 'kana-filter'

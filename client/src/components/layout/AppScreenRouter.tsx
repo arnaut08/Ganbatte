@@ -25,6 +25,7 @@ const GrammarIntroScreen = lazy(() => import('../learning/grammar/GrammarIntroSc
 const AssessmentHistory = lazy(() => import('../profile/AssessmentHistory'));
 const GrammarPractice = lazy(() => import('../practice/GrammarPractice'));
 const FriendsPanel = lazy(() => import('../social/FriendsPanel'));
+const ProfileScreen = lazy(() => import('../profile/ProfileScreen'));
 const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScreen'));
 
 type ScreenRouterProps = AppContextValue & RoomContextValue;
@@ -34,6 +35,9 @@ function LegacyAppScreenRouter({
   isLoggingOut,
   authRequired,
   user,
+  profile,
+  onProfileSaved,
+  handleDeleteAccount,
   status,
   selectorScreen,
   appHomeKey,
@@ -91,6 +95,7 @@ function LegacyAppScreenRouter({
   handleStartNewSession,
   handleRequestHost,
   handleOpenHistory,
+  handleOpenProfile,
 }: ScreenRouterProps) {
   // Hold screen while AuthPage stamp animation runs
   const [isStampAnimating, setIsStampAnimating] = useState(false);
@@ -132,6 +137,7 @@ function LegacyAppScreenRouter({
 
   const isOtherKnownScreen = [
     'friends',
+    'profile',
     'kana-intro',
     'kana-filter',
     'kana-study',
@@ -219,6 +225,16 @@ function LegacyAppScreenRouter({
               onRemoveFriend={handleRemoveFriend}
               isSearching={isFriendSearchLoading}
               onBack={handleGoBack}
+            />
+          )}
+
+          {status === 'profile' && user && (
+            <ProfileScreen
+              user={user}
+              initialProfile={profile}
+              onBack={handleGoBack}
+              onProfileSaved={onProfileSaved}
+              onDeleteAccount={handleDeleteAccount}
             />
           )}
 

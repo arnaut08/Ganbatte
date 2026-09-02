@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PersonIcon } from '@radix-ui/react-icons';
 import logo from '../../assets/logo.svg';
+import { supabase } from '@/config/supabase';
+import type { UserProfileRecord } from '@/types';
 
 const TypedButton = Button as ComponentType<ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }>;
 const TypedDropdownMenuContent = DropdownMenuContent as ComponentType<HTMLAttributes<HTMLDivElement> & { align?: string; sideOffset?: number }>;
@@ -17,6 +19,8 @@ const TypedDropdownMenuItem = DropdownMenuItem as ComponentType<HTMLAttributes<H
 type AppHeaderProps = {
   onHome: () => void;
   onOpenFriends: () => void;
+  onOpenProfile: () => void;
+  onProfileLoaded: (profile: UserProfileRecord) => void;
   onLogout: () => void;
   onOpenHistory: () => void;
   onOpenPassport: () => void;
@@ -28,6 +32,8 @@ type AppHeaderProps = {
 export default function AppHeader({
   onHome,
   onOpenFriends,
+  onOpenProfile,
+  onProfileLoaded,
   onLogout,
   onOpenHistory,
   onOpenPassport,
@@ -37,6 +43,7 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const userInitial = (
     user?.user_metadata?.full_name ||
     user?.email?.split('@')[0] ||
@@ -44,6 +51,42 @@ export default function AppHeader({
   )
     .charAt(0)
     .toUpperCase();
+  const avatarUrl = user?.user_metadata?.avatar_url || profileAvatarUrl;
+
+  useEffect(() => {
+    const client = supabase;
+    if (!user || !client) {
+      setProfileAvatarUrl(null);
+      return undefined;
+    }
+
+    let isMounted = true;
+    client
+      .from('profiles')
+      .select('id, display_name, location, learning_goal, bio, avatar_url, account_tier')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!isMounted) return;
+        setProfileAvatarUrl(data?.avatar_url ?? null);
+        if (data) {
+          onProfileLoaded({
+            id: data.id,
+            email: user.email,
+            displayName: data.display_name,
+            location: data.location,
+            learningGoal: data.learning_goal,
+            bio: data.bio,
+            avatarUrl: data.avatar_url,
+            accountTier: data.account_tier,
+          });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [onProfileLoaded, user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -121,7 +164,11 @@ export default function AppHeader({
                   aria-expanded={isMenuOpen}
                   title="User menu"
                 >
-                  <span className="font-mono text-sm sm:text-lg font-black uppercase">{userInitial}</span>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="font-mono text-sm sm:text-lg font-black uppercase">{userInitial}</span>
+                  )}
                 </TypedButton>
               </DropdownMenuTrigger>
 
@@ -133,7 +180,9 @@ export default function AppHeader({
                 {/* User Info Header */}
                 <div className="mb-1.5 flex items-center gap-2.5 border-2 border-black bg-[#151922] p-2 sm:p-2.5">
                   <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center border-2 border-black bg-[#A3E636] font-mono text-xs sm:text-sm font-black text-black shadow-[1.5px_1.5px_0px_0px_#000]">
-                    {userInitial}
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : userInitial}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-mono text-xs font-black uppercase tracking-tight text-white leading-tight">
@@ -144,6 +193,14 @@ export default function AppHeader({
                     </span>
                   </div>
                 </div>
+
+                <TypedDropdownMenuItem
+                  onSelect={onOpenProfile}
+                  className="flex cursor-pointer items-center justify-between border-2 border-transparent px-2.5 py-1.5 sm:px-3 sm:py-2 font-mono text-xs font-black uppercase text-white transition-all hover:border-black hover:bg-[#A3E636] hover:text-black focus:border-black focus:bg-[#A3E636] focus:text-black"
+                >
+                  <span>Edit Profile</span>
+                  <span className="text-sm font-bold">&rarr;</span>
+                </TypedDropdownMenuItem>
 
                 <TypedDropdownMenuItem
                   onSelect={onOpenPassport}

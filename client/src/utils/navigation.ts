@@ -35,6 +35,7 @@ export function getBackDestination({
   switch (currentStatus) {
     // Overlays / Global Pages
     case 'friends':
+    case 'profile':
     case 'passport':
     case 'history':
       return { nextStatus: 'selector', nextSelectorScreen: selectorScreen || 'home' };

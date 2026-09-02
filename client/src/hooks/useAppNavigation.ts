@@ -21,6 +21,7 @@ const screenPriority: Record<AppStatus, number> = {
   'grammar-study': 0,
   'grammar-practice': 0,
   history: 0,
+  profile: 0,
   lobby: 0,
   assessment: 1,
   results: 1,
@@ -196,6 +197,7 @@ export default function useAppNavigation({
       handleOpenGrammarPractice,
       handleOpenHistory: () => navigateToScreen('history'),
       handleOpenFriends: () => navigateToScreen('friends'),
+      handleOpenProfile: () => navigateToScreen('profile'),
       handleOpenPassport: () => navigateToScreen('passport'),
     }),
     [
