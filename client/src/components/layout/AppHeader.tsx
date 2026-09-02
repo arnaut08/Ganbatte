@@ -107,8 +107,8 @@ export default function AppHeader({
   return (
     <header
       className={`sticky top-0 z-50 w-full px-4 sm:px-8 transition-colors duration-200 ${isScrolled
-          ? 'bg-[#1a1f2c]/85 backdrop-blur-md border-b border-black/30'
-          : 'bg-transparent border-b border-transparent'
+        ? 'bg-[#1a1f2c]/85 backdrop-blur-md border-b border-black/30'
+        : 'bg-transparent border-b border-transparent'
         }`}
     >
       <div className="flex h-16 sm:h-20 items-center justify-between gap-4">
@@ -128,7 +128,7 @@ export default function AppHeader({
               <span className="font-mono text-base sm:text-2xl font-black uppercase tracking-tight text-white leading-none">
                 GANBATTE
               </span>
-              <span className="shrink-0 border-2 border-black bg-[#FFDE59] px-1 py-0.5 sm:px-1.5 font-mono text-[9px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] leading-none">
+              <span className="shrink-0 border-2 border-black bg-[#A3E636] px-1 py-0.5 sm:px-1.5 font-mono text-[9px] sm:text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000] leading-none">
                 頑張って
               </span>
             </div>
