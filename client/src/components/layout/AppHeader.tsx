@@ -44,7 +44,7 @@ export default function AppHeader({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
-  const [accountTier, setAccountTier] = useState<string>('Test');
+  const [accountTier, setAccountTier] = useState<string>('N5 NOVICE');
 
   const userInitial = (
     user?.user_metadata?.full_name ||
