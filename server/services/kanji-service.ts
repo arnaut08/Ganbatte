@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { FALLBACK_GEMINI_MODEL, GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
-import { resolveGeminiModel } from './genki-grammar-service.js';
+import { GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
+import { fetchGeminiWithFallback } from './gemini-api-service.js';
 
 export const KANJI_CONTENT_VERSION = 1;
 
@@ -101,12 +101,12 @@ export function normalizeKanjiDeck(rawDeck: string): z.infer<typeof kanjiDeckSch
 
 export async function generateKanjiDeck({ fetchImpl = fetch }: { fetchImpl?: typeof fetch } = {}): Promise<{ deck: z.infer<typeof kanjiDeckSchema>; model: string }> {
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required to generate Kanji content');
-  const model = resolveGeminiModel(GEMINI_MODEL) || FALLBACK_GEMINI_MODEL;
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await fetchImpl(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-      {
+    const { response, model } = await fetchGeminiWithFallback({
+      fetchImpl,
+      model: GEMINI_MODEL,
+      init: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,8 +114,7 @@ export async function generateKanjiDeck({ fetchImpl = fetch }: { fetchImpl?: typ
           generationConfig: { responseMimeType: 'application/json', temperature: 0.2, maxOutputTokens: 32768 },
         }),
       },
-    );
-    if (!response.ok) throw new Error(`Gemini API returned ${response.status}`);
+    });
     const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
     const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
     try {

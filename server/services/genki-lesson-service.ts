@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { FALLBACK_GEMINI_MODEL, GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
-import { GENKI_GRAMMAR_LESSONS, resolveGeminiModel } from './genki-grammar-service.js';
+import { GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
+import { fetchGeminiWithFallback } from './gemini-api-service.js';
+import { GENKI_GRAMMAR_LESSONS } from './genki-grammar-service.js';
 
 export const GENKI_LESSON_CONTENT_VERSION = 3;
 
@@ -271,10 +272,10 @@ export async function generateGenkiLesson(lessonNumber: number, { fetchImpl = fe
 
   if (!GEMINI_API_KEY) return { content: buildFallbackGenkiLesson(safeLessonNumber), model: 'fallback' };
 
-  const model = resolveGeminiModel(GEMINI_MODEL) || FALLBACK_GEMINI_MODEL;
-  const response = await fetchImpl(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-    {
+  const { response, model } = await fetchGeminiWithFallback({
+    fetchImpl,
+    model: GEMINI_MODEL,
+    init: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -286,9 +287,7 @@ export async function generateGenkiLesson(lessonNumber: number, { fetchImpl = fe
         },
       }),
     },
-  );
-
-  if (!response.ok) throw new Error(`Gemini API returned ${response.status}`);
+  });
   const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
   return {
