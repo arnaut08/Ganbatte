@@ -115,7 +115,7 @@ export default function VocabStageMap({
                   type="button"
                   className="border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[8px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] sm:px-2.5 sm:py-1 sm:text-[9px]"
                 >
-                  START ⚡
+                  START <LightningBoltIcon className="inline-block h-3 w-3" aria-hidden="true" />
                 </button>
               </div>
             )}
