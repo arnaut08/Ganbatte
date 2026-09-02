@@ -179,7 +179,7 @@ export default function KanjiStudy({ onBack }: Props) {
       )}
 
       {/* CONTENT GRID */}
-      {loading && <GroupMapSkeleton count={6} accentColor="#70CFF8" />}
+      {loading && <GroupMapSkeleton count={6} accentColor="#70CFF8" deck="kanji" withFilter />}
 
       {error && !loading && (
         <div className="border-2 border-black bg-[#FF6B6B] p-4 text-center font-mono text-xs font-black uppercase text-black shadow-[4px_4px_0px_0px_#000]">

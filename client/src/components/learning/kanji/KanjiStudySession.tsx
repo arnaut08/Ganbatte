@@ -52,11 +52,7 @@ export default function KanjiStudySession({ groupId, groupName, onBack, onQuiz }
     };
 
     if (loading) {
-        return (
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-8">
-                <StudySkeleton />
-            </main>
-        );
+        return <StudySkeleton deck="kanji" />;
     }
 
     if (error) {
