@@ -7,7 +7,7 @@ export default function GrammarStudySkeleton({ fullScreen = false }: GrammarStud
         <div className="w-full space-y-3.5 animate-pulse sm:space-y-6">
             {/* Chapter Pills Row Skeleton */}
             <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 sm:mx-0 sm:gap-2 sm:px-0 sm:flex-wrap">
-                {Array.from({ length: 8 }).map((_, i) => (
+                {Array.from({ length: 12 }).map((_, i) => (
                     <div
                         key={`pill-skel-${i}`}
                         className="h-7 w-20 shrink-0 border-2 border-black bg-[#151922] shadow-[1.5px_1.5px_0px_0px_#000] sm:h-8 sm:w-24 sm:shadow-[2px_2px_0px_0px_#000]"
@@ -36,14 +36,13 @@ export default function GrammarStudySkeleton({ fullScreen = false }: GrammarStud
                     </div>
                 </div>
 
-                {/* Content Body Wells Skeleton */}
-                <div className="space-y-3 px-3.5 py-2 sm:min-h-[300px] sm:space-y-4 sm:px-7">
-                    <div className="h-4 w-full bg-white/10" />
-                    <div className="h-4 w-5/6 bg-white/10" />
-                    <div className="grid gap-3 pt-2 sm:grid-cols-2">
-                        <div className="h-28 border-2 border-black bg-[#151922] shadow-[2px_2px_0px_0px_#000]" />
-                        <div className="h-28 border-2 border-black bg-[#151922] shadow-[2px_2px_0px_0px_#000]" />
-                    </div>
+                <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 py-2 sm:mx-0 sm:gap-2 sm:px-7 sm:py-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                            key={`lesson-tab-skel-${i}`}
+                            className="h-5 w-20 shrink-0 border-2 border-black bg-[#151922] shadow-[1.5px_1.5px_0px_0px_#000] sm:h-7 sm:w-24 sm:shadow-[2px_2px_0px_0px_#000]"
+                        />
+                    ))}
                 </div>
 
                 {/* Bottom Nav Stepper Skeleton */}
@@ -70,16 +69,16 @@ export default function GrammarStudySkeleton({ fullScreen = false }: GrammarStud
 
     if (fullScreen) {
         return (
-            <main className="container mx-auto max-w-4xl space-y-3.5 px-3 py-3 pb-20 animate-pulse sm:space-y-6 sm:px-4 sm:py-6 sm:pb-28">
+            <div className="app-route-skeleton container mx-auto max-w-4xl space-y-3.5 px-3 py-3 pb-20 animate-pulse sm:space-y-6 sm:px-4 sm:py-6 sm:pb-28">
                 <div className="flex items-end gap-2.5 sm:gap-4">
                                 <div className="h-9 w-9 shrink-0 border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] sm:h-11 sm:w-11" />
                     <div>
                         <div className="h-3 w-24 bg-[#C084FC]/40 sm:w-32" />
-                        <div className="mt-1.5 h-6 w-40 bg-white/30 sm:h-8 sm:w-56" />
+                        <div className="mt-0.5 h-6 w-40 bg-white/30 sm:h-8 sm:w-56" />
                     </div>
                 </div>
                 {content}
-            </main>
+            </div>
         );
     }
 

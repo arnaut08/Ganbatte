@@ -243,7 +243,7 @@ export default function AppHome({
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-3 sm:p-4 pb-20 sm:pb-24">
+    <div className="app-home-content flex items-center justify-center p-3 pb-20 sm:p-4 sm:pb-24">
       <div className="w-full max-w-5xl">
         {screen === 'home' ? (
           <div className="space-y-3 sm:space-y-6">

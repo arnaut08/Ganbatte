@@ -177,7 +177,7 @@ function LegacyAppScreenRouter({
 
   if (isFullyHydrating) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#11141d] px-4 text-white font-mono">
+      <div className="app-match-restoring flex items-center justify-center px-4 text-white font-mono">
         <div className="w-full max-w-md space-y-3 border-2 border-black bg-[#1f2637] p-6 text-center shadow-[6px_6px_0px_0px_#000]">
           <span className="text-xs font-black uppercase tracking-widest text-[#FFDE59]">
             // SYS: RE-ESTABLISHING SESSION

@@ -1,6 +1,6 @@
 export function HomeSkeleton() {
   return (
-    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-3 pb-20 animate-pulse sm:p-4 sm:pb-24">
+    <div className="app-home-content flex items-center justify-center p-3 pb-20 animate-pulse sm:p-4 sm:pb-24">
       <div className="w-full max-w-5xl">
         <div className="space-y-3 sm:space-y-6">
           <section className="mx-auto w-full max-w-4xl space-y-2 border-2 border-black bg-[#151922] p-2.5 text-white shadow-[3px_3px_0px_0px_#000] sm:space-y-3 sm:p-4 sm:shadow-[6px_6px_0px_0px_#000]">
@@ -34,7 +34,7 @@ export function HomeSkeleton() {
 
           <div className="mx-auto grid max-w-4xl gap-3 sm:gap-6 md:grid-cols-2">
             {[1, 2].map((card) => (
-              <section key={card} className="flex flex-col justify-between border-2 border-black border-l-8 bg-[#1f2637] p-3.5 shadow-[4px_4px_0px_0px_#000] sm:p-6 sm:shadow-[7px_7px_0px_0px_#000]" style={{ borderLeftColor: card === 1 ? '#FFDE59' : '#70CFF8' }}>
+              <section key={card} className="flex min-h-[148px] flex-col justify-between border-2 border-black border-l-8 bg-[#1f2637] p-3.5 shadow-[4px_4px_0px_0px_#000] sm:min-h-[244px] sm:p-6 sm:shadow-[7px_7px_0px_0px_#000]" style={{ borderLeftColor: card === 1 ? '#FFDE59' : '#70CFF8' }}>
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <div className="h-4 w-28 border-2 border-black bg-white/20 sm:h-5 sm:w-36" />

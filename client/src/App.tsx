@@ -4,6 +4,7 @@ import type { Socket } from 'socket.io-client';
 import AppHeader from './components/layout/AppHeader';
 import AppToast from './components/layout/AppToast';
 import AppScreenRouter from './components/layout/AppScreenRouter';
+import AppShell from './components/layout/AppShell';
 import './App.css';
 import {
   clearRoomSession,
@@ -243,26 +244,29 @@ function App() {
           }}
         />
 
-        {!isRestoringMatch && (
-          <AppHeader
-            onHome={handleHomeNavigation}
-            onOpenFriends={navigation.handleOpenFriends}
-            onOpenProfile={navigation.handleOpenProfile}
-            onProfileLoaded={setProfile}
-            onLogout={handleLogout}
-            onOpenHistory={navigation.handleOpenHistory}
-            onOpenPassport={navigation.handleOpenPassport}
-            isAuthenticated={Boolean(user)}
-            user={user}
-            pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
-          />
-        )}
-
-        <AppProvider value={appContextValue}>
-          <RoomProvider value={roomContextValue}>
-            <AppScreenRouter />
-          </RoomProvider>
-        </AppProvider>
+        <AppShell
+          showHeader={!isRestoringMatch}
+          header={(
+            <AppHeader
+              onHome={handleHomeNavigation}
+              onOpenFriends={navigation.handleOpenFriends}
+              onOpenProfile={navigation.handleOpenProfile}
+              onProfileLoaded={setProfile}
+              onLogout={handleLogout}
+              onOpenHistory={navigation.handleOpenHistory}
+              onOpenPassport={navigation.handleOpenPassport}
+              isAuthenticated={Boolean(user)}
+              user={user}
+              pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
+            />
+          )}
+        >
+          <AppProvider value={appContextValue}>
+            <RoomProvider value={roomContextValue}>
+              <AppScreenRouter />
+            </RoomProvider>
+          </AppProvider>
+        </AppShell>
       </CelebrationProvider>
     </div>
   );
