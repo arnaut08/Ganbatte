@@ -46,7 +46,16 @@ export default function useAppNavigation({
   setSelectedKana,
   showToast,
 }: NavigationOptions) {
-  const [status, setStatus] = useState<AppStatus>('selector');
+  
+  const getInitialStatus = () => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const testState = params.get('visualState');
+      if (testState && testState in screenPriority) return testState as AppStatus;
+    }
+    return 'selector'; // default status
+  };
+  const [status, setStatus] = useState(getInitialStatus);
   const [selectorScreen, setSelectorScreen] = useState<SelectorScreen>('home');
   const [appHomeKey, setAppHomeKey] = useState(0);
   const [screenHistory, setScreenHistory] = useState<AppStatus[]>(['selector']);
