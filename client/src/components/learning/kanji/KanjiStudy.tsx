@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { MagnifyingGlassIcon, TimerIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { getKanjiOverview } from '../../../services/api';
 import type { KanjiGroupOverview } from '../../../types';
 import KanjiGroupMap from './KanjiGroupMap';
 import KanjiGroupQuiz from './KanjiGroupQuiz';
 import KanjiStudySession from './KanjiStudySession';
 import GroupMapSkeleton from '../GroupMapSkeleton';
+import DeckFilterBar from '../vocab/DeckFilterBar';
+import StudyScreenHeader from '../StudyScreenHeader';
 
 type Props = { onBack: () => void };
 
@@ -96,25 +97,12 @@ export default function KanjiStudy({ onBack }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
-      {/* HEADER */}
-      <header className="flex items-center gap-2.5 sm:gap-4">
-        <button
-          type="button"
-          onClick={handleScreenBack}
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
-          aria-label="Return to learning modules"
-        >
-          <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
-        </button>
-        <div className="flex flex-col justify-center text-left">
-          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#70CFF8] sm:text-xs">
-            02 // KANJI
-          </span>
-          <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-4xl">
-            N5 KANJI
-          </h1>
-        </div>
-      </header>
+      <StudyScreenHeader
+        onBack={handleScreenBack}
+        eyebrow="02 // KANJI"
+        title="N5 KANJI"
+        accentClassName="text-[#70CFF8]"
+      />
 
       {/* SUB-HEADER INFO */}
       <div className="flex flex-col gap-1 border-t-2 border-white/20 pt-3 sm:flex-row sm:items-end sm:justify-between sm:pt-4">
@@ -128,54 +116,16 @@ export default function KanjiStudy({ onBack }: Props) {
 
       {/* FILTER & SEARCH CONTROLS */}
       {!loading && !error && (
-        <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-3 sm:shadow-[4px_4px_0px_0px_#000]">
-          <div className="flex items-center gap-2">
-            {/* SEARCH INPUT */}
-            <div className="relative min-w-0 flex-1">
-              <MagnifyingGlassIcon
-                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400 sm:left-3.5 sm:h-4 sm:w-4"
-                aria-hidden="true"
-              />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search group..."
-                aria-label="Search Kanji groups"
-                className="h-9 w-full sm:w-1/2 border-2 border-black bg-[#1f2637] pl-8 pr-7 font-mono text-[11px] font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] placeholder:text-neutral-500 placeholder:normal-case focus:border-[#70CFF8] focus:outline-none sm:h-10 sm:pl-10 sm:pr-8 sm:text-xs"
-              />
-              {search.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-white"
-                  aria-label="Clear search"
-                >
-                  <Cross2Icon className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-
-            {/* DUE FILTER TOGGLE */}
-            <button
-              type="button"
-              onClick={() => setShowDueOnly((val) => !val)}
-              className={`flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 border-2 border-black px-2.5 font-mono text-[10px] font-black uppercase tracking-wider transition-all sm:h-10 sm:gap-2 sm:px-3.5 sm:text-[11px] ${
-                showDueOnly
-                  ? 'bg-[#FF6B6B] text-black shadow-[1px_1px_0px_0px_#000] translate-x-[1px] translate-y-[1px]'
-                  : 'bg-white text-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#70CFF8] hover:shadow-[1px_1px_0px_0px_#000]'
-              } active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
-            >
-              <TimerIcon className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
-              <span className="hidden xs:inline sm:inline">
-                {showDueOnly ? 'Due' : 'Review'}
-              </span>
-              <span className="flex min-w-[18px] items-center justify-center border-2 border-black bg-black px-1 py-0.5 font-mono text-[9px] font-black text-white sm:min-w-[20px] sm:text-[10px]">
-                {totalDueCount}
-              </span>
-            </button>
-          </div>
-        </section>
+        <DeckFilterBar
+          accent="kanji"
+          search={search}
+          dueCount={totalDueCount}
+          showDueOnly={showDueOnly}
+          placeholder="Search group..."
+          searchAriaLabel="Search Kanji groups"
+          onSearchChange={setSearch}
+          onToggleDueOnly={() => setShowDueOnly((val) => !val)}
+        />
       )}
 
       {/* CONTENT GRID */}

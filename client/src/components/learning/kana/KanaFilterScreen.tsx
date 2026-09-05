@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getCharacterAttempts, getKanaCards } from '../../../services/api';
 import type { ApiRecord } from '../../../types';
 import KanaFilterSkeleton from './KanaFilterSkeleton';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 const MATRIX_TYPE_LABELS = {
   basic: 'BASIC',
@@ -429,29 +430,13 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
   return (
     <>
       <main className="mx-auto w-full max-w-6xl space-y-3 px-3 py-4 pb-24 sm:space-y-4 sm:px-4 sm:py-6 sm:pb-28">
-        {/* Top Header */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5 sm:gap-4">
-            <button
-              type="button"
-              onClick={onBack}
-              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
-              title="Back to Setup"
-            >
-              <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
-            </button>
-            <div className="min-w-0">
-              <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59] sm:text-xs">
-                // STUDY SETUP: CHARACTER SELECTION
-              </span>
-              <h1 className="text-lg font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
-                Select Kana to Study
-              </h1>
-            </div>
-          </div>
-
-          {/* Action & Mastery Bar */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <GlobalPageHeader
+          onBack={onBack}
+          punchline="// STUDY SETUP: CHARACTER SELECTION"
+          title="Select Kana to Study"
+          accentClass="text-[#FFDE59]"
+          rightSlot={(
+            <>
             <span className="border-2 border-black bg-[#151922] border-l-4 border-l-[#FFDE59] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-white shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
               Hiragana <strong className="text-[#FFDE59]">{masteredCounts.hiragana}</strong>/{basicCellsByScript.hiragana?.size ?? 0}
             </span>
@@ -472,8 +457,9 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
             >
               Clear All
             </button>
-          </div>
-        </div>
+            </>
+          )}
+        />
 
         {/* Tab Filters */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">

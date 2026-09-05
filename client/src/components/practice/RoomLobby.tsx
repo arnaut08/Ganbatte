@@ -5,6 +5,7 @@ import { CopyIcon, CheckIcon, LightningBoltIcon } from '@radix-ui/react-icons';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
 import { getDeckAccent } from '../../utils/deck-theme';
 import type { Friend, Room } from '../../types';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 type RoomLobbyProps = {
   roomCode: string;
@@ -92,28 +93,13 @@ export default function RoomLobby({
 
   return (
     <div className="mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-8">
-      {/* Screen Header */}
-      <div className="mb-4 flex items-center gap-2.5 sm:mb-6 sm:gap-4">
-        <button
-          type="button"
-          onClick={onLeaveRoom}
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
-          title="Leave room"
-          aria-label="Leave room"
-        >
-          <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
-        </button>
-        <div className="flex flex-col justify-center text-left">
-          <span
-            className="font-mono text-[9px] font-bold uppercase tracking-wider sm:text-xs"
-            style={{ color: themeAccent }}
-          >
-            {themeLabel}
-          </span>
-          <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
-            Match Setup
-          </h1>
-        </div>
+      <div className="mb-4 sm:mb-6">
+        <GlobalPageHeader
+          onBack={onLeaveRoom}
+          punchline={typeof themeLabel === 'string' ? themeLabel : 'ARCADE // SURVIVAL GAUNTLET'}
+          title="Match Setup"
+          accentClass={isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
+        />
       </div>
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-12 lg:items-start">

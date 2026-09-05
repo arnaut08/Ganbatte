@@ -19,7 +19,7 @@ import {
   getVocabOverview,
   getGrammarOverview,
 } from '../services/api';
-import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview, VocabStage, MatchMode } from '../types';
+import type { Deck, DeckOptions, SelectorScreen, KanjiGroup, KanjiGroupOverview, VocabStage, MatchMode } from '../types';
 
 type LegacyProps = {
   children?: ReactNode;
@@ -27,7 +27,6 @@ type LegacyProps = {
 };
 
 const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
-const LegacyPracticeScreen = PracticeScreen as unknown as ComponentType<LegacyProps>;
 
 type AppHomeProps = {
   onCreateRoom: (settings?: DeckOptions) => void;
@@ -137,7 +136,7 @@ export default function AppHome({
   const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState<Array<string | number>>([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
-  const [kanjiGroups, setKanjiGroups] = useState<ApiRecord[]>([]);
+  const [kanjiGroups, setKanjiGroups] = useState<KanjiGroup[]>([]);
   const [vocabStages, setVocabStages] = useState<VocabStage[]>([]);
 
   // Player Passport Data States
@@ -165,7 +164,7 @@ export default function AppHome({
 
   useEffect(() => {
     getKanjiCards()
-      .then((data) => setKanjiGroups(data.groups || []))
+      .then((data) => setKanjiGroups((data.groups || []) as KanjiGroup[]))
       .catch((error) => {
         console.error('Failed to fetch kanji cards:', error);
       });
@@ -530,7 +529,7 @@ export default function AppHome({
             onOpenGrammarStudy={onOpenGrammarStudy}
           />
         ) : (
-          <LegacyPracticeScreen
+          <PracticeScreen
             onBackToHome={() => setScreen('home')}
             onCreateRoom={handleCreate}
             onJoinRoom={handleJoin}
@@ -539,16 +538,16 @@ export default function AppHome({
             setJoinCode={setJoinCode}
             joinCodeInputRef={joinCodeInputRef}
             mode={mode}
-            setMode={setMode}
+            onModeChange={setMode}
             deckType={deckType}
-            setDeckType={setDeckType}
+            onDeckTypeChange={setDeckType}
             grammarLevel={grammarLevel}
-            setGrammarLevel={setGrammarLevel}
+            onGrammarLevelChange={setGrammarLevel}
             selectedGroups={selectedGroups}
-            handleGroupToggle={handleGroupToggle}
+            onGroupToggle={handleGroupToggle}
             onClearSelectedGroups={handleClearSelectedGroups}
             isGroupMenuOpen={isGroupMenuOpen}
-            setIsGroupMenuOpen={setIsGroupMenuOpen}
+            onGroupMenuOpenChange={setIsGroupMenuOpen}
             kanjiGroups={kanjiGroups}
             vocabStages={vocabStages}
           />
