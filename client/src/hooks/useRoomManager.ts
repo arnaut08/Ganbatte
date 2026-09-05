@@ -49,6 +49,7 @@ type RoomManagerOptions = {
   refreshFriendRequests: (force?: boolean) => Promise<void>;
   socketRef: MutableRefObject<Socket | null>;
   roomCodeRef: MutableRefObject<string | null>;
+  roomStatusRef: MutableRefObject<'lobby' | 'preparing' | 'active' | 'completed' | null>;
 };
 
 export default function useRoomManager({
@@ -62,6 +63,7 @@ export default function useRoomManager({
   refreshFriendRequests,
   socketRef,
   roomCodeRef,
+  roomStatusRef,
 }: RoomManagerOptions) {
   const visualFixture = typeof window !== 'undefined' && Boolean((window as any).__PLAYWRIGHT_VISUAL_TEST__);
   const visualFixtureRoom = visualFixture
@@ -91,6 +93,7 @@ export default function useRoomManager({
   const activeMatchCheckRef = useRef<string | null>(null);
   const { status, setStatus, setSelectorScreen, setScreenHistory, statusRef, transitionToStatus } = navigation;
   roomCodeRef.current = roomCode;
+  roomStatusRef.current = room?.status === 'waiting' ? 'lobby' : room?.status ?? null;
   const getDisplayName = navigation.getDisplayName;
 
   const handleJoinRoom = useCallback((code: string, name: string, onResult: ((response: SocketAck) => void) | null = null) => {
@@ -236,7 +239,7 @@ export default function useRoomManager({
         setRoom(null);
         setResults(null);
         setIsPreparingAssessment(false);
-        if (status === 'assessment' || status === 'assessment-preparing' || status === 'gauntlet') {
+        if (statusRef.current === 'assessment' || statusRef.current === 'assessment-preparing' || statusRef.current === 'gauntlet') {
           setStatus('selector');
           setSelectorScreen('practice');
           setScreenHistory(['selector']);
@@ -273,7 +276,7 @@ export default function useRoomManager({
     }).catch((error) => {
       console.error('Failed to restore active match:', error);
     }).finally(() => setIsHydratingActiveMatch(false));
-  }, [activeSocket, authLoading, getDisplayName, isSocketReady, setScreenHistory, setSelectorScreen, setStatus, status, transitionToStatus, user?.id]);
+  }, [activeSocket, authLoading, getDisplayName, isSocketReady, setScreenHistory, setSelectorScreen, setStatus, statusRef, transitionToStatus, user?.id]);
 
   // Sync preparing state if updated over socket
   useEffect(() => {
@@ -394,9 +397,13 @@ export default function useRoomManager({
     setRoomCode(null);
     setRoom(null);
     setUsername('');
+    setKanaCards([]);
     setResults(null);
+    setGrammarQuestions([]);
     setPrefillRoomCode('');
-  }, []);
+    setIsPreparingAssessment(false);
+    roomStatusRef.current = null;
+  }, [roomStatusRef]);
 
   const handleDeclineRoomResume = useCallback(() => {
     clearRoomSession();
@@ -438,10 +445,15 @@ export default function useRoomManager({
     });
   }, [activeSocket, clearRoomState, room, roomCode, setStatus, user?.id]);
 
+  const hasAssessmentData = (kanaCards.length > 0 || Boolean(room?.cards?.length))
+    && Boolean(room?.players?.length);
+  const isRestoringMatch = isHydratingActiveMatch || (status === 'assessment' && !hasAssessmentData);
+
   return useMemo(() => ({
     roomCode, room, username, kanaCards, results, grammarQuestions, prefillRoomCode,
     isPreparingAssessment, socket: activeSocket, isSocketReady,
     isHydratingActiveMatch,
+    isRestoringMatch,
     handleCreateRoom: (deckOptions?: DeckOptions) => handleCreateRoom(getDisplayName(), deckOptions),
     handleJoinRoom: (code: string) => handleJoinRoom(code, getDisplayName()),
     handleReturnToRoom, handleDeclineRoomResume,
@@ -483,6 +495,7 @@ export default function useRoomManager({
     handleReturnGauntletToLobby,
     isPreparingAssessment,
     isHydratingActiveMatch,
+    isRestoringMatch,
     isSocketReady,
     isCurrentPlayerHost,
     kanaCards,

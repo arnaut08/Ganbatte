@@ -7,7 +7,6 @@ export type RoomContextValue = {
   isSocketReady: boolean;
   room: Room | null;
   roomCode: string;
-  currentSessionKey: string;
   username: string;
   kanaCards: StudyCard[];
   results: AssessmentResult[] | null;

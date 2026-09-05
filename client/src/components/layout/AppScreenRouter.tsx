@@ -60,7 +60,6 @@ function LegacyAppScreenRouter({
   prefillRoomCode,
   isSocketReady,
   roomCode,
-  currentSessionKey,
   username,
   friends,
   friendSearchResults,
@@ -356,7 +355,6 @@ function LegacyAppScreenRouter({
               onLeaveRoom={handleLeaveRoom}
               currentSocketId={socket?.id || ''}
               currentUserId={user?.id || null}
-              currentSessionKey={currentSessionKey}
               isPreparingAssessment={isPreparingAssessment}
               friends={friends}
               onInviteFriend={handleInviteFriend}

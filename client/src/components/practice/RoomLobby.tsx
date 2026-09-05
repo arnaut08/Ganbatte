@@ -5,6 +5,7 @@ import { CopyIcon, CheckIcon, LightningBoltIcon } from '@radix-ui/react-icons';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
 import { getDeckAccent } from '../../utils/deck-theme';
 import type { Friend, Room } from '../../types';
+import { getSessionKey } from '../../utils/roomSession';
 import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 type RoomLobbyProps = {
@@ -16,7 +17,6 @@ type RoomLobbyProps = {
   currentSocketId?: string;
   currentUserId?: string | null;
   isPreparingAssessment?: boolean;
-  currentSessionKey?: string;
   friends?: Friend[];
   onInviteFriend?: (userId: string) => void;
 };
@@ -38,7 +38,6 @@ export default function RoomLobby({
   currentSocketId,
   currentUserId,
   isPreparingAssessment = false,
-  currentSessionKey,
   friends = [],
   onInviteFriend,
 }: RoomLobbyProps) {
@@ -47,11 +46,12 @@ export default function RoomLobby({
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
+  const sessionKey = getSessionKey();
   const hostPlayer = room?.players?.[0];
   const isHost =
     hostPlayer?.id === currentSocketId ||
     (currentUserId && hostPlayer?.userId === currentUserId) ||
-    (currentSessionKey && hostPlayer?.sessionKey === currentSessionKey);
+    hostPlayer?.sessionKey === sessionKey;
 
   const isGauntlet = room?.mode === 'gauntlet';
   const isKanji = room?.deckType === 'kanji';

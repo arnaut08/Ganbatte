@@ -122,6 +122,46 @@ export default function useRoomSocket({
   const [isSocketReady, setIsSocketReady] = useState(false);
   const inviteJoinAttemptedRef = useRef(false);
   const lastPresenceSyncRef = useRef<string | null>(null);
+  const latestOptionsRef = useRef({
+    status,
+    roomCode,
+    user,
+    getDisplayName,
+    handleJoinRoom,
+    transitionToStatus,
+    refreshFriends,
+    refreshFriendData,
+    refreshFriendRequests,
+    setRoomCode,
+    setRoom,
+    setUsername,
+    setKanaCards,
+    setResults,
+    setStatus,
+    setScreenHistory,
+    setIsPreparingAssessment,
+    setToast,
+  });
+  latestOptionsRef.current = {
+    status,
+    roomCode,
+    user,
+    getDisplayName,
+    handleJoinRoom,
+    transitionToStatus,
+    refreshFriends,
+    refreshFriendData,
+    refreshFriendRequests,
+    setRoomCode,
+    setRoom,
+    setUsername,
+    setKanaCards,
+    setResults,
+    setStatus,
+    setScreenHistory,
+    setIsPreparingAssessment,
+    setToast,
+  };
 
   const clearRoomQueryParam = useCallback(() => {
     const url = new URL(window.location.href);
@@ -221,9 +261,10 @@ export default function useRoomSocket({
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
+      const currentOptions = latestOptionsRef.current;
       setIsSocketReady(true);
-      if (roomCode) {
-        newSocket.emit('set-player-presence', roomCode, status === 'lobby' ? 'in_lobby' : 'away');
+      if (currentOptions.roomCode) {
+        newSocket.emit('set-player-presence', currentOptions.roomCode, currentOptions.status === 'lobby' ? 'in_lobby' : 'away');
       }
       if (newSocket.recovered) return;
 
@@ -232,7 +273,7 @@ export default function useRoomSocket({
       if (!shouldRestore || !savedSession) return;
 
       const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
-      newSocket.emit('rejoin-room', savedRoomCode, savedUsername, savedSession.sessionKey || getSessionKey(), user?.id, (response: SocketAck) => {
+      newSocket.emit('rejoin-room', savedRoomCode, savedUsername, savedSession.sessionKey || getSessionKey(), currentOptions.user?.id, (response: SocketAck) => {
         if (!response?.success || !response.room) {
           clearRoomSession();
           clearRoomQueryParam();
@@ -245,25 +286,28 @@ export default function useRoomSocket({
         if (nextRoom.status === 'completed') {
           clearRoomSession();
           clearRoomQueryParam();
-          setRoom(null);
-          setRoomCode(null);
-          setResults(null);
-          setStatus('selector');
-          setScreenHistory(['selector']);
+          currentOptions.setRoom(null);
+          currentOptions.setRoomCode(null);
+          currentOptions.setResults(null);
+          currentOptions.setStatus('selector');
+          currentOptions.setScreenHistory(['selector']);
           return;
         }
 
-        setRoomCode(savedRoomCode);
-        setUsername(savedUsername);
-        setRoom(nextRoom);
-        setKanaCards((nextRoom.cards as StudyCard[] | undefined) || []);
+        currentOptions.setRoomCode(savedRoomCode);
+        currentOptions.setUsername(savedUsername);
+        currentOptions.setRoom(nextRoom);
+        currentOptions.setKanaCards((nextRoom.cards as StudyCard[] | undefined) || []);
 
         if (nextRoom.status === 'preparing') {
-          forceRoomStatus('assessment-preparing');
+          currentOptions.setStatus('assessment-preparing');
+          currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment-preparing' ? previous : [...previous, 'assessment-preparing']);
         } else if (nextRoom.status === 'active') {
-          forceRoomStatus('assessment');
+          currentOptions.setStatus('assessment');
+          currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment' ? previous : [...previous, 'assessment']);
         } else {
-          forceRoomStatus('lobby');
+          currentOptions.setStatus('lobby');
+          currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
         }
       });
     });
@@ -280,56 +324,68 @@ export default function useRoomSocket({
     newSocket.on('connect_error', () => setIsSocketReady(false));
 
     newSocket.on('player-rejoined', (data: SocketPayload) => {
+      const currentOptions = latestOptionsRef.current;
       if (data?.room) {
-        setRoom(data.room);
-        setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+        currentOptions.setRoom(data.room);
+        currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
       }
     });
 
     newSocket.on('room-created', (code: string) => {
-      setRoomCode(code);
-      forceRoomStatus('lobby');
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoomCode(code);
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
     });
 
     newSocket.on('assessment-preparing', (data: SocketPayload) => {
-      setIsPreparingAssessment(true);
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setIsPreparingAssessment(true);
       if (data?.room) {
-        setRoom(data.room);
-        if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+        currentOptions.setRoom(data.room);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards as StudyCard[]);
       }
-      forceRoomStatus('assessment-preparing');
+      currentOptions.setStatus('assessment-preparing');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment-preparing' ? previous : [...previous, 'assessment-preparing']);
     });
 
     newSocket.on('player-joined', (data: SocketPayload) => {
+      const currentOptions = latestOptionsRef.current;
       if (data?.room) {
-        setRoom(data.room);
-        if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+        currentOptions.setRoom(data.room);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards as StudyCard[]);
       }
     });
 
     newSocket.on('assessment-started', (data: SocketPayload) => {
-      setIsPreparingAssessment(false);
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setIsPreparingAssessment(false);
       if (data?.room) {
-        setRoom(data.room);
-        if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+        currentOptions.setRoom(data.room);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards as StudyCard[]);
       }
-      forceRoomStatus('assessment');
+      currentOptions.setStatus('assessment');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment' ? previous : [...previous, 'assessment']);
     });
 
     newSocket.on('gauntlet-started', (data: SocketPayload) => {
-      if (data?.room) setRoom(data.room);
-      forceRoomStatus('gauntlet');
+      const currentOptions = latestOptionsRef.current;
+      if (data?.room) currentOptions.setRoom(data.room);
+      currentOptions.setStatus('gauntlet');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'gauntlet' ? previous : [...previous, 'gauntlet']);
     });
 
     newSocket.on('assessment-generation-failed', (data: SocketPayload) => {
-      setIsPreparingAssessment(false);
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setIsPreparingAssessment(false);
       if (data?.room) {
-        setRoom(data.room);
-        setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+        currentOptions.setRoom(data.room);
+        currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
       }
-      setResults(null);
-      forceRoomStatus('lobby');
-      setToast({
+      currentOptions.setResults(null);
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
+      currentOptions.setToast({
         message: data?.message || 'The assessment deck could not be generated. Please try again.',
         type: 'warning',
       });
@@ -337,43 +393,47 @@ export default function useRoomSocket({
 
     ['answer-submitted', 'hint-used', 'player-ready-updated'].forEach((eventName) => {
       newSocket.on(eventName, (data: SocketPayload) => {
-        if (data?.room) setRoom(data.room);
+        if (data?.room) latestOptionsRef.current.setRoom(data.room);
       });
     });
 
     ['both-submitted', 'cards-updated'].forEach((eventName) => {
       newSocket.on(eventName, (data: SocketPayload) => {
         if (data?.room) {
-          setRoom(data.room);
-          if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+          latestOptionsRef.current.setRoom(data.room);
+          if (data.room.cards) latestOptionsRef.current.setKanaCards(data.room.cards as StudyCard[]);
         }
       });
     });
 
     newSocket.on('card-updated', (data: SocketPayload) => {
-      if (data?.room) setRoom(data.room);
-      else setRoom((previous: Room | null) => ({ ...(previous ?? {}), currentCardIndex: data.currentCardIndex }) as Room);
+      if (data?.room) latestOptionsRef.current.setRoom(data.room);
+      else latestOptionsRef.current.setRoom((previous: Room | null) => ({ ...(previous ?? {}), currentCardIndex: data.currentCardIndex }) as Room);
     });
 
     newSocket.on('assessment-completed', (data: SocketPayload) => {
-      if (data?.room) setRoom(data.room);
+      const currentOptions = latestOptionsRef.current;
+      if (data?.room) currentOptions.setRoom(data.room);
       const rawResults = data?.results || (Array.isArray(data?.room?.players) ? data.room.players : []);
-      setResults(normalizeRoomResults(rawResults));
-      forceRoomStatus('results');
+      currentOptions.setResults(normalizeRoomResults(rawResults));
+      currentOptions.setStatus('results');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'results' ? previous : [...previous, 'results']);
       clearRoomSession();
       clearRoomQueryParam();
     });
 
     newSocket.on('gauntlet-match-completed', (data: SocketPayload) => {
       if (!data?.room) return;
-      setRoom({ ...data.room, winnerSocketId: data.winnerSocketId });
-      setResults(null);
-      setIsPreparingAssessment(false);
-      forceRoomStatus('gauntlet');
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom({ ...data.room, winnerSocketId: data.winnerSocketId });
+      currentOptions.setResults(null);
+      currentOptions.setIsPreparingAssessment(false);
+      currentOptions.setStatus('gauntlet');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'gauntlet' ? previous : [...previous, 'gauntlet']);
     });
 
     newSocket.on('match-forfeited', (data: SocketPayload) => {
-      setToast({
+      latestOptionsRef.current.setToast({
         message: `${data?.forfeitingPlayerName || 'Your opponent'} forfeited the match. You win!`,
         type: 'success',
       });
@@ -381,13 +441,15 @@ export default function useRoomSocket({
 
     newSocket.on('room-returned-to-lobby', (data: SocketPayload) => {
       if (!data?.room) return;
-      setRoom(data.room);
-      setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
-      setResults(null);
-      setIsPreparingAssessment(false);
-      forceRoomStatus('lobby');
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom(data.room);
+      currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+      currentOptions.setResults(null);
+      currentOptions.setIsPreparingAssessment(false);
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
       if (data.returnedBySocketId !== newSocket.id) {
-        setToast({
+        currentOptions.setToast({
           message: `${data.returnedByPlayerName || 'Your opponent'} returned the room to the lobby.`,
           type: 'neutral',
         });
@@ -395,25 +457,27 @@ export default function useRoomSocket({
     });
 
     newSocket.on('assessment-action-denied', (data: SocketPayload) => {
-      setToast({ message: data?.message || 'Waiting for the host to choose an action.', type: 'warning' });
+      latestOptionsRef.current.setToast({ message: data?.message || 'Waiting for the host to choose an action.', type: 'warning' });
     });
 
     newSocket.on('assessment-action-requested', (data: SocketPayload) => {
       if (data?.hostSocketId && data.hostSocketId !== newSocket.id) return;
       const actionLabel = data?.action === 'replay' ? 'Start a New Assessment' : 'Start New Session';
-      setToast({ message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`, type: 'neutral' });
+      latestOptionsRef.current.setToast({ message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`, type: 'neutral' });
     });
 
     newSocket.on('player-exited-lobby', (data: SocketPayload) => {
       if (!data?.room) return;
-      setRoom(data.room);
-      setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
-      setResults(null);
-      setIsPreparingAssessment(false);
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom(data.room);
+      currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+      currentOptions.setResults(null);
+      currentOptions.setIsPreparingAssessment(false);
       clearRoomSession();
       clearRoomQueryParam();
-      forceRoomStatus('lobby');
-      setToast({
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
+      currentOptions.setToast({
         message: data.exitedPlayerWasHost ? 'The host exited the lobby. You are now the host.' : 'The guest exited the lobby.',
         type: 'warning',
       });
@@ -421,12 +485,12 @@ export default function useRoomSocket({
 
     newSocket.on('player-left', (data: SocketPayload) => {
       const roomData = data?.room ?? { players: data?.players ?? [] };
-      setRoom((previous: Room | null) => {
+      latestOptionsRef.current.setRoom((previous: Room | null) => {
         const nextRoom = Array.isArray(roomData.players)
           ? ({ ...(previous ?? {}), ...roomData, players: roomData.players } as Room)
           : previous;
         if (Array.isArray(roomData.players) && roomData.players.length <= 1) {
-          setToast({ message: 'Your opponent left the room.', type: 'warning' });
+          latestOptionsRef.current.setToast({ message: 'Your opponent left the room.', type: 'warning' });
         }
         return nextRoom;
       });
@@ -435,28 +499,28 @@ export default function useRoomSocket({
     newSocket.on('player-presence-updated', (data: SocketPayload) => {
       if (data?.room) {
         const payloadRoom = data.room;
-        setRoom((previous: Room | null) => ({ ...(previous ?? {}), ...payloadRoom, players: payloadRoom.players || previous?.players || [] } as Room));
+        latestOptionsRef.current.setRoom((previous: Room | null) => ({ ...(previous ?? {}), ...payloadRoom, players: payloadRoom.players || previous?.players || [] } as Room));
       }
     });
 
     newSocket.on('friend-request-received', () => {
-      refreshFriendRequests(true);
-      setToast({ message: 'You received a new friend request.', type: 'neutral' });
+      latestOptionsRef.current.refreshFriendRequests(true);
+      latestOptionsRef.current.setToast({ message: 'You received a new friend request.', type: 'neutral' });
     });
 
     newSocket.on('friend-request-accepted', (data: SocketPayload) => {
-      refreshFriendData(true);
-      setToast({ message: `${data?.friend?.display_name || 'Your friend'} accepted your friend request.`, type: 'success' });
+      latestOptionsRef.current.refreshFriendData(true);
+      latestOptionsRef.current.setToast({ message: `${data?.friend?.display_name || 'Your friend'} accepted your friend request.`, type: 'success' });
     });
 
     newSocket.on('friend-request-rejected', (data: SocketPayload) => {
-      refreshFriendRequests(true);
-      setToast({ message: `${data?.receiver?.display_name || 'Your friend request'} declined your friend request.`, type: 'warning' });
+      latestOptionsRef.current.refreshFriendRequests(true);
+      latestOptionsRef.current.setToast({ message: `${data?.receiver?.display_name || 'Your friend request'} declined your friend request.`, type: 'warning' });
     });
 
     newSocket.on('friend-online', (data: SocketPayload) => {
-      refreshFriends(true);
-      setToast({ message: `${data?.displayName || 'Your friend'} is online.`, type: 'neutral' });
+      latestOptionsRef.current.refreshFriends(true);
+      latestOptionsRef.current.setToast({ message: `${data?.displayName || 'Your friend'} is online.`, type: 'neutral' });
     });
 
     newSocket.on('room-invite-received', (data: SocketPayload) => {
@@ -467,15 +531,16 @@ export default function useRoomSocket({
         : data?.deckType === 'grammar'
           ? 'Grammar'
           : 'Kana';
-      setToast({
+      latestOptionsRef.current.setToast({
         message: `${data?.inviterName || 'A friend'} invited you to a ${assessmentLabel} assessment.`,
         type: 'neutral',
         actions: [
           {
             label: 'Join',
             onClick: () => {
-              const playerName = getDisplayName().trim();
-              handleJoinRoom(data.roomCode || '', playerName, (response: SocketAck) => {
+              const currentOptions = latestOptionsRef.current;
+              const playerName = currentOptions.getDisplayName().trim();
+              currentOptions.handleJoinRoom(data.roomCode || '', playerName, (response: SocketAck) => {
                 const inviteRoomCode = data.roomCode;
                 newSocket.emit('room-invite-response', {
                   roomCode: inviteRoomCode,
@@ -484,7 +549,8 @@ export default function useRoomSocket({
                   accepted: response?.success === true,
                 });
                 if (response?.success) {
-                  forceRoomStatus('lobby');
+                  currentOptions.setStatus('lobby');
+                  currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
                 }
               });
             },
@@ -503,7 +569,7 @@ export default function useRoomSocket({
     });
 
     newSocket.on('room-invite-responded', (data: SocketPayload) => {
-      setToast({
+      latestOptionsRef.current.setToast({
         message: data?.accepted
           ? `${data?.inviteeName || 'Your friend'} joined room ${data?.roomCode || ''}.`
           : `${data?.inviteeName || 'Your friend'} declined your room invite.`,
@@ -516,7 +582,6 @@ export default function useRoomSocket({
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, authRequired, user?.id]);
 
   return {

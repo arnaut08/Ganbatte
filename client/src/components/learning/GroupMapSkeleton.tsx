@@ -9,23 +9,23 @@ type GroupMapSkeletonProps = {
 function GroupMapFilterSkeleton({ deck }: { deck: 'kanji' | 'vocab' }) {
   if (deck === 'kanji') {
     return (
-      <section className="min-h-[56px] border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:min-h-[60px] sm:p-3 sm:shadow-[4px_4px_0px_0px_#000]">
-        <div className="flex items-center gap-2">
-          <div className="h-9 min-w-0 flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10 sm:w-1/2" />
-          <div className="h-9 w-24 shrink-0 border-2 border-black bg-white/20 sm:h-10 sm:w-28" />
+      <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-3 sm:shadow-[4px_4px_0px_0px_#000]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="h-9 min-w-[12rem] flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10 sm:flex-none sm:w-1/2" />
+          <div className="h-9 w-full shrink-0 border-2 border-black bg-white/20 md:w-24 sm:h-10 sm:w-28" />
         </div>
       </section>
     );
   }
 
   return (
-    <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-4 sm:shadow-[4px_4px_0px_0px_#000]">
-      <div className="flex flex-col gap-2.5 sm:gap-3.5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-nowrap gap-1.5 overflow-hidden pb-1 sm:gap-2 sm:pb-0">
+    <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-3 sm:shadow-[4px_4px_0px_0px_#000]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2 sm:pb-0">
           {[1, 2, 3, 4, 5].map((tab) => <div key={tab} className="h-8 w-24 shrink-0 border-2 border-black bg-[#1f2637] sm:h-9 sm:w-28" />)}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-9 min-w-0 flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10" />
+        <div className="flex w-full md:w-auto items-center gap-4">
+          <div className="h-9 min-w-[12rem] flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10 sm:flex-none sm:w-1/2" />
           <div className="h-9 w-24 shrink-0 border-2 border-black bg-white/20 sm:h-10 sm:w-28" />
         </div>
       </div>
