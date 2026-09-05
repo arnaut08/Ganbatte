@@ -63,18 +63,31 @@ export default function useRoomManager({
   socketRef,
   roomCodeRef,
 }: RoomManagerOptions) {
-  const [roomCode, setRoomCode] = useState<string | null>(null);
-  const [room, setRoom] = useState<Room | null>(null);
-  const [username, setUsername] = useState('');
-  const [kanaCards, setKanaCards] = useState<StudyCard[]>([]);
-  const [results, setResults] = useState<AssessmentResult[] | null>(null);
+  const visualFixture = typeof window !== 'undefined' && Boolean((window as any).__PLAYWRIGHT_VISUAL_TEST__);
+  const visualFixtureRoom = visualFixture
+    ? ((window as any).__PLAYWRIGHT_VISUAL_ROOM__ as Room | null)
+    : null;
+  const visualFixtureResults = visualFixture
+    ? ((window as any).__PLAYWRIGHT_VISUAL_RESULTS__ as AssessmentResult[] | null)
+    : null;
+  const [roomCode, setRoomCode] = useState<string | null>(visualFixtureRoom?.code || null);
+  const [room, setRoom] = useState<Room | null>(visualFixtureRoom);
+  const [username, setUsername] = useState(visualFixtureRoom?.players?.[0]?.name || '');
+  const [kanaCards, setKanaCards] = useState<StudyCard[]>(
+    (visualFixtureRoom?.cards ?? []).filter(isStudyCard),
+  );
+  const [results, setResults] = useState<AssessmentResult[] | null>(visualFixtureResults);
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
-  const [grammarQuestions, setGrammarQuestions] = useState<GrammarQuestion[]>([]);
+  const [grammarQuestions, setGrammarQuestions] = useState<GrammarQuestion[]>(
+    (visualFixtureRoom?.cards ?? []).filter(
+      (card): card is GrammarQuestion => typeof card === 'object' && card !== null && 'type' in card,
+    ),
+  );
   const [isPreparingAssessment, setIsPreparingAssessment] = useState(false);
   const [isHydratingActiveMatch, setIsHydratingActiveMatch] = useState(
-    Boolean(user && readRoomSession()?.roomCode),
+    Boolean(user && !visualFixture && readRoomSession()?.roomCode),
   );
-  const recoverySessionRef = useRef(readRoomSession());
+  const recoverySessionRef = useRef(visualFixture ? null : readRoomSession());
   const activeMatchCheckRef = useRef<string | null>(null);
   const { status, setStatus, setSelectorScreen, setScreenHistory, statusRef, transitionToStatus } = navigation;
   roomCodeRef.current = roomCode;
