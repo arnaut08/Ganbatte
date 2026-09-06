@@ -100,7 +100,7 @@ function CreateRoomCard({
         <div className="space-y-3 sm:space-y-4">
           {/* Match Format Toggle */}
           <div className="space-y-1 sm:space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-1">
               <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
                 MATCH FORMAT
               </span>
@@ -152,7 +152,7 @@ function CreateRoomCard({
 
           {/* Select Deck Segment Control */}
           <div className="space-y-1 sm:space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-1">
               <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
                 SELECT DECK
               </span>
@@ -300,11 +300,11 @@ function CreateRoomCard({
               )}
 
               {selectedGroups.length > 0 && (
-                <div className="flex flex-wrap gap-1 sm:gap-1.5 pt-1">
+                <div className="flex flex-wrap gap-1 pt-1 sm:gap-1.5">
                   {selectedGroups.map((groupId) => (
                     <span
                       key={groupId}
-                      className={`inline-flex items-center gap-1 border-2 border-black bg-[#151922] border-l-4 ${isKanji ? 'border-l-[#70CFF8]' : 'border-l-[#A3E636]'
+                      className={`inline-flex min-w-0 max-w-full items-center gap-1 break-words border-2 border-black bg-[#151922] border-l-4 ${isKanji ? 'border-l-[#70CFF8]' : 'border-l-[#A3E636]'
                         } px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-[1px_1px_0px_0px_#000]`}
                     >
                       {selectionItems.find((item) => item.id === groupId)?.label || groupId}
@@ -394,7 +394,7 @@ export default function PracticeScreen({
           <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
         </button>
 
-        <div className="flex flex-col -mt-1 sm:-mt-1.5">
+        <div className="flex min-w-0 flex-col -mt-1 sm:-mt-1.5">
           <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59] leading-tight">
             // MULTIPLAYER: 1V1 ARENA
           </span>

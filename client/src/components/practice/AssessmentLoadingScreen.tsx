@@ -13,8 +13,8 @@ function AssessmentLoadingScreen({
     <main className="container mx-auto max-w-3xl space-y-3 sm:space-y-4 px-3 py-3 sm:px-4 sm:py-4 pb-20 sm:pb-24 animate-pulse">
       {/* 1. Header & Skeleton HUD */}
       <div className="space-y-2 sm:space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="space-y-1 min-w-0">
+        <div className="flex w-full flex-row items-center justify-between gap-2">
+          <div className="min-w-0 flex-1 space-y-1">
             <div className="h-3 sm:h-4 w-28 sm:w-40 border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000]" style={{ backgroundColor: `${accent}99` }} />
             <h1 className="text-base sm:text-3xl font-black uppercase tracking-tight text-white leading-tight truncate">
               {title}
@@ -51,9 +51,9 @@ function AssessmentLoadingScreen({
         </div>
 
         {/* Input / Action Form Skeleton */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+        <div className="flex w-full flex-row items-center gap-2 sm:gap-3">
           <div className="h-10 sm:h-13 flex-1 border-2 border-black bg-[#151922] shadow-[2px_2px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000]" />
-          <div className="h-10 sm:h-13 w-full sm:w-32 border-2 border-black bg-[#151922] shadow-[2px_2px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000]" />
+          <div className="h-10 sm:h-13 w-24 shrink-0 border-2 border-black bg-[#151922] shadow-[2px_2px_0px_0px_#000] sm:w-32 sm:shadow-[4px_4px_0px_0px_#000]" />
         </div>
 
         {/* Opponent Status Skeleton Bar */}

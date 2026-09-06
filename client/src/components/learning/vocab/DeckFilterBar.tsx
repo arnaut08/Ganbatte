@@ -64,7 +64,7 @@ export default function DeckFilterBar({
   ) : null;
 
   const searchControl = (
-    <div className="relative min-w-[12rem] flex-1 sm:flex-none sm:w-1/2">
+    <div className="relative min-w-0 flex-1 sm:flex-none sm:w-1/2">
       <MagnifyingGlassIcon
         className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400 sm:left-3.5 sm:h-4 sm:w-4"
         aria-hidden="true"
@@ -114,19 +114,12 @@ export default function DeckFilterBar({
 
   return (
     <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-3 sm:shadow-[4px_4px_0px_0px_#000]">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         {tabs}
-        {tabs ? (
-          <div className="flex w-full md:w-auto items-center gap-4">
-            {searchControl}
-            {reviewButton}
-          </div>
-        ) : (
-          <>
-            {searchControl}
-            {reviewButton}
-          </>
-        )}
+        <div className="flex w-full min-w-0 items-center gap-4 md:w-auto">
+          {searchControl}
+          {reviewButton}
+        </div>
       </div>
     </section>
   );

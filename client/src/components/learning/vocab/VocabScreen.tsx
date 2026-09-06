@@ -165,7 +165,7 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
+    <main className="mx-auto min-w-0 w-full max-w-5xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
       <StudyScreenHeader
         onBack={handleScreenBack}
         eyebrow="03 // VOCABULARY"

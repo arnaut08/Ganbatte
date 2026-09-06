@@ -21,11 +21,11 @@ export default function StudyScreenHeader({
       >
         <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
       </button>
-      <div className="flex flex-col justify-center text-left">
+      <div className="min-w-0 flex-1 flex flex-col justify-center text-left">
         <span className={`font-mono text-[9px] font-black uppercase tracking-wider sm:text-xs ${accentClassName}`}>
           {eyebrow}
         </span>
-        <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-4xl">
+        <h1 className="truncate text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-4xl">
           {title}
         </h1>
       </div>

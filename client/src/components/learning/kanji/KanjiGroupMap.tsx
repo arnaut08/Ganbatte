@@ -50,22 +50,22 @@ export default function KanjiGroupMap({ groups, onSelect, onQuiz }: Props) {
                             </span>
                         )}
                         badges={(
-                            <div className="flex items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
-                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                    <span className="border-2 border-black bg-[#151922] px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-[#70CFF8] shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[10px]">
+                            <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
+                                <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span className="shrink-0 border-2 border-black bg-[#151922] px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-[#70CFF8] shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[10px]">
                                         GROUP {groupNum}
                                     </span>
 
                                     {group.is_mastered ? (
-                                        <span className="border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
+                                        <span className="shrink-0 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                                             ★ MASTERED
                                         </span>
                                     ) : group.is_cleared ? (
-                                        <span className="border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
+                                        <span className="shrink-0 border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                                             ✓ CLEARED
                                         </span>
                                     ) : needsQuiz ? (
-                                        <span className="flex items-center gap-1 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
+                                        <span className="flex shrink-0 items-center gap-1 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                                             <RocketIcon className="h-2.5 w-2.5 text-black" />
                                             QUIZ READY
                                         </span>

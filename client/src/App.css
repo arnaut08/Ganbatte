@@ -56,7 +56,10 @@
 }
 
 .app-container {
-  min-height: 100vh;
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  overflow-x: clip;
   background-color: var(--background);
   background-image:
     radial-gradient(circle at 1px 1px, var(--pattern-dot) 1.5px, transparent 0);
@@ -64,7 +67,10 @@
 }
 
 .app-shell {
-  min-height: 100vh;
+  display: flex;
+  min-height: 100dvh;
+  flex: 1;
+  flex-direction: column;
 }
 
 .app-shell-header-placeholder {
@@ -72,11 +78,15 @@
 }
 
 .app-shell-content {
-  min-height: calc(100vh - 4rem);
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
 }
 
 .app-home-content {
-  min-height: calc(100vh - 4rem);
+  min-height: 0;
+  flex: 1;
 }
 
 .app-route-skeleton {
@@ -84,7 +94,8 @@
 }
 
 .app-match-restoring {
-  min-height: calc(100vh - 4rem);
+  min-height: 0;
+  flex: 1;
 }
 
 @media (min-width: 640px) {
@@ -95,7 +106,7 @@
   .app-shell-content,
   .app-home-content,
   .app-match-restoring {
-    min-height: calc(100vh - 5rem);
+    min-height: 0;
   }
 }
 

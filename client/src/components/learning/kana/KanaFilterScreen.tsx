@@ -141,8 +141,8 @@ function KanaMatrix({
       style={{ borderLeftColor: themeColor }}
     >
       {/* Matrix Header */}
-      <div className="mb-2 sm:mb-4 flex items-center justify-between gap-2 border-b-2 border-white/10 pb-2 sm:pb-3">
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+      <div className="mb-2 sm:mb-4 flex flex-wrap items-center justify-between gap-2 border-b-2 border-white/10 pb-2 sm:pb-3">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
           <span
             className="shrink-0 border-2 border-black px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]"
             style={{ backgroundColor: themeColor }}
@@ -429,14 +429,14 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl space-y-3 px-3 py-4 pb-24 sm:space-y-4 sm:px-4 sm:py-6 sm:pb-28">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col space-y-3 px-3 py-4 pb-24 sm:space-y-4 sm:px-4 sm:py-6 sm:pb-28">
         <GlobalPageHeader
           onBack={onBack}
           punchline="// STUDY SETUP: CHARACTER SELECTION"
           title="Select Kana to Study"
           accentClass="text-[#FFDE59]"
           rightSlot={(
-            <>
+            <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="border-2 border-black bg-[#151922] border-l-4 border-l-[#FFDE59] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-white shadow-[1.5px_1.5px_0px_0px_#000] sm:px-2.5 sm:py-1 sm:text-[10px]">
               Hiragana <strong className="text-[#FFDE59]">{masteredCounts.hiragana}</strong>/{basicCellsByScript.hiragana?.size ?? 0}
             </span>
@@ -457,7 +457,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
             >
               Clear All
             </button>
-            </>
+            </div>
           )}
         />
 
@@ -522,9 +522,9 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
       </main>
 
       {/* Sticky Bottom Status & Action Bar */}
-      <footer className="fixed bottom-0 inset-x-0 z-50 border-t-2 border-black bg-[#151922] px-3 py-2.5 shadow-[0px_-3px_0px_0px_#000000] sm:px-4 sm:py-3">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-          <span className="border-2 border-black bg-[#FFDE59] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-3.5 sm:py-1.5 sm:text-xs">
+      <footer className="sticky bottom-0 z-50 w-full border-t-2 border-black bg-[#151922] px-3 py-2.5 shadow-[0px_-3px_0px_0px_#000000] sm:px-4 sm:py-3">
+        <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <span className="w-fit border-2 border-black bg-[#FFDE59] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-3.5 sm:py-1.5 sm:text-xs">
             {selectedCells.size} SELECTED
           </span>
 
@@ -532,7 +532,7 @@ function KanaFilterScreen({ onBack, onApplyFilters, onSelectionChange, initialSe
             type="button"
             onClick={handleApply}
             disabled={selectedCells.size === 0}
-            className="cursor-pointer border-2 border-black bg-white px-4 py-1.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#A3E636] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none sm:px-6 sm:py-2 sm:text-sm sm:shadow-[3px_3px_0px_0px_#000]"
+            className="w-full cursor-pointer border-2 border-black bg-white px-4 py-1.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#A3E636] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500 disabled:opacity-50 disabled:shadow-none sm:w-auto sm:px-6 sm:py-2 sm:text-sm sm:shadow-[3px_3px_0px_0px_#000]"
           >
             Start Practice →
           </button>

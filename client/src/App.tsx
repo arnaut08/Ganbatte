@@ -166,7 +166,7 @@ function App() {
   // Force password update screen if in recovery mode
   if (isPasswordRecovery) {
     return (
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center font-mono text-white bg-[#11141d]">Loading Protocol...</div>}>
+      <Suspense fallback={<div className="flex min-h-[100dvh] items-center justify-center bg-[#11141d] font-mono text-white">Loading Protocol...</div>}>
         <UpdatePasswordPage
           showToast={showToast}
           onSuccess={() => {
@@ -180,7 +180,7 @@ function App() {
   }
 
   return (
-    <div className="app-container min-h-screen">
+    <div className="app-container">
       <CelebrationProvider>
         <AppToast
           toast={toast}

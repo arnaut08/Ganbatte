@@ -16,8 +16,8 @@ export default function GlobalPageHeader({
   rightSlot,
 }: GlobalPageHeaderProps) {
   return (
-    <header className={`flex gap-2.5 sm:gap-4 ${rightSlot ? 'flex-col sm:flex-row sm:items-center sm:justify-between' : 'items-start'}`}>
-      <div className="flex min-w-0 items-start gap-2.5 sm:gap-4">
+    <header className={`flex w-full min-w-0 gap-2.5 sm:gap-4 ${rightSlot ? 'flex-col sm:flex-row sm:items-center sm:justify-between' : 'items-start'}`}>
+      <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:gap-4">
         {onBack && (
           <button
             type="button"
@@ -34,13 +34,13 @@ export default function GlobalPageHeader({
           <span className={`font-mono text-[9px] font-black uppercase tracking-wider sm:text-xs ${accentClass}`}>
             {punchline}
           </span>
-          <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
+          <h1 className="truncate text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
             {title}
           </h1>
         </div>
       </div>
 
-      {rightSlot && <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:gap-2">{rightSlot}</div>}
+      {rightSlot && <div className="flex max-w-full flex-wrap items-center gap-1.5 sm:shrink-0 sm:gap-2">{rightSlot}</div>}
     </header>
   );
 }

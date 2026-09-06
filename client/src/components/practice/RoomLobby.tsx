@@ -148,7 +148,7 @@ export default function RoomLobby({
                   <LegacyInput
                     value={joinLink}
                     readOnly
-                    className="h-9 flex-1 border-2 border-black bg-[#151922] px-3 font-mono text-[10px] font-bold text-white shadow-none focus-visible:ring-0 sm:h-10 sm:text-xs"
+                    className="h-9 min-w-0 flex-1 border-2 border-black bg-[#151922] px-3 font-mono text-[10px] font-bold text-white shadow-none focus-visible:ring-0 sm:h-10 sm:text-xs"
                   />
                   <LegacyButton
                     onClick={handleCopyLink}
@@ -163,8 +163,8 @@ export default function RoomLobby({
 
               {/* Online Friends Picker */}
               <div className="border-2 border-black bg-[#1f2637] p-3.5 shadow-[3px_3px_0px_0px_#000] sm:p-4">
-                <div className="flex items-center justify-between gap-2 sm:gap-4">
-                  <div className="flex flex-col gap-0.5 sm:gap-1">
+                  <div className="flex items-center justify-between gap-2 sm:gap-4">
+                  <div className="min-w-0 flex flex-col gap-0.5 sm:gap-1">
                     <span
                       className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]"
                       style={{ color: themeAccent }}
@@ -176,7 +176,7 @@ export default function RoomLobby({
                         className="h-2 w-2 border border-black sm:h-2.5 sm:w-2.5"
                         style={{ backgroundColor: onlineFriends.length > 0 ? themeAccent : '#6b7280' }}
                       />
-                      <span className="font-mono text-xs font-bold text-white sm:text-sm">
+                      <span className="truncate font-mono text-xs font-bold text-white sm:text-sm">
                         {onlineFriends.length > 0
                           ? `${onlineFriends.length} friend${onlineFriends.length > 1 ? 's' : ''} available`
                           : 'No friends online'}
@@ -320,11 +320,11 @@ export default function RoomLobby({
             </div>
 
             {/* Actions */}
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3">
+            <div className="mt-4 flex flex-row gap-2 sm:mt-5 sm:gap-3">
               <LegacyButton
                 size="lg"
                 onClick={onLeaveRoom}
-                className="h-10 cursor-pointer border-2 border-black bg-white font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FF6B6B] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:text-xs"
+                className="h-10 min-w-0 flex-1 cursor-pointer border-2 border-black bg-white font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FF6B6B] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:text-xs"
               >
                 Leave
               </LegacyButton>
@@ -334,7 +334,7 @@ export default function RoomLobby({
                 onClick={handlePrimaryLaunch}
                 disabled={!isReady || isPreparingAssessment || !isHost}
                 style={isReady && !isPreparingAssessment && isHost ? { backgroundColor: themeAccent } : undefined}
-                className={`h-10 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none whitespace-nowrap leading-none sm:h-11 ${!isReady || isPreparingAssessment || !isHost
+                className={`h-10 min-w-0 flex-1 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none leading-tight sm:h-11 ${!isReady || isPreparingAssessment || !isHost
                     ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
                     : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000]'
                   }`}
