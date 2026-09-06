@@ -164,7 +164,7 @@ export default function useRoomManager({
     } catch (error) { console.error('Failed to generate cards', error); }
   }, [roomCode, socketRef, transitionToStatus]);
 
-  const { socket, isSocketReady } = useRoomSocket({
+  const { socket, isSocketReady, rejoinRoom } = useRoomSocket({
     authRequired, authLoading, user, status, roomCode, room, statusRef, getDisplayName,
     handleJoinRoom, transitionToStatus, refreshFriends, refreshFriendData, refreshFriendRequests,
     setRoomCode, setRoom, setUsername, setKanaCards, setResults, setPrefillRoomCode,
@@ -191,29 +191,6 @@ export default function useRoomManager({
       });
     }
   }, [user?.id, activeSocket]);
-
-  // Listener for real-time Gauntlet launch event from server
-  useEffect(() => {
-    if (!activeSocket) return;
-
-    const handleGauntletStarted = ({ room: serverRoom, seed }: { room: Room; seed?: number }) => {
-      setIsPreparingAssessment(false);
-      setRoom({
-        ...serverRoom,
-        mode: 'gauntlet',
-        status: 'active',
-        seed: seed ?? serverRoom.seed,
-      });
-      setScreenHistory((prev) => [...prev, 'gauntlet']);
-      transitionToStatus('gauntlet');
-    };
-
-    activeSocket.on('gauntlet-started', handleGauntletStarted);
-
-    return () => {
-      activeSocket.off('gauntlet-started', handleGauntletStarted);
-    };
-  }, [activeSocket, setScreenHistory, transitionToStatus]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -246,17 +223,18 @@ export default function useRoomManager({
         }
         return;
       }
+      const activeRoomCode = activeRoom.code;
 
       const player = activeRoom.players.find((candidate) => candidate.userId === user.id)
         || activeRoom.players.find((candidate) => candidate.sessionKey === getSessionKey());
       const playerName = player?.name || getDisplayName();
-      setRoomCode(activeRoom.code);
+      setRoomCode(activeRoomCode);
       setUsername(playerName);
-      saveRoomSession(activeRoom.code, playerName);
+      saveRoomSession(activeRoomCode, playerName);
       setRoom(activeRoom);
       setKanaCards((activeRoom.cards ?? []).filter(isStudyCard));
       return new Promise<void>((resolve) => {
-        activeSocket.emit('rejoin-room', activeRoom.code, playerName, getSessionKey(), user.id, (ack: SocketAck) => {
+        const started = rejoinRoom(activeRoomCode, playerName, (ack: SocketAck) => {
           if (ack?.success && ack.room) {
             setRoom(ack.room);
             setKanaCards((ack.room.cards ?? []).filter(isStudyCard));
@@ -272,11 +250,12 @@ export default function useRoomManager({
           }
           resolve();
         });
+        if (!started) resolve();
       });
     }).catch((error) => {
       console.error('Failed to restore active match:', error);
     }).finally(() => setIsHydratingActiveMatch(false));
-  }, [activeSocket, authLoading, getDisplayName, isSocketReady, setScreenHistory, setSelectorScreen, setStatus, statusRef, transitionToStatus, user?.id]);
+  }, [activeSocket, authLoading, getDisplayName, isSocketReady, rejoinRoom, setScreenHistory, setSelectorScreen, setStatus, statusRef, transitionToStatus, user?.id]);
 
   // Sync preparing state if updated over socket
   useEffect(() => {
@@ -426,7 +405,7 @@ export default function useRoomManager({
     if (!savedRoomCode || !savedUsername || !activeSocket) { setStatus('selector'); return; }
     setRoomCode(savedRoomCode);
     setUsername(savedUsername);
-    activeSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response: SocketAck) => {
+    rejoinRoom(savedRoomCode, savedUsername, (response: SocketAck) => {
       if (!response?.success || !response.room) { clearRoomSession(); clearRoomState(); setStatus('selector'); return; }
       const rejoinedRoom = response.room;
       if (rejoinedRoom.status === 'completed') {
@@ -442,8 +421,8 @@ export default function useRoomManager({
         : 'lobby';
       if (nextStatus === 'lobby') activeSocket.emit('set-player-presence', savedRoomCode, 'in_lobby');
       setStatus(nextStatus);
-    });
-  }, [activeSocket, clearRoomState, room, roomCode, setStatus, user?.id]);
+    }, { force: true });
+  }, [activeSocket, clearRoomState, rejoinRoom, room, roomCode, setStatus]);
 
   const hasAssessmentData = (kanaCards.length > 0 || Boolean(room?.cards?.length))
     && Boolean(room?.players?.length);
