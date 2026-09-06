@@ -7,6 +7,7 @@ for (const state of visualFixtureStates) {
     await expect(page).toHaveScreenshot(`${state}.png`, {
       animations: 'disabled',
       caret: 'hide',
+      fullPage: false,
       scale: 'css',
     });
   });
