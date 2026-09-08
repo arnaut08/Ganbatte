@@ -80,6 +80,7 @@ export async function fetchGeminiWithFallback({
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required for Gemini generation');
 
   const models = availableModels(model);
+  if (models.length === 0) throw new GeminiRateLimitError();
   let lastResponse: Response | undefined;
 
   for (const candidate of models) {
