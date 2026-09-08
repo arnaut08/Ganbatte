@@ -3,10 +3,12 @@ import { requireAuth } from '../middleware/auth.js';
 import {
   generateCards,
   getKanaCards,
+  getKanjiGroup,
   getKanjiCards,
+  getKanjiOverview,
   getRoomByCode,
+  saveKanjiQuizResult,
 } from '../controllers/game-controller.js';
-import { getKanjiGroup, getKanjiOverview, saveKanjiQuizResult } from '../controllers/game-controller.js';
 
 const router = Router();
 
