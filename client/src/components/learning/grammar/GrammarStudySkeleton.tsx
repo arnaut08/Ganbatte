@@ -36,25 +36,42 @@ export default function GrammarStudySkeleton({ fullScreen = false }: GrammarStud
                     </div>
                 </div>
 
-                <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 py-2 sm:mx-0 sm:gap-2 sm:px-7 sm:py-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                        <div
-                            key={`lesson-tab-skel-${i}`}
-                            className="h-5 w-20 shrink-0 border-2 border-black bg-[#151922] shadow-[1.5px_1.5px_0px_0px_#000] sm:h-7 sm:w-24 sm:shadow-[2px_2px_0px_0px_#000]"
-                        />
-                    ))}
+                {/* Dynamic Slide Body Skeleton (mirrors default Overview slide) */}
+                <div className="min-h-[260px] px-3.5 sm:min-h-[300px] sm:px-7 py-2 space-y-3 sm:space-y-4">
+                    <div className="space-y-1.5">
+                        <div className="h-3.5 w-2/3 bg-white/10 sm:h-4" />
+                        <div className="h-3 w-full bg-white/10" />
+                        <div className="h-3 w-11/12 bg-white/10" />
+                    </div>
+                    <div className="grid gap-2.5 sm:gap-4 md:grid-cols-2">
+                        <div className="border-2 border-black bg-[#151922] p-3.5 shadow-[2px_2px_0px_0px_#000] sm:p-4">
+                            <div className="h-3.5 w-28 bg-[#C084FC]/40 sm:h-4" />
+                            <div className="mt-2 space-y-1.5">
+                                <div className="h-3 w-full bg-white/10" />
+                                <div className="h-3 w-5/6 bg-white/10" />
+                                <div className="h-3 w-4/5 bg-white/10" />
+                            </div>
+                        </div>
+                        <div className="border-2 border-black bg-[#151922] p-3.5 shadow-[2px_2px_0px_0px_#000] sm:p-4">
+                            <div className="h-3.5 w-36 bg-[#C084FC]/40 sm:h-4" />
+                            <div className="mt-2 space-y-1.5">
+                                <div className="h-3 w-full bg-white/10" />
+                                <div className="h-3 w-3/4 bg-white/10" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Bottom Nav Stepper Skeleton */}
-                <div className="mt-4 border-t-2 border-white/10 bg-[#151922]/40 p-3 sm:mt-6 sm:p-5">
-                    <div className="flex gap-1.5 overflow-x-auto pb-1">
+                <div className="mt-4 flex flex-col gap-2.5 border-t-2 border-white/10 bg-[#151922]/60 p-3 sm:mt-6 sm:gap-3.5 sm:p-5">
+                    <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:gap-1.5 sm:px-0 sm:flex-wrap">
                         {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={`tab-skel-${i}`} className="h-6 w-20 shrink-0 border border-black bg-white/10" />
+                            <div key={`tab-skel-${i}`} className="h-6 w-16 shrink-0 border-2 border-black bg-[#151922]" />
                         ))}
                     </div>
-                    <div className="mt-3 flex justify-between pt-1">
-                        <div className="h-8 w-20 border-2 border-black bg-white/20" />
-                        <div className="h-8 w-20 border-2 border-black bg-[#C084FC]/30" />
+                    <div className="flex items-center justify-between gap-2 pt-1 sm:gap-3">
+                        <div className="h-8 w-20 border-2 border-black bg-white/20 sm:h-10 sm:w-24" />
+                        <div className="h-8 w-20 border-2 border-black bg-[#C084FC]/30 sm:h-10 sm:w-24" />
                     </div>
                 </div>
             </div>

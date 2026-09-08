@@ -97,224 +97,224 @@ function CreateRoomCard({
       onSubmit={onCreateRoom}
       submitDisabled={!isSocketReady}
     >
-        <div className="space-y-3 sm:space-y-4">
-          {/* Match Format Toggle */}
-          <div className="space-y-1 sm:space-y-1.5">
-            <div className="flex flex-wrap items-center justify-between gap-1">
-              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-                MATCH FORMAT
-              </span>
-              <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59]">
-                {isGauntlet ? (
-                  <span className="inline-flex items-center gap-1">
-                    <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /> ARCADE SURVIVAL
-                  </span>
-                ) : (
-                  '// CLASSIC 1v1 ASSESSMENT'
-                )}
-              </span>
-            </div>
+      <div className="relative z-50 space-y-3 sm:space-y-4">
+        {/* Match Format Toggle */}
+        <div className="space-y-1 sm:space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+              MATCH FORMAT
+            </span>
+            <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59]">
+              {isGauntlet ? (
+                <span className="inline-flex items-center gap-1">
+                  <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /> ARCADE SURVIVAL
+                </span>
+              ) : (
+                '// CLASSIC 1v1 ASSESSMENT'
+              )}
+            </span>
+          </div>
 
-            <div className="grid grid-cols-2 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
-              <button
-                type="button"
-                onClick={() => onModeChange('standard')}
-                className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'standard'
-                  ? 'border-2 border-black bg-[#FFDE59] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                  : 'border-2 border-transparent text-neutral-400 hover:text-white'
-                  }`}
-              >
-                Standard Duel
-              </button>
+          <div className="grid grid-cols-2 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
+            <button
+              type="button"
+              onClick={() => onModeChange('standard')}
+              className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'standard'
+                ? 'border-2 border-black bg-[#FFDE59] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                }`}
+            >
+              Standard Duel
+            </button>
 
+            <button
+              type="button"
+              onClick={() => {
+                onModeChange('gauntlet');
+                if (deckType === 'vocab' || deckType === 'grammar') {
+                  onDeckTypeChange('kana');
+                  onClearSelectedGroups(); // Prevent carry-over when forcing Kana
+                }
+                onGroupMenuOpenChange(false);
+                setIsGrammarMenuOpen(false);
+              }}
+              className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all flex items-center justify-center gap-1 ${mode === 'gauntlet'
+                ? 'border-2 border-black bg-[#FF6B6B] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                }`}
+            >
+              <span className="flex items-center gap-1">
+                <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /> Gauntlet
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Select Deck Segment Control */}
+        <div className="space-y-1 sm:space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+              SELECT DECK
+            </span>
+            {isGauntlet && (
+              <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#FF6B6B]">
+                [KANA &amp; N5 KANJI ONLY]
+              </span>
+            )}
+          </div>
+
+          <div
+            className={`grid ${isGauntlet ? 'grid-cols-2' : 'grid-cols-4'
+              } gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1`}
+          >
+            {subMenuOptions.map(({ type, label, color }) => (
               <button
+                key={type}
                 type="button"
                 onClick={() => {
-                  onModeChange('gauntlet');
-                  if (deckType === 'vocab' || deckType === 'grammar') {
-                    onDeckTypeChange('kana');
-                    onClearSelectedGroups(); // Prevent carry-over when forcing Kana
+                  if (deckType !== type) {
+                    onClearSelectedGroups(); // Flush selections when changing decks
                   }
+                  onDeckTypeChange(type as Deck);
                   onGroupMenuOpenChange(false);
                   setIsGrammarMenuOpen(false);
                 }}
-                className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all flex items-center justify-center gap-1 ${mode === 'gauntlet'
-                  ? 'border-2 border-black bg-[#FF6B6B] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                style={{
+                  backgroundColor: deckType === type ? color : 'transparent',
+                }}
+                className={`py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all cursor-pointer ${deckType === type
+                  ? 'border-2 border-black text-black shadow-[1.5px_1.5px_0px_0px_#000]'
                   : 'border-2 border-transparent text-neutral-400 hover:text-white'
                   }`}
               >
-                <span className="flex items-center gap-1">
-                  <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /> Gauntlet
-                </span>
+                {label}
               </button>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Select Deck Segment Control */}
-          <div className="space-y-1 sm:space-y-1.5">
-            <div className="flex flex-wrap items-center justify-between gap-1">
-              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-                SELECT DECK
-              </span>
-              {isGauntlet && (
-                <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#FF6B6B]">
-                  [KANA &amp; N5 KANJI ONLY]
-                </span>
-              )}
-            </div>
+        {/* Grammar Level Selector (Standard Mode Only) */}
+        {!isGauntlet && deckType === 'grammar' && (
+          <div className="relative z-50 space-y-1 sm:space-y-1.5">
+            <label className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+              LESSON LEVEL
+            </label>
 
-            <div
-              className={`grid ${isGauntlet ? 'grid-cols-2' : 'grid-cols-4'
-                } gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1`}
+            <button
+              type="button"
+              onClick={() => setIsGrammarMenuOpen((prev) => !prev)}
+              className="flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]"
             >
-              {subMenuOptions.map(({ type, label, color }) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => {
-                    if (deckType !== type) {
-                      onClearSelectedGroups(); // Flush selections when changing decks
-                    }
-                    onDeckTypeChange(type as Deck);
-                    onGroupMenuOpenChange(false);
-                    setIsGrammarMenuOpen(false);
-                  }}
-                  style={{
-                    backgroundColor: deckType === type ? color : 'transparent',
-                  }}
-                  className={`py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all cursor-pointer ${deckType === type
-                    ? 'border-2 border-black text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                    : 'border-2 border-transparent text-neutral-400 hover:text-white'
-                    }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+              <span>Lesson {grammarLevel}</span>
+              <ChevronDownIcon className="h-4 w-4 stroke-[3] text-white" />
+            </button>
 
-          {/* Grammar Level Selector (Standard Mode Only) */}
-          {!isGauntlet && deckType === 'grammar' && (
-            <div className="relative z-30 space-y-1 sm:space-y-1.5">
-              <label className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-                LESSON LEVEL
-              </label>
-
-              <button
-                type="button"
-                onClick={() => setIsGrammarMenuOpen((prev) => !prev)}
-                className="flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]"
-              >
-                <span>Lesson {grammarLevel}</span>
-                <ChevronDownIcon className="h-4 w-4 stroke-[3] text-white" />
-              </button>
-
-              {isGrammarMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsGrammarMenuOpen(false)}
-                  />
-                  <div className="absolute top-full left-0 z-50 mt-1 max-h-52 w-full overflow-y-auto border-2 border-black bg-[#151922] p-1 shadow-[5px_5px_0px_0px_#000] [scrollbar-width:thin] [scrollbar-color:#323b4e_#151922]">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lvl) => (
-                      <button
-                        key={lvl}
-                        type="button"
-                        onClick={() => {
-                          onGrammarLevelChange(lvl);
-                          setIsGrammarMenuOpen(false);
-                        }}
-                        className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${grammarLevel === lvl
-                          ? 'bg-[#C084FC] text-black font-black'
-                          : 'text-white hover:bg-[#C084FC] hover:text-black'
-                          }`}
-                      >
-                        <span className="mr-2">{grammarLevel === lvl ? '✓' : ' '}</span>
-                        Lesson {lvl}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Kanji Themes / Vocab Stages Selector */}
-          {(isKanji || (!isGauntlet && isVocab)) && (
-            <div className="relative z-30 space-y-1 sm:space-y-1.5">
-              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-                {isKanji ? 'KANJI THEMES' : 'VOCAB STAGES'}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => onGroupMenuOpenChange(!isGroupMenuOpen)}
-                className="flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]"
-              >
-                <span className="truncate">
-                  {selectedGroups.length === 0 ? 'All Groups' : `${selectedGroups.length} Selected`}
-                </span>
-                <ChevronDownIcon className="h-4 w-4 stroke-[3] text-white" />
-              </button>
-
-              {isGroupMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => onGroupMenuOpenChange(false)}
-                  />
-                  <div className="absolute top-full left-0 z-50 mt-1 max-h-56 w-full overflow-y-auto border-2 border-black bg-[#151922] p-1 shadow-[5px_5px_0px_0px_#000] [scrollbar-width:thin] [scrollbar-color:#323b4e_#151922]">
+            {isGrammarMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsGrammarMenuOpen(false)}
+                />
+                <div className="absolute top-full left-0 z-50 mt-1 max-h-52 w-full overflow-y-auto border-2 border-black bg-[#151922] p-1 shadow-[5px_5px_0px_0px_#000] [scrollbar-width:thin] [scrollbar-color:#323b4e_#151922]">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lvl) => (
                     <button
+                      key={lvl}
                       type="button"
                       onClick={() => {
-                        onClearSelectedGroups();
-                          onGroupMenuOpenChange(false);
+                        onGrammarLevelChange(lvl);
+                        setIsGrammarMenuOpen(false);
                       }}
-                      className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${selectedGroups.length === 0
-                        ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black`
-                        : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
+                      className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${grammarLevel === lvl
+                        ? 'bg-[#C084FC] text-black font-black'
+                        : 'text-white hover:bg-[#C084FC] hover:text-black'
                         }`}
                     >
-                      <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ' '}</span>
-                      {isKanji ? 'All Groups' : 'All Stages'}
+                      <span className="mr-2">{grammarLevel === lvl ? '✓' : ' '}</span>
+                      Lesson {lvl}
                     </button>
-                    {selectionItems.map((item) => {
-                      const isSelected = selectedGroups.includes(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => onGroupToggle(item.id)}
-                          className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${isSelected
-                            ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black hover:text-black`
-                            : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
-                            }`}
-                        >
-                          <span className="mr-2">{isSelected ? '✓' : ' '}</span>
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {selectedGroups.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1 sm:gap-1.5">
-                  {selectedGroups.map((groupId) => (
-                    <span
-                      key={groupId}
-                      className={`inline-flex min-w-0 max-w-full items-center gap-1 break-words border-2 border-black bg-[#151922] border-l-4 ${isKanji ? 'border-l-[#70CFF8]' : 'border-l-[#A3E636]'
-                        } px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-[1px_1px_0px_0px_#000]`}
-                    >
-                      {selectionItems.find((item) => item.id === groupId)?.label || groupId}
-                    </span>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Kanji Themes / Vocab Stages Selector */}
+        {(isKanji || (!isGauntlet && isVocab)) && (
+          <div className="relative z-50 space-y-1 sm:space-y-1.5">
+            <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+              {isKanji ? 'KANJI THEMES' : 'VOCAB STAGES'}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => onGroupMenuOpenChange(!isGroupMenuOpen)}
+              className="flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]"
+            >
+              <span className="truncate">
+                {selectedGroups.length === 0 ? 'All Groups' : `${selectedGroups.length} Selected`}
+              </span>
+              <ChevronDownIcon className="h-4 w-4 stroke-[3] text-white" />
+            </button>
+
+            {isGroupMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => onGroupMenuOpenChange(false)}
+                />
+                <div className="absolute top-full left-0 z-50 mt-1 max-h-56 w-full overflow-y-auto border-2 border-black bg-[#151922] p-1 shadow-[5px_5px_0px_0px_#000] [scrollbar-width:thin] [scrollbar-color:#323b4e_#151922]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClearSelectedGroups();
+                      onGroupMenuOpenChange(false);
+                    }}
+                    className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${selectedGroups.length === 0
+                      ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black`
+                      : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
+                      }`}
+                  >
+                    <span className="mr-2">{selectedGroups.length === 0 ? '✓' : ' '}</span>
+                    {isKanji ? 'All Groups' : 'All Stages'}
+                  </button>
+                  {selectionItems.map((item) => {
+                    const isSelected = selectedGroups.includes(item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onGroupToggle(item.id)}
+                        className={`flex w-full cursor-pointer items-center px-3 py-2 font-mono text-xs font-black uppercase transition-colors ${isSelected
+                          ? `${isKanji ? 'bg-[#70CFF8]' : 'bg-[#A3E636]'} text-black font-black hover:text-black`
+                          : isKanji ? 'text-white hover:bg-[#70CFF8] hover:text-black' : 'text-white hover:bg-[#A3E636] hover:text-black'
+                          }`}
+                      >
+                        <span className="mr-2">{isSelected ? '✓' : ' '}</span>
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {selectedGroups.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1 sm:gap-1.5">
+                {selectedGroups.map((groupId) => (
+                  <span
+                    key={groupId}
+                    className={`inline-flex min-w-0 max-w-full items-center gap-1 break-words border-2 border-black bg-[#151922] border-l-4 ${isKanji ? 'border-l-[#70CFF8]' : 'border-l-[#A3E636]'
+                      } px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-[1px_1px_0px_0px_#000]`}
+                  >
+                    {selectionItems.find((item) => item.id === groupId)?.label || groupId}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </RoomSetupCard>
   );
 }
@@ -339,21 +339,21 @@ function JoinRoomCard({
       onSubmit={onJoinRoom}
       submitDisabled={!isSocketReady || !joinCode.trim()}
     >
-        <div className="space-y-2.5 sm:space-y-3">
-          <div className="space-y-1 sm:space-y-1.5">
-            <label className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-              ROOM ACCESS CODE
-            </label>
-            <LegacyInput
-              ref={joinCodeInputRef}
-              type="text"
-              placeholder="e.g. S3OPPP"
-              value={joinCode}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setJoinCode(e.target.value)}
-              className="h-10 sm:h-12 border-2 border-black bg-[#151922] px-3 sm:px-4 font-mono text-base sm:text-lg font-black uppercase tracking-widest text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] placeholder:text-neutral-500 placeholder:normal-case placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm focus:border-[#A3E636] focus:ring-0"
-            />
-          </div>
+      <div className="space-y-2.5 sm:space-y-3">
+        <div className="space-y-1 sm:space-y-1.5">
+          <label className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+            ROOM ACCESS CODE
+          </label>
+          <LegacyInput
+            ref={joinCodeInputRef}
+            type="text"
+            placeholder="e.g. S3OPPP"
+            value={joinCode}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setJoinCode(e.target.value)}
+            className="h-10 sm:h-12 border-2 border-black bg-[#151922] px-3 sm:px-4 font-mono text-base sm:text-lg font-black uppercase tracking-widest text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] placeholder:text-neutral-500 placeholder:normal-case placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm focus:border-[#A3E636] focus:ring-0"
+          />
         </div>
+      </div>
     </RoomSetupCard>
   );
 }

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { FormEventHandler, ReactNode } from 'react';
 
-type LegacyProps = { children?: ReactNode; [key: string]: unknown };
+type LegacyProps = { children?: ReactNode;[key: string]: unknown };
 
 const LegacyButton = Button as unknown as (props: LegacyProps) => JSX.Element;
 
@@ -83,7 +83,8 @@ export default function RoomSetupCard({
         </span>
       )}
 
-      <div className="relative z-10 space-y-3.5 sm:space-y-5">
+      {/* CHANGED to z-20 to win the stacking context against the form below */}
+      <div className="relative z-20 space-y-3.5 sm:space-y-5">
         <div>
           <div className="mb-1.5 sm:mb-2 flex items-center justify-between">
             <span className={`border-2 border-black ${styles.badge} px-1.5 py-0.5 sm:px-2 text-[9px] sm:text-[11px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-none`}>
