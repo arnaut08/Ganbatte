@@ -5,6 +5,7 @@ export interface RoomCallbackResult { success: boolean; message?: string; room?:
 export type RoomCallback = (result: string | Room | RoomCallbackResult) => void;
 
 export interface ClientToServerEvents {
+  'authenticate-socket': (accessToken: string) => void;
   'create-room': (hostName: Username, sessionKey: SessionKey, userId?: string, callback?: RoomCallback) => void;
   'join-room': (roomCode: RoomCode, username: Username, sessionKey: SessionKey, userId?: string, callback?: RoomCallback) => void;
   'rejoin-room': (roomCode: RoomCode, username: Username, sessionKey: SessionKey, userId?: string, callback?: RoomCallback) => void;
@@ -14,8 +15,10 @@ export interface ClientToServerEvents {
   'next-card': (roomCode: RoomCode) => void;
   'player-ready': (roomCode: RoomCode) => void;
   'use-hint': (roomCode: RoomCode, cardIndex: number) => void;
+  'forfeit-match': (roomCode: RoomCode) => void;
   'leave-room': (roomCode: RoomCode, callback: RoomCallback) => void;
   'start-assessment': (roomCode: RoomCode, refreshDeck?: boolean) => void;
+  'start-gauntlet': (roomCode: RoomCode) => void;
   'replay-assessment': (roomCode: RoomCode) => void;
   'return-to-lobby': (roomCode: RoomCode) => void;
   'exit-lobby': (roomCode: RoomCode, callback: RoomCallback) => void;

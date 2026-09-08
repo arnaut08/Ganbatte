@@ -1,4 +1,5 @@
-import { FALLBACK_GEMINI_MODEL, GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
+import { GEMINI_API_KEY, GEMINI_MODEL } from '../config/env.js';
+import { fetchGeminiWithFallback } from './gemini-api-service.js';
 
 export const QUESTION_TYPES = [
   'multiple-choice',
@@ -94,7 +95,7 @@ const MATCHING_PAIRS = [
 ];
 
 type GrammarLesson = typeof GENKI_GRAMMAR_LESSONS[number];
-export interface AssessmentQuestion { id: string; lesson: number; type: string; prompt: string; explanation: string; difficulty: string; [key: string]: unknown }
+export interface AssessmentQuestion { id: string; lesson: number; type: string; prompt: string; explanation: string; difficulty: string;[key: string]: unknown }
 
 function clampCount(value: unknown): number {
   return Math.min(Math.max(Number(value) || 1, 1), 25);
@@ -251,52 +252,49 @@ export function getGenkiGrammarLessonMeta(maxLesson: number = 12) {
   return GENKI_GRAMMAR_LESSONS.filter((lesson) => lesson.number <= safeMaxLesson);
 }
 
-export function resolveGeminiModel(modelName: string | undefined): string {
-  const candidates = new Set([
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro',
-    'gemini-pro',
-  ]);
+export { resolveGeminiModel } from './gemini-api-service.js';
 
-  const normalized = typeof modelName === 'string' ? modelName.trim() : '';
-  return normalized && candidates.has(normalized) ? normalized : FALLBACK_GEMINI_MODEL;
-}
-
-export function createGeminiPrompt({ maxLesson = 12, count = 10, mode = 'assessment' }: { maxLesson?: number; count?: number; mode?: 'practice' | 'assessment' } = {}): string {
+export function createGeminiPrompt({
+  maxLesson = 12,
+  count = 10,
+  mode = 'assessment'
+}: {
+  maxLesson?: number;
+  count?: number;
+  mode?: 'practice' | 'assessment';
+} = {}): string {
   const lessonScope = mode === 'practice'
     ? `Only use grammar concepts from lesson ${maxLesson}.`
     : `Only use grammar concepts from lessons 1 through ${maxLesson}.`;
+
   const questionInstructions = mode === 'assessment'
     ? `Generate exactly ${ASSESSMENT_QUESTION_TOTAL} questions total in valid JSON only: 4 multiple-choice, 4 fill-in-the-blank, 2 matching, 4 translation, and 4 comprehension questions.`
     : `Generate exactly ${count} questions total in valid JSON only, using all five question types when the requested count allows it.`;
 
+  const recencyWeighting = mode === 'assessment'
+    ? `Weight question distribution toward higher lessons: at least 50% of questions must test concepts from lesson ${maxLesson}. Earlier lessons (1 to ${Math.max(1, maxLesson - 1)}) should be sampled lightly as foundational context.`
+    : '';
+
   return [
-    'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1',
+    'You are an expert Japanese teacher creating assessments strictly following Genki Volume 1 (JLPT N5 level).',
     lessonScope,
-    `Weight the distribution of questions strictly in descending order of recency: Lesson L must have strictly more questions than Lesson L-1 across the entire range from Lesson 1 up to ${maxLesson}.`,
+    recencyWeighting,
     questionInstructions,
-    'Please do not use Kanji characters in any of the questions.',
-    'If the correctAnswer is in Japanese, please provide correctAnswerRomaji for each question which contains the romaji representation of the correctAnswer.',
+    'Please do not use Kanji characters in any of the questions (use Hiragana and Katakana only).',
+    'If the correctAnswer is in Japanese, please provide correctAnswerRomaji for each question containing the romaji representation of the correctAnswer.',
     'Use question types from: multiple-choice, fill-in-the-blank, matching, translation, comprehension.',
     'For translation items, the user sees an English sentence and must provide a Japanese answer.',
     'Return a JSON object with a top-level "questions" array.',
     'Each question must include: id, lesson, type, prompt, explanation, difficulty.',
     'For multiple-choice: include choices and correctAnswer.',
-    'For fill-in-the-blank: include correctAnswer and acceptedAnswers if useful. Please ensure that the correctAnswer does not include any character from the prompt.',
-    'For matching: include leftItems, rightItems, and correctPairs. Make sure that the leftItems and rightItems are shuffled and not in the same order as correctPairs.',
+    'For fill-in-the-blank: include correctAnswer and acceptedAnswers if useful. Ensure that the correctAnswer does not include any character from the prompt.',
+    'For matching: include leftItems, rightItems, and correctPairs. Ensure leftItems and rightItems are shuffled and not in the same order as correctPairs.',
     'For translation: include englishText, correctAnswer, and acceptedAnswers.',
     'For comprehension: include choices and correctAnswer.',
     'Keep all content aligned to Genki Volume 1 only.',
     'Do not include markdown fences or extra commentary.',
-    `Please generate fresh content and avoid reusing questions in previously generated assessments.`
-  ].join('\n');
+    'Please generate fresh content and avoid reusing questions in previously generated assessments.'
+  ].filter(Boolean).join('\n');
 }
 
 function normalizeQuestion(item: Record<string, unknown>, index: number): AssessmentQuestion {
@@ -361,11 +359,9 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10, mod
 
   try {
     const prompt = createGeminiPrompt({ maxLesson: safeMaxLesson, count: questionCount, mode });
-    const resolvedModel = resolveGeminiModel(GEMINI_MODEL);
-    console.log("Using Gemini model:", resolvedModel);
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`,
-      {
+    const { response } = await fetchGeminiWithFallback({
+      model: GEMINI_MODEL,
+      init: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -379,20 +375,23 @@ export async function generateGrammarAssessment({ maxLesson = 1, count = 10, mod
           },
         }),
       },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Gemini API returned ${response.status}`);
-    }
+    });
 
     const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
     const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '';
     const questions = parseGeminiAssessment(text);
+    // In practice mode the prompt already scoped content to the target lesson,
+    // but Gemini may tag questions with different lesson numbers internally.
+    // Override the lesson rather than filtering, so no valid questions are dropped.
     const scopedQuestions = mode === 'practice'
-      ? questions.filter((question) => question.lesson === safeMaxLesson)
+      ? questions.map((question) => ({ ...question, lesson: safeMaxLesson }))
       : questions.filter((question) => question.lesson <= safeMaxLesson);
 
-    if (scopedQuestions.length === 0 || (mode === 'assessment' && !hasAssessmentQuestionDistribution(scopedQuestions))) {
+    if (
+      scopedQuestions.length === 0
+      || (mode === 'practice' && scopedQuestions.length < questionCount)
+      || (mode === 'assessment' && !hasAssessmentQuestionDistribution(scopedQuestions))
+    ) {
       return buildGrammarAssessment({ maxLesson: safeMaxLesson, count: questionCount, mode });
     }
 

@@ -60,7 +60,14 @@ const KANA_TO_ROMAJI: Record<string, string> = {
 
 export interface KanaSentence { kana: string; romaji: string; english: string }
 export interface KanjiCard { id?: string; kanji: string; reading: string; romaji?: string; meaning: string; groupId: string; groupName: string; example?: string[] }
-export interface PracticeCard { id?: string; kana: string; romaji: string; english?: string; groupId?: string; groupName?: string; script?: string; example?: string[] }
+export interface VocabCard { id?: string; kanji: string; kana: string; romaji?: string | null; english: string[]; stageNumber?: number; theme?: string; pos?: string }
+export type VocabQuestionType = 'multiple-choice' | 'type-in';
+export type VocabPromptKind = 'kanji' | 'english';
+export interface PracticeCard { id?: string; kana: string; romaji: string; english?: string; groupId?: string; groupName?: string; script?: string; example?: string[]; questionType?: VocabQuestionType; promptKind?: VocabPromptKind; prompt?: string; promptReading?: string; options?: string[]; correctAnswer?: string; answerType?: 'romaji' | 'text' }
+
+function capitalizeEnglish(value: string): string {
+  return value.replace(/(^|\s)([a-z])/g, (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
+}
 
 export function romanizeKana(value: string = ''): string {
   const normalized = String(value).trim();
@@ -140,6 +147,65 @@ export function generateRandomKanjiCards(kanjiCards: readonly KanjiCard[], group
       english: card.english,
       groupId: card.groupId,
       groupName: card.groupName,
+    });
+  }
+
+  return cards;
+}
+
+export function generateRandomVocabCards(
+  vocabCards: readonly VocabCard[],
+  count: number = 10,
+  stageNumbers: readonly string[] = [],
+  random: () => number = Math.random,
+): PracticeCard[] {
+  const workingPool = vocabCards.filter((card) => stageNumbers.length === 0 || stageNumbers.includes(String(card.stageNumber)));
+  const cards: PracticeCard[] = [];
+
+  while (cards.length < count && workingPool.length > 0) {
+    const index = Math.floor(random() * workingPool.length);
+    const card = workingPool.splice(index, 1)[0];
+    const english = capitalizeEnglish(card.english[0] || '');
+    const japanese = card.kanji === card.kana ? card.kana : `${card.kanji} / ${card.kana}`;
+    const romaji = card.romaji || romanizeKana(card.kana);
+    const questionType: VocabQuestionType = 'multiple-choice';
+    const promptKind: VocabPromptKind = cards.length % 2 === 0 ? 'kanji' : 'english';
+    const correctAnswer = promptKind === 'english' ? japanese : english;
+    const distractorItems = workingPool
+      .filter((item) => item.stageNumber === card.stageNumber)
+      .sort((left, right) => {
+        const leftSamePos = left.pos === card.pos ? 1 : 0;
+        const rightSamePos = right.pos === card.pos ? 1 : 0;
+        if (leftSamePos !== rightSamePos) return rightSamePos - leftSamePos;
+
+        const leftAnswer = promptKind === 'english' ? left.kanji : left.english[0] || '';
+        const rightAnswer = promptKind === 'english' ? right.kanji : right.english[0] || '';
+        const targetAnswer = promptKind === 'english' ? card.kanji : card.english[0] || '';
+        return Math.abs(leftAnswer.length - targetAnswer.length) - Math.abs(rightAnswer.length - targetAnswer.length);
+      });
+    const distractorPool = distractorItems.flatMap((item) => {
+      const itemEnglish = capitalizeEnglish(item.english[0] || '');
+      const itemJapanese = item.kanji === item.kana ? item.kana : `${item.kanji} / ${item.kana}`;
+      return promptKind === 'english' ? [itemJapanese] : [itemEnglish];
+    });
+    const options = [...new Set([correctAnswer, ...distractorPool.filter((option) => option !== correctAnswer)])].slice(0, 4);
+    for (let optionIndex = options.length - 1; optionIndex > 0; optionIndex -= 1) {
+      const swapIndex = Math.floor(random() * (optionIndex + 1));
+      [options[optionIndex], options[swapIndex]] = [options[swapIndex], options[optionIndex]];
+    }
+
+    cards.push({
+      id: card.id,
+      kana: card.kanji || card.kana,
+      romaji,
+      english: card.english.join(' / '),
+      questionType,
+      promptKind,
+      prompt: promptKind === 'kanji' ? card.kanji : capitalizeEnglish(card.english.join(' / ')),
+      promptReading: promptKind === 'kanji' ? card.kana : undefined,
+      options,
+      correctAnswer,
+      answerType: 'text',
     });
   }
 

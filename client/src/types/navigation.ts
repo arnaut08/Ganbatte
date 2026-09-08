@@ -7,15 +7,22 @@
 export type AppStatus =
   | 'selector'
   | 'friends'
+  | 'profile'
+  | 'passport'
   | 'kana-intro'
   | 'kana-filter'
   | 'kana-study'
+  | 'kanji-intro'
   | 'kanji-study'
+  | 'vocab-intro'
+  | 'vocab-study'
+| 'grammar-intro'
   | 'grammar-study'
   | 'grammar-practice'
   | 'history'
   | 'lobby'
   | 'assessment'
+  | 'gauntlet'
   | 'results'
   | 'assessment-preparing';
 

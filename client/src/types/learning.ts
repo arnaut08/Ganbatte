@@ -19,6 +19,19 @@ export type KanjiCard = ApiRecord & {
   english?: string;
   groupId?: string;
   groupName?: string;
+  progress?: { srs_stage?: number; next_review_at?: string } | null;
+};
+
+export type KanjiGroupOverview = {
+  group_id: string;
+  theme: string;
+  total_characters: number;
+  learned_characters: number;
+  mastered_characters: number;
+  due_characters: number;
+  quiz_passed: boolean;
+  is_cleared: boolean;
+  is_mastered: boolean;
 };
 
 /** Any study card usable inside a practice/assessment session. */
@@ -69,6 +82,64 @@ export type CardDeck<TCard extends ApiRecord = ApiRecord> = {
   matrices?: ApiRecord[];
 };
 
+export type VocabStage = {
+  stage_number: number;
+  theme: string;
+  total_words: number;
+  learned_words: number;
+  mastered_words: number;
+  due_words: number;
+  quiz_passed: boolean;
+  is_cleared: boolean;
+  is_mastered: boolean;
+};
+
+export type VocabOverview = {
+  level: string;
+  stages: VocabStage[];
+};
+
+export type VocabFilterItem = {
+  id: string;
+  stage_number: number;
+  theme: string;
+  pos: string;
+  progress?: { srs_stage?: number; next_review_at?: string } | null;
+};
+
+export type VocabMetadata = {
+  verb_group?: 'ichidan' | 'godan' | 'irregular' | null;
+  transitivity?: 'transitive' | 'intransitive' | null;
+  textbook_reference?: string | null;
+  nuance?: string | null;
+};
+
+export type VocabExample = {
+  ja: string;
+  en: string;
+  furigana: string;
+};
+
+export type VocabItem = {
+  id?: string;
+  jlpt_level?: string;
+  kanji: string;
+  kana: string;
+  furigana: string;
+  romaji?: string | null;
+  theme: string;
+  stage_number: number;
+  english: string[];
+  pos: string;
+  metadata?: VocabMetadata;
+  examples: VocabExample[];
+};
+
+export type VocabStudyItem = VocabItem & {
+  id: string;
+  progress?: { srs_stage?: number; next_review_at?: string } | null;
+};
+
 /** The concrete grammar question kinds the generator can emit. */
 export type GrammarQuestionType =
   | 'multiple-choice'
@@ -116,6 +187,21 @@ export type GrammarAssessment = {
   count: number;
   questions: GrammarQuestion[];
 };
+
+/** Per-lesson grammar aggregates returned by the `get_grammar_overview` RPC. */
+export interface GrammarLessonOverview {
+  lesson_number: number;
+  is_cleared: boolean;
+  is_mastered: boolean;
+  best_score: number;
+  total_attempts: number;
+}
+
+/** Aggregated Genki grammar progress for the Mastery Passport. */
+export interface GrammarOverviewResponse {
+  total_lessons: number;
+  lessons: GrammarLessonOverview[];
+}
 /** An example sentence inside a grammar point. */
 export type GrammarExample = {
   japanese: string;
@@ -171,4 +257,22 @@ export type AssessmentHistoryRecord = {
   companion_user_id?: string | null;
   details?: AssessmentHistoryDetails | null;
   profile?: { display_name?: string | null } | null;
+};
+
+/** Aggregated multiplayer 1v1 record shown on the Mastery Passport. */
+export type PvpRecord = {
+  totalMatches: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  /** Rounded percentage of decided matches (wins / wins + losses + ties). */
+  winRate: number;
+};
+
+/** Streak bookkeeping returned after a key learning action is recorded. */
+export type UserActivity = {
+  current_streak: number;
+  streak_extended: boolean;
+  /** Tier stored on the profile before this activity was recorded. */
+  previous_tier: string;
 };

@@ -11,3 +11,4 @@ export * from './toast';
 export * from './social';
 export * from './room';
 export * from './learning';
+export * from './profile';

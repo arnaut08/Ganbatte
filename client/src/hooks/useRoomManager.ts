@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { Socket } from 'socket.io-client';
-import { generateCards, getRoom } from '../services/api';
+import { generateCards, getActiveMatchSession, getRoom } from '../services/api';
 import type {
   ApiRecord,
   AppStatus,
@@ -19,6 +19,7 @@ import { isStudyCard } from '../types';
 import { canStartAssessment } from '../utils/roomStatus';
 import { clearRoomQueryParam, clearRoomSession, getSessionKey, readRoomSession, saveRoomSession } from '../utils/roomSession';
 import useRoomSocket from './useRoomSocket';
+import { supabase } from '../config/supabase';
 
 type NavigationState = {
   status: AppStatus;
@@ -70,6 +71,11 @@ export default function useRoomManager({
   const [prefillRoomCode, setPrefillRoomCode] = useState('');
   const [grammarQuestions, setGrammarQuestions] = useState<GrammarQuestion[]>([]);
   const [isPreparingAssessment, setIsPreparingAssessment] = useState(false);
+  const [isHydratingActiveMatch, setIsHydratingActiveMatch] = useState(
+    Boolean(user && readRoomSession()?.roomCode),
+  );
+  const recoverySessionRef = useRef(readRoomSession());
+  const activeMatchCheckRef = useRef<string | null>(null);
   const { status, setStatus, setSelectorScreen, setScreenHistory, statusRef, transitionToStatus } = navigation;
   roomCodeRef.current = roomCode;
   const getDisplayName = navigation.getDisplayName;
@@ -101,7 +107,9 @@ export default function useRoomManager({
     const hostName = (name || getDisplayName()).trim();
     if (!hostName) return;
     const normalizedDeckOptions = {
-      type: deckOptions?.type === 'grammar' ? 'grammar' : deckOptions?.type === 'kanji' ? 'kanji' : 'kana',
+      type: deckOptions?.type === 'grammar' ? 'grammar' : deckOptions?.type === 'kanji' ? 'kanji' : deckOptions?.type === 'vocab' ? 'vocab' : 'kana',
+      mode: deckOptions?.mode || 'standard',
+      seed: deckOptions?.seed,
       groups: Array.isArray(deckOptions?.groups) ? deckOptions.groups : [],
       maxLesson: deckOptions?.type === 'grammar' ? Number(deckOptions.maxLesson) || 3 : undefined,
       count: deckOptions?.type === 'grammar' ? Number(deckOptions.count) || 5 : undefined,
@@ -149,12 +157,112 @@ export default function useRoomManager({
   const activeSocket = socket as unknown as Socket | null;
   socketRef.current = socket;
 
+  // Sync / Re-authenticate socket when user logs in post email-verification
   useEffect(() => {
-    const savedSession = readRoomSession();
-    const savedRoomCode = (savedSession?.roomCode || '').trim().toUpperCase();
-    if (savedRoomCode) setPrefillRoomCode(savedRoomCode);
-  }, []);
+    if (!activeSocket || !supabase) return;
 
+    if (user?.id) {
+      supabase.auth.getSession().then(({ data }) => {
+        const token = data.session?.access_token;
+        if (token) {
+          activeSocket.auth = { ...(activeSocket.auth || {}), accessToken: token };
+          if (!activeSocket.connected) {
+            activeSocket.connect();
+          } else {
+            activeSocket.emit('authenticate-socket', token);
+          }
+        }
+      });
+    }
+  }, [user?.id, activeSocket]);
+
+  // Listener for real-time Gauntlet launch event from server
+  useEffect(() => {
+    if (!activeSocket) return;
+
+    const handleGauntletStarted = ({ room: serverRoom, seed }: { room: Room; seed?: number }) => {
+      setIsPreparingAssessment(false);
+      setRoom({
+        ...serverRoom,
+        mode: 'gauntlet',
+        status: 'active',
+        seed: seed ?? serverRoom.seed,
+      });
+      setScreenHistory((prev) => [...prev, 'gauntlet']);
+      transitionToStatus('gauntlet');
+    };
+
+    activeSocket.on('gauntlet-started', handleGauntletStarted);
+
+    return () => {
+      activeSocket.off('gauntlet-started', handleGauntletStarted);
+    };
+  }, [activeSocket, setScreenHistory, transitionToStatus]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      activeMatchCheckRef.current = null;
+      if (!authLoading) recoverySessionRef.current = null;
+      setIsHydratingActiveMatch(false);
+      return;
+    }
+    if (!recoverySessionRef.current?.roomCode) {
+      setIsHydratingActiveMatch(false);
+      return;
+    }
+    if (!isSocketReady || !activeSocket || activeMatchCheckRef.current === user.id) return;
+
+    activeMatchCheckRef.current = user.id;
+    setIsHydratingActiveMatch(true);
+    getActiveMatchSession(getSessionKey()).then((response) => {
+      const activeRoom = response.user_in_active_match ? response.room : null;
+      if (!activeRoom || !activeRoom.code) {
+        clearRoomSession();
+        recoverySessionRef.current = null;
+        setRoomCode(null);
+        setRoom(null);
+        setResults(null);
+        setIsPreparingAssessment(false);
+        if (status === 'assessment' || status === 'assessment-preparing' || status === 'gauntlet') {
+          setStatus('selector');
+          setSelectorScreen('practice');
+          setScreenHistory(['selector']);
+        }
+        return;
+      }
+
+      const player = activeRoom.players.find((candidate) => candidate.userId === user.id)
+        || activeRoom.players.find((candidate) => candidate.sessionKey === getSessionKey());
+      const playerName = player?.name || getDisplayName();
+      setRoomCode(activeRoom.code);
+      setUsername(playerName);
+      saveRoomSession(activeRoom.code, playerName);
+      setRoom(activeRoom);
+      setKanaCards((activeRoom.cards ?? []).filter(isStudyCard));
+      return new Promise<void>((resolve) => {
+        activeSocket.emit('rejoin-room', activeRoom.code, playerName, getSessionKey(), user.id, (ack: SocketAck) => {
+          if (ack?.success && ack.room) {
+            setRoom(ack.room);
+            setKanaCards((ack.room.cards ?? []).filter(isStudyCard));
+            if (ack.room.status === 'preparing') {
+              transitionToStatus('assessment-preparing');
+            } else if (ack.room.status === 'active') {
+              if (ack.room.mode === 'gauntlet') {
+                transitionToStatus('gauntlet');
+              } else {
+                transitionToStatus('assessment');
+              }
+            }
+          }
+          resolve();
+        });
+      });
+    }).catch((error) => {
+      console.error('Failed to restore active match:', error);
+    }).finally(() => setIsHydratingActiveMatch(false));
+  }, [activeSocket, authLoading, getDisplayName, isSocketReady, setScreenHistory, setSelectorScreen, setStatus, status, transitionToStatus, user?.id]);
+
+  // Sync preparing state if updated over socket
   useEffect(() => {
     if (!room) return;
     if (room.status === 'preparing' && status !== 'assessment-preparing') {
@@ -163,25 +271,13 @@ export default function useRoomManager({
     }
     if (room.status === 'active' && status === 'assessment-preparing') {
       setIsPreparingAssessment(false);
-      transitionToStatus('assessment');
-      return;
+      if (room.mode === 'gauntlet') {
+        transitionToStatus('gauntlet');
+      } else {
+        transitionToStatus('assessment');
+      }
     }
-    if (room.status === 'completed' && status !== 'results' && status !== 'lobby' && !results) {
-      setIsPreparingAssessment(false);
-      transitionToStatus('results');
-    }
-  }, [room, results, status, transitionToStatus]);
-
-  useEffect(() => {
-    if (room?.status !== 'completed' || !room.players?.length || results) return;
-    setResults(room.players.map((player) => ({
-      name: player.name,
-      userId: player.userId ?? null,
-      answers: player.answers ?? [],
-      hintsUsed: player.hintsUsed || [],
-    })));
-    transitionToStatus('results');
-  }, [room, results, transitionToStatus]);
+  }, [room, status, transitionToStatus]);
 
   useEffect(() => {
     const practiceWindow = window as PracticeAugmentedWindow;
@@ -207,17 +303,22 @@ export default function useRoomManager({
   const handleStartAssessment = useCallback(() => {
     if (!activeSocket || !roomCode || !room || !isCurrentPlayerHost) return;
     if (!canStartAssessment(room.players)) return;
-    if (room.deckType === 'grammar') {
+    if (room.deckType === 'grammar' || room.deckType === 'kana' || room.deckType === 'vocab') {
       setIsPreparingAssessment(true);
       transitionToStatus('assessment-preparing');
     }
     activeSocket.emit('start-assessment', roomCode);
   }, [activeSocket, isCurrentPlayerHost, room, roomCode, transitionToStatus]);
 
+  const handleStartGauntlet = useCallback(() => {
+    if (!activeSocket || !roomCode || !room || room.players.length < 2) return;
+    activeSocket.emit('start-gauntlet', roomCode);
+  }, [activeSocket, room, roomCode]);
+
   const handleReplayAssessment = useCallback(() => {
     if (!activeSocket || !roomCode || !room) return;
     if (!isCurrentPlayerHost) {
-      setToast({ message: 'Waiting for the host to replay this assessment.', type: 'warning' });
+      setToast({ message: 'Waiting for the host to replay this assessment.', type: 'neutral' });
       return;
     }
     activeSocket.emit('replay-assessment', roomCode);
@@ -225,7 +326,7 @@ export default function useRoomManager({
 
   const handleRequestHost = useCallback((action: string) => {
     if (activeSocket && roomCode && room) activeSocket.emit('request-assessment-action', roomCode, action);
-  }, [activeSocket, room, roomCode]);
+  }, [activeSocket, roomCode, room]);
 
   const handleSubmitAnswer = useCallback((answer: unknown) => {
     if (activeSocket && roomCode) activeSocket.emit('submit-answer', roomCode, answer);
@@ -233,6 +334,14 @@ export default function useRoomManager({
 
   const handleUseHint = useCallback((cardIndex: number) => {
     if (activeSocket && roomCode) activeSocket.emit('use-hint', roomCode, cardIndex);
+  }, [activeSocket, roomCode]);
+
+  const handleForfeitMatch = useCallback(() => {
+    if (activeSocket && roomCode) activeSocket.emit('forfeit-match', roomCode);
+  }, [activeSocket, roomCode]);
+
+  const handleReturnGauntletToLobby = useCallback(() => {
+    if (activeSocket && roomCode) activeSocket.emit('return-to-lobby', roomCode);
   }, [activeSocket, roomCode]);
 
   const handleNextCard = useCallback(() => {
@@ -251,7 +360,7 @@ export default function useRoomManager({
       setStatus('selector');
       setSelectorScreen('practice');
     });
-  }, [activeSocket, clearRoomSession, roomCode, setSelectorScreen, setStatus]);
+  }, [activeSocket, roomCode, setSelectorScreen, setStatus]);
 
   const handleStartNewSession = useCallback(() => {
     if (!activeSocket || !roomCode || !room) return;
@@ -266,7 +375,7 @@ export default function useRoomManager({
       setStatus('selector');
       setSelectorScreen('practice');
     });
-  }, [clearRoomSession, room, roomCode, setSelectorScreen, setStatus, activeSocket]);
+  }, [room, roomCode, setSelectorScreen, setStatus, activeSocket]);
 
   const clearRoomState = useCallback(() => {
     setRoomCode(null);
@@ -280,12 +389,14 @@ export default function useRoomManager({
     clearRoomSession();
     clearRoomState();
     setStatus('selector');
-  }, [clearRoomSession, clearRoomState, setStatus]);
+  }, [clearRoomState, setStatus]);
 
   const handleReturnToRoom = useCallback(() => {
     const savedSession = readRoomSession();
     if (room && roomCode) {
-      const nextStatus = room.status === 'active' ? 'assessment' : 'lobby';
+      const nextStatus = room.status === 'active'
+        ? (room.mode === 'gauntlet' ? 'gauntlet' : 'assessment')
+        : 'lobby';
       if (activeSocket && nextStatus === 'lobby') activeSocket.emit('set-player-presence', roomCode, 'in_lobby');
       setStatus(nextStatus);
       return;
@@ -298,33 +409,47 @@ export default function useRoomManager({
     activeSocket.emit('rejoin-room', savedRoomCode, savedUsername, getSessionKey(), user?.id, (response: SocketAck) => {
       if (!response?.success || !response.room) { clearRoomSession(); clearRoomState(); setStatus('selector'); return; }
       const rejoinedRoom = response.room;
+      if (rejoinedRoom.status === 'completed') {
+        clearRoomSession();
+        clearRoomState();
+        setStatus('selector');
+        return;
+      }
       setRoom(rejoinedRoom);
       setKanaCards((rejoinedRoom.cards ?? []).filter(isStudyCard));
-      const nextStatus = rejoinedRoom.status === 'active' ? 'assessment' : 'lobby';
+      const nextStatus = rejoinedRoom.status === 'active'
+        ? (rejoinedRoom.mode === 'gauntlet' ? 'gauntlet' : 'assessment')
+        : 'lobby';
       if (nextStatus === 'lobby') activeSocket.emit('set-player-presence', savedRoomCode, 'in_lobby');
       setStatus(nextStatus);
     });
-  }, [activeSocket, clearRoomSession, clearRoomState, room, roomCode, setStatus, user?.id]);
+  }, [activeSocket, clearRoomState, room, roomCode, setStatus, user?.id]);
 
   return useMemo(() => ({
     roomCode, room, username, kanaCards, results, grammarQuestions, prefillRoomCode,
     isPreparingAssessment, socket: activeSocket, isSocketReady,
+    isHydratingActiveMatch,
     handleCreateRoom: (deckOptions?: DeckOptions) => handleCreateRoom(getDisplayName(), deckOptions),
     handleJoinRoom: (code: string) => handleJoinRoom(code, getDisplayName()),
     handleReturnToRoom, handleDeclineRoomResume,
     isCurrentPlayerHost,
     handleInviteFriend,
     handleStartAssessment,
+    handleStartGauntlet,
     handleReplayAssessment,
     handleRequestHost,
     handleSubmitAnswer,
     handleUseHint,
+    handleForfeitMatch,
+    handleReturnGauntletToLobby,
     handleNextCard,
     handleLeaveRoom,
     handleStartNewSession,
     handleGenerateCards,
+    clearRoomState,
     setGrammarQuestions,
   }), [
+    clearRoomState,
     grammarQuestions,
     handleCreateRoom,
     handleDeclineRoomResume,
@@ -337,10 +462,14 @@ export default function useRoomManager({
     handleReplayAssessment,
     handleRequestHost,
     handleStartAssessment,
+    handleStartGauntlet,
     handleStartNewSession,
     handleSubmitAnswer,
     handleUseHint,
+    handleForfeitMatch,
+    handleReturnGauntletToLobby,
     isPreparingAssessment,
+    isHydratingActiveMatch,
     isSocketReady,
     isCurrentPlayerHost,
     kanaCards,

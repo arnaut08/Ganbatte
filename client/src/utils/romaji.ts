@@ -1,9 +1,11 @@
 const ROMAJI_SYLLABLES: string[] = [
   'kyo', 'kyu', 'kya', 'gyo', 'gyu', 'gya', 'sho', 'shu', 'sha',
-  'jyo', 'jyu', 'jya', 'jo', 'ju', 'ja', 'cho', 'chu', 'cha',
+  'syo', 'syu', 'sya', 'jyo', 'jyu', 'jya', 'zyo', 'zyu', 'zya',
+  'jo', 'ju', 'ja', 'cho', 'chu', 'cha', 'tyo', 'tyu', 'tya',
+  'cyo', 'cyu', 'cya',
   'nyo', 'nyu', 'nya', 'hyo', 'hyu', 'hya', 'byo', 'byu', 'bya',
   'pyo', 'pyu', 'pya', 'myo', 'myu', 'mya', 'ryo', 'ryu', 'rya',
-  'shi', 'chi', 'tsu', 'fu',
+  'shi', 'chi', 'tsu', 'fu', 'dji', 'dzu',
   'ka', 'ki', 'ku', 'ke', 'ko', 'ga', 'gi', 'gu', 'ge', 'go',
   'sa', 'si', 'su', 'se', 'so', 'za', 'zi', 'zu', 'ze', 'zo',
   'ta', 'ti', 'tu', 'te', 'to', 'da', 'di', 'du', 'de', 'do',
@@ -13,6 +15,35 @@ const ROMAJI_SYLLABLES: string[] = [
   'ra', 'ri', 'ru', 're', 'ro', 'wa', 'we', 'wi',
   'a', 'i', 'u', 'e', 'o', 'n',
 ];
+
+/** Maps romanization variants (Nihon-shiki / kana spelling) to their Hepburn
+ * canonical form used by the card data, e.g. `si` → `shi`, `zya` → `ja`. */
+const CANONICAL_ROMAJI: Record<string, string> = {
+  si: 'shi',
+  ti: 'chi',
+  tu: 'tsu',
+  hu: 'fu',
+  zi: 'ji',
+  di: 'ji',
+  dji: 'ji',
+  du: 'zu',
+  dzu: 'zu',
+  sya: 'sha',
+  syu: 'shu',
+  syo: 'sho',
+  zya: 'ja',
+  zyu: 'ju',
+  zyo: 'jo',
+  jya: 'ja',
+  jyu: 'ju',
+  jyo: 'jo',
+  tya: 'cha',
+  tyu: 'chu',
+  tyo: 'cho',
+  cya: 'cha',
+  cyu: 'chu',
+  cyo: 'cho',
+};
 
 type RomajiToken = { value: string; start: number; end: number };
 type MappedRomaji = { raw: string; normalized: string; spans: Array<[number, number]> };
@@ -65,7 +96,15 @@ export function scoreRomajiAnswer(answer: unknown, expected: unknown) {
 }
 
 export function areRomajiAnswersEqual(answer: unknown, expected: unknown): boolean {
-  return normalizeRomaji(answer) === normalizeRomaji(expected);
+  return canonicalizeRomaji(answer) === canonicalizeRomaji(expected);
+}
+
+/** Normalizes and maps every syllable of a romaji answer to its canonical
+ * Hepburn spelling so `si`, `ti`, `zya`, etc. match the stored readings. */
+function canonicalizeRomaji(value: unknown = ''): string {
+  return tokenizeNormalizedRomaji(normalizeRomaji(value))
+    .map((token) => CANONICAL_ROMAJI[token.value] ?? token.value)
+    .join('');
 }
 
 function buildNormalizedMap(rawValue: unknown = ''): MappedRomaji {

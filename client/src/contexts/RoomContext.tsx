@@ -18,6 +18,7 @@ export type RoomContextValue = {
   friendSearchResults: Friend[];
   isFriendSearchLoading: boolean;
   isPreparingAssessment: boolean;
+  isHydratingActiveMatch: boolean;
   handleCreateRoom: (deckOptions?: DeckOptions) => Promise<void>;
   handleJoinRoom: (code: string) => void;
   handleReturnToRoom: () => void;
@@ -28,11 +29,14 @@ export type RoomContextValue = {
   handleAcceptFriendRequest: (requestId: string) => Promise<void>;
   handleRejectFriendRequest: (requestId: string) => Promise<void>;
   handleStartAssessment: () => void;
+  handleStartGauntlet: () => void;
+  handleReturnGauntletToLobby: () => void;
   handleLeaveRoom: () => void;
   handleInviteFriend: (friendId: string) => void;
   handleNextCard: () => void;
   handleSubmitAnswer: (answer: unknown) => void;
   handleUseHint: (cardIndex: number) => void;
+  handleForfeitMatch: () => void;
   handleReplayAssessment: () => void;
   handleStartNewSession: () => void;
   handleRequestHost: (action: string) => void;

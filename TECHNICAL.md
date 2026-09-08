@@ -41,6 +41,8 @@ Ganbatte/
 │       │   ├── learning/
 │       │   │   ├── LearningScreen.tsx
 │       │   │   ├── KanjiStudy.tsx
+│       │   │   ├── GrammarStudy.tsx
+│       │   │   ├── GrammarIntroScreen.tsx
 │       │   │   ├── AssessmentHistory.tsx
 │       │   │   └── AssessmentLoadingScreen.tsx
 │       │   ├── practice/
@@ -275,6 +277,14 @@ The generator processes lessons sequentially and persists each successful lesson
 
 Generated records should be reviewed before production release. When content is corrected, increment the content version and rerun the relevant lesson with `--force`.
 
+### Grammar Progress Tracking
+
+Apply `server/database/migrations/018_create_grammar_quiz_results.sql`. It creates `public.grammar_quiz_results` (one row per completed practice quiz, `lesson_number` 0–12) with an index on `(user_id, lesson_number)`, RLS limiting rows to their owners, and the `get_grammar_overview(user_id_input)` RPC that aggregates per-lesson `is_cleared` (`BOOL_OR(passed)`), `best_score`, and `total_attempts` for lessons 1–12. A lesson is `is_mastered` when any attempt scores 100% **or** two consecutive attempts passed (≥ 80%) on consecutive UTC calendar days — the RPC pairs attempts with `LAG` window functions per lesson, so a failed attempt or a day gap breaks the streak.
+
+When a practice session finishes, `GrammarPractice` computes `score_percentage` and `passed = score >= 80`, inserts the result through `saveGrammarQuizResult()` (`client/src/services/api.ts`), and — for passed quizzes only — calls `recordUserActivity()` for the daily streak (failed attempts show the retry prompt without streak progression). The solo results screen renders a mastery banner: perfect scores show "Mastered (Perfect Score)!", passes in the 80–99% band re-read the overview to distinguish an already-completed consecutive-day streak from a first pass ("Pass again tomorrow to achieve mastery"). Solo practice quizzes are scoped to a single Genki lesson; multiplayer room sessions mix lessons and are stored under `lesson_number` 0 so they never skew per-lesson aggregates. The Mastery Passport fetches `getGrammarOverview()` alongside the Kana, Kanji, and Vocab overviews to fill the `04 // GRAMMAR` card.
+
+**Intro flow**: Grammar study now goes through `GrammarIntroScreen.tsx` (`'grammar-intro'` status) before `GrammarStudy` — the "Study Now →" buttons on the Learning screen and Mastery Passport both open the intro, which explains the curriculum (12 Genki Volume 1 lessons) and routes to the quiz setup via `handleStartGrammarPractice`. The `AppStatus` union and `screenPriority` map include the new `'grammar-intro'` entry.
+
 ### Server on Render
 
 Configure a Render web service with:
@@ -344,7 +354,29 @@ The current dataset is generated from independent beginner vocabulary dimensions
 - `GET /api/kanji-cards` - Returns grouped Kanji study cards.
 - `POST /api/generate-cards?count=10` - Generates a random deck with 1-25 cards.
 - `GET /api/rooms/:code` - Returns the current room state.
+- `GET /api/pvp-record` - Returns the authenticated player's aggregated multiplayer 1v1 record (`totalMatches`, `wins`, `losses`, `ties`, `winRate`) computed by pairing their `assessment_results` rows (those with a `companion_user_id`) against the opponent's counterpart rows, which RLS hides from the client.
+- `POST /api/activity` - Records a key learning action for the authenticated user through the `record_user_activity` RPC (migration `017`). Returns `{ activity: { current_streak, streak_extended, previous_tier } }`. The client calls it on the first correct Kana recall, a cleared Vocab stage, a completed Kanji session, and the end of a PvP match.
 - Assessment history is stored in Supabase by the authenticated client after a completed assessment.
+
+## Streaks & Account Tiers
+
+Profiles carry cross-device learning bookkeeping (migration `017_add_profile_streaks_and_tier.sql`): `current_streak`, `longest_streak`, `last_active_date`, and `account_tier` (default `N5 NOVICE`). The `record_user_activity(user_id)` RPC is idempotent per calendar day: it extends the streak when the last activity was yesterday, resets it to 1 after a missed day, keeps `longest_streak` up to date, and returns the new `current_streak`, whether a new activity day was recorded, the tier stored before the call. `streak_extended` is true for every first action of a day (streak started, extended, or restarted) so the client can celebrate it, and false only for same-day repeats. Authenticated callers are pinned to their own profile (`auth.uid()` wins over the passed id); only the service role may target an arbitrary user.
+
+The client evaluates the account tier dynamically in `client/src/utils/accountTier.ts` from live progress:
+
+| Tier | Milestone |
+| --- | --- |
+| N5 NOVICE | Base tier |
+| KANA SCHOLAR | 46 Kana mastered |
+| N5 APPRENTICE | 46 Kana + 2 Kanji groups or 5 Vocab stages |
+| N5 JOURNEYMAN | 5 Kanji groups + 14 Vocab stages |
+| N5 MASTER | 8 Kanji groups + 28 Vocab stages |
+| N5 SENSEI | All N5 mastered + 10 PvP wins |
+
+`CelebrationProvider` (mounted in `App.tsx`) owns a FIFO queue exposed as `queueCelebration()`. After each recorded action, `useActivityRecorder` queues a yellow streak popup when `streak_extended` is true, and when the evaluated tier outranks the stored `account_tier` it persists the promotion to `profiles` and queues the lime `RANK PROMOTION` popup. Both render through the Neo-Brutalist `CelebrationModal` (`border-3 border-black shadow-[8px_8px_0px_0px_#000]`), dismissed with Enter, Escape, the confirm button, or a backdrop click. The Mastery Passport displays the same evaluated tier instead of a hardcoded value.
+
+The current streak is surfaced in the UI on the Mastery Passport's top stats strip and the home-screen Player Progression HUD through `client/src/hooks/useProfileStreak.ts`, which reads the signed-in user's own `profiles` row (current/longest streak) via RLS.
+
 
 ## Socket Events
 

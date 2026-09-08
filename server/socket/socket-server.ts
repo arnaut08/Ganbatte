@@ -25,10 +25,11 @@ import {
   type SessionKey,
   type Username,
 } from '../utils/validation.js';
-import { generateRandomCards, generateRandomKanjiCards, type KanjiCard, type PracticeCard } from '../services/card-service.js';
+import { generateRandomKanjiCards, generateRandomVocabCards, type KanjiCard, type PracticeCard, type VocabCard } from '../services/card-service.js';
 import { getPersistedKanjiDeck } from '../repositories/kanji-repository.js';
+import { getPersistedVocabDeck } from '../repositories/vocab-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
-import { KANA_SENTENCES } from '../data/kana-sentences.js';
+import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
 import {
   advanceRoomIfReady,
@@ -38,7 +39,20 @@ import {
   roomState, type Room, type RoomCard,
 } from '../utils/socket-room-utils.js';
 
-type RoomDeckConfig = { type?: 'kana' | 'kanji' | 'grammar'; groups?: string[]; maxLesson?: number; count?: number };
+type RoomDeckConfig = {
+  type?: 'kana' | 'kanji' | 'vocab' | 'grammar';
+  mode?: 'standard' | 'gauntlet';
+  groups?: string[];
+  maxLesson?: number;
+  count?: number;
+};
+
+function isPracticeAnswerCorrect(answer: Answer, card: PracticeCard): boolean {
+  if (card.answerType === 'text' && card.correctAnswer) {
+    return String(answer).trim().toLowerCase() === card.correctAnswer.trim().toLowerCase();
+  }
+  return isCorrectRomajiAnswer(answer, card.romaji);
+}
 
 export async function configureSocketServer(server: HttpServer, app: Express): Promise<Server> {
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
@@ -53,7 +67,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     pingTimeout: 60000,
     connectionStateRecovery: {
       maxDisconnectionDuration: 2 * 60 * 1000, // Retain session for 2 minutes
-      skipMiddlewares: false,                  // Must be false to re-populate socket.data.user
+      skipMiddlewares: false,                   // Must be false to re-populate socket.data.user
     },
   });
 
@@ -80,10 +94,6 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
     socket.data.user = data.user;
 
-    // Do not forcibly disconnect a previous browser session. Browser switches
-    // and background tabs may briefly have more than one live socket; the
-    // latest socket remains the presence owner while old sockets can finish
-    // their reconnect/rejoin lifecycle naturally.
     await claimUserConnection(data.user.id, socket.id);
 
     socket.data.connectionRefresh = setInterval(() => {
@@ -96,10 +106,23 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
   });
 
   io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id} (Recovered: ${socket.recovered})`);
+    console.log(`User connected: ${socket.id} (Recovered: ${socket.recovered}). Total connected users: ${io.engine.clientsCount}`);
 
     const userRoom = socket.data.user?.id ? `user:${socket.data.user.id}` : null;
     if (userRoom) socket.join(userRoom);
+
+    // Allow dynamic runtime authentication sync when verified post-login/signup
+    socket.on('authenticate-socket', async (accessToken: string) => {
+      if (!isSupabaseConfigured() || !accessToken) return;
+      const { data, error } = await getSupabaseClient().auth.getUser(accessToken);
+      if (!error && data.user) {
+        socket.data.user = data.user;
+        const newUserRoom = `user:${data.user.id}`;
+        socket.join(newUserRoom);
+        await claimUserConnection(data.user.id, socket.id);
+        console.log(`Socket dynamically authenticated: ${socket.id} for user ${data.user.id}`);
+      }
+    });
 
     const notifyFriendsThatUserIsOnline = async (): Promise<void> => {
       const userId = socket.data.user?.id;
@@ -176,9 +199,10 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
-      const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : 'kana';
+      const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : deckConfig?.type === 'vocab' ? 'vocab' : 'kana';
+      const deckMode = deckConfig?.mode === 'gauntlet' ? 'gauntlet' : 'standard';
       let cards: PracticeCard[] = [];
-      if (deckType === 'kanji') {
+      if (deckMode !== 'gauntlet' && deckType === 'kanji') {
         let deck;
         try {
           deck = await getPersistedKanjiDeck();
@@ -192,10 +216,25 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           return;
         }
         cards = generateRandomKanjiCards(deck.cards as unknown as KanjiCard[], Array.isArray(deckConfig?.groups) ? deckConfig.groups : [], 10);
-      } else if (deckType === 'kana') {
-        cards = generateRandomCards(KANA_SENTENCES, 10);
+      } else if (deckMode !== 'gauntlet' && deckType === 'vocab') {
+        let deck;
+        try {
+          deck = await getPersistedVocabDeck();
+        } catch (error) {
+          console.error('Vocab room deck lookup failed:', error);
+          if (callback) callback({ success: false, message: 'Vocabulary lessons are not available.' });
+          return;
+        }
+        if (!deck) {
+          if (callback) callback({ success: false, message: 'Vocabulary lessons are not available.' });
+          return;
+        }
+        cards = generateRandomVocabCards(deck as VocabCard[], 10, Array.isArray(deckConfig?.groups) ? deckConfig.groups : []);
       }
-
+      const initialSeed = roomCode.split('').reduce(
+        (value, character) => ((value * 31) + character.charCodeAt(0)) % 2147483647,
+        7,
+      );
       roomState.rooms.set(roomCode, {
         code: roomCode,
         players: [{
@@ -212,6 +251,8 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         leftPlayers: [],
         cards,
         deckType,
+        mode: deckMode,
+        seed: initialSeed,
         selectedGroups: Array.isArray(deckConfig?.groups) ? deckConfig.groups : [],
         grammarSettings: deckType === 'grammar' ? {
           maxLesson: Number(deckConfig?.maxLesson) || 3,
@@ -393,7 +434,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         return player.connected !== false && status !== 'away' && status !== 'disconnected' && status !== 'offline';
       })) return;
 
-      if (room.deckType === 'grammar') {
+      if (room.deckType === 'grammar' || room.deckType === 'kana' || room.deckType === 'vocab') {
         room.status = 'preparing';
         room.currentCardIndex = 0;
         room.players.forEach((player) => {
@@ -404,17 +445,34 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         io.to(roomCode).emit('assessment-preparing', { room });
 
         try {
-          const questions = await generateGrammarAssessment({
-            maxLesson: room.grammarSettings?.maxLesson || 3,
-            count: room.grammarSettings?.count || 5,
-            mode: 'assessment',
-          });
-          room.cards = questions as unknown as RoomCard[];
-          room.questions = questions;
+          if (room.deckType === 'grammar') {
+            const questions = await generateGrammarAssessment({
+              maxLesson: room.grammarSettings?.maxLesson || 3,
+              count: room.grammarSettings?.count || 5,
+              mode: 'assessment',
+            });
+            room.cards = questions as unknown as RoomCard[];
+            room.questions = questions;
+          } else {
+            if (room.deckType === 'vocab') {
+              const deck = await getPersistedVocabDeck();
+              if (!deck) throw new Error('Vocabulary deck is unavailable');
+              room.cards = generateRandomVocabCards(deck, 10, room.selectedGroups || []);
+              if (room.cards.length === 0) throw new Error('Selected vocabulary stages contain no items');
+            } else {
+              room.cards = await generateKanaDeck();
+            }
+          }
         } catch (error) {
-          console.error('Failed to generate grammar assessment deck:', error);
+          console.error(`Failed to generate ${room.deckType} assessment deck:`, error);
           room.cards = [];
           room.questions = [];
+          room.status = 'waiting';
+          io.to(roomCode).emit('assessment-generation-failed', {
+            room,
+            message: `${room.deckType === 'kana' ? 'Kana' : room.deckType === 'vocab' ? 'Vocabulary' : 'Grammar'} assessment deck could not be generated. Please try again.`,
+          });
+          return;
         }
       } else if (refreshDeck) {
         if (room.deckType === 'kanji') {
@@ -422,8 +480,27 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           room.cards = deck
             ? generateRandomKanjiCards(deck.cards as unknown as KanjiCard[], room.selectedGroups || [], 10)
             : [];
+        } else if (room.deckType === 'vocab') {
+          try {
+            const deck = await getPersistedVocabDeck();
+            if (!deck) throw new Error('Vocabulary deck is unavailable');
+            room.cards = generateRandomVocabCards(deck, 10, room.selectedGroups || []);
+            if (room.cards.length === 0) throw new Error('Selected vocabulary stages contain no items');
+          } catch (error) {
+            console.error('Vocab assessment deck generation failed:', error);
+            room.status = 'waiting';
+            socket.emit('assessment-action-denied', { message: 'Vocabulary assessments are not available.' });
+            return;
+          }
         } else {
-          room.cards = generateRandomCards(KANA_SENTENCES, 10);
+          try {
+            room.cards = await generateKanaDeck();
+          } catch (error) {
+            console.error('Kana assessment deck generation failed:', error);
+            room.status = 'waiting';
+            socket.emit('assessment-action-denied', { message: 'Kana assessments are not available.' });
+            return;
+          }
         }
       }
 
@@ -439,6 +516,53 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
     socket.on('start-assessment', startAssessment);
 
+    socket.on('start-gauntlet', (roomCode: RoomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      const player = room?.players.find((candidate) => candidate.id === socket.id);
+      if (!room || !player || room.players.length < 2 || room.status !== 'waiting') return;
+
+      const seed = roomCode.split('').reduce(
+        (value, character) => ((value * 31) + character.charCodeAt(0)) % 2147483647,
+        7,
+      );
+
+      // 1. Mutate room state
+      room.status = 'active';
+      room.mode = 'gauntlet';
+      room.seed = seed;
+
+      // 2. Broadcast to both players
+      io.to(roomCode).emit('gauntlet-started', { room, seed });
+    });
+
+    socket.on('forfeit-match', (roomCode: RoomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      const forfeitingPlayer = room?.players.find((player) => player.id === socket.id);
+      const winner = room?.players.find((player) => player.id !== socket.id && player.connected !== false);
+      if (!room || !forfeitingPlayer || !winner || room.players.length < 2) return;
+      if (room.status !== 'active' && room.status !== 'preparing') return;
+
+      room.status = 'completed';
+      room.winnerUserId = winner.userId ?? null;
+      room.forfeitedByUserId = forfeitingPlayer.userId ?? null;
+      if (winner.id) {
+        io.to(winner.id).emit('match-forfeited', {
+          forfeitingPlayerName: forfeitingPlayer.name,
+          winnerUserId: room.winnerUserId,
+          winnerPlayerName: winner.name,
+        });
+      }
+      const completionEvent = room.mode === 'gauntlet' ? 'gauntlet-match-completed' : 'assessment-completed';
+      io.to(roomCode).emit(completionEvent, {
+        room,
+        results: buildAssessmentResults(room),
+        winnerUserId: room.winnerUserId,
+        forfeitedByUserId: room.forfeitedByUserId,
+        winnerSocketId: winner.id,
+        loserSocketId: forfeitingPlayer.id,
+      });
+    });
+
     socket.on('replay-assessment', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
@@ -453,12 +577,15 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     socket.on('return-to-lobby', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
-      if (room.players[0]?.id !== socket.id) {
+      if (room.mode !== 'gauntlet' && room.players[0]?.id !== socket.id) {
         socket.emit('assessment-action-denied', { message: 'Waiting for the host to return the room to the lobby.' });
         return;
       }
 
       room.status = 'waiting';
+      room.winnerUserId = null;
+      room.forfeitedByUserId = null;
+      delete room.winnerSocketId;
       room.currentCardIndex = 0;
       room.players.forEach((player) => {
         player.answers = [];
@@ -467,7 +594,11 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         player.status = 'in_lobby';
         player.presence = 'online';
       });
-      io.to(roomCode).emit('room-returned-to-lobby', { room });
+      io.to(roomCode).emit('room-returned-to-lobby', {
+        room,
+        returnedBySocketId: socket.id,
+        returnedByPlayerName: room.players.find((player) => player.id === socket.id)?.name,
+      });
     });
 
     socket.on('exit-lobby', (roomCode: RoomCode, callback: RoomCallback) => {
@@ -558,7 +689,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           if (room.deckType === 'grammar') {
             player.ready = false;
           } else {
-            player.ready = Boolean(currentCard && isCorrectRomajiAnswer(parsedAnswer.data, currentCard.romaji));
+            player.ready = Boolean(currentCard && isPracticeAnswerCorrect(parsedAnswer.data, currentCard));
           }
 
           io.to(roomCode).emit('answer-submitted', {
@@ -571,7 +702,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           const allSubmitted = room.players.length > 0 && room.players.every((entry) => entry.answers[idx] !== undefined);
           if (allSubmitted) {
             console.log(`both-submitted: room=${roomCode} cardIndex=${idx}`);
-            const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+            const kanaCards = room.cards;
             const isFinalCard = idx >= kanaCards.length - 1;
             const allAnswersCorrect = room.players.every((entry) => entry.ready === true);
 
@@ -599,7 +730,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         player.ready = false;
       });
 
-      const kanaCards = room.cards || generateRandomCards(KANA_SENTENCES, 10);
+      const kanaCards = room.cards;
       if (room.currentCardIndex >= kanaCards.length) {
         room.status = 'completed';
         console.log(`assessment-completed (next-card): room=${roomCode}`);
@@ -822,6 +953,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         reason,
         details,
         userId: socket.data.user?.id,
+        totalConnectedUsers: io.engine.clientsCount,
       });
 
       if (socket.data.connectionRefresh) {
@@ -840,7 +972,6 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       const socketId = socket.id;
       const userId = socket.data.user?.id;
       const activeSocketId = userId ? await getUserSocketId(userId) : null;
-      // A newer browser/tab owns this user connection. Leave presence intact.
       if (activeSocketId && activeSocketId !== socketId) return;
 
       if (userId) await releaseUserConnection(userId, socketId).catch(console.error);

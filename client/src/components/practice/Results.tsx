@@ -6,11 +6,19 @@ import {
   scoreRomajiAnswer,
 } from '../../utils/romaji';
 import { supabase } from '../../config/supabase';
+import useActivityRecorder from '../../hooks/useActivityRecorder';
+import { getDeckAccent } from '../../utils/deck-theme';
 import type { AssessmentResult, DiffSegment, KanaCard, KanjiCard } from '../../types';
 
 type ResultPlayer = Partial<AssessmentResult>;
-
-type ResultCard = Partial<KanaCard & KanjiCard>;
+type ResultCard = Partial<KanaCard & KanjiCard> & {
+  questionType?: 'multiple-choice' | 'type-in';
+  promptKind?: 'kanji' | 'english';
+  prompt?: string;
+  options?: string[];
+  correctAnswer?: string;
+  answerType?: 'romaji' | 'text';
+};
 
 type ResultsProps = {
   results?: ResultPlayer[];
@@ -18,7 +26,7 @@ type ResultsProps = {
   kanaCards?: ResultCard[];
   username?: string;
   user?: { id?: string } | null;
-  room?: { selectedGroups?: string[] } | null;
+  room?: { selectedGroups?: string[]; deckType?: string; winnerUserId?: string | null } | null;
   isHost?: boolean;
   onReplaySet?: () => void;
   onStartNewSession?: () => void;
@@ -50,10 +58,37 @@ function renderDifference(answer: string, expected: string, side: 'given' | 'exp
   ));
 }
 
-function Results({ results = [], roomCode, kanaCards = [], username, user, room, isHost, onReplaySet, onStartNewSession, onRequestHost }: ResultsProps) {
+export default function Results({
+  results = [],
+  roomCode,
+  kanaCards = [],
+  username,
+  user,
+  room,
+  isHost,
+  onReplaySet,
+  onStartNewSession,
+  onRequestHost,
+}: ResultsProps) {
   const [requestedAction, setRequestedAction] = useState<string | null>(null);
   const savedResult = useRef(false);
-  const isKanjiDeck = kanaCards.some((card) => card?.groupId || card?.groupName);
+  const { recordActivity } = useActivityRecorder();
+
+  useEffect(() => {
+    if (!results || results.length === 0 || !kanaCards || kanaCards.length === 0) {
+      onStartNewSession?.();
+    }
+  }, [results, kanaCards, onStartNewSession]);
+
+  if (!results || results.length === 0 || !kanaCards || kanaCards.length === 0) {
+    return null;
+  }
+
+  const isKanjiDeck = room?.deckType === 'kanji' || kanaCards.some((card) => card?.groupId || card?.groupName);
+  const isVocabDeck = room?.deckType === 'vocab';
+  const isGrammarDeck = room?.deckType === 'grammar';
+  const themeAccent = getDeckAccent(isKanjiDeck ? 'kanji' : isVocabDeck ? 'vocab' : isGrammarDeck ? 'grammar' : 'kana');
+
   const selectedDeckGroups = Array.isArray(room?.selectedGroups)
     ? room.selectedGroups
     : [...new Set((kanaCards || []).map((card) => card?.groupId).filter(Boolean))];
@@ -70,18 +105,21 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
     for (let i = 0; i < total; i++) {
       const submitted = answers[i];
-      const score = scoreRomajiAnswer(submitted, kanaCards[i]?.romaji);
+      const card = kanaCards[i];
+      const isExactText = isVocabDeck && card?.answerType === 'text';
+      const isCorrect = isExactText
+        ? String(submitted || '').trim().toLowerCase() === String(card?.correctAnswer || '').trim().toLowerCase()
+        : isKanjiDeck || isVocabDeck
+          ? areRomajiAnswersEqual(submitted, card?.romaji)
+          : scoreRomajiAnswer(submitted, card?.romaji).percentage === 100;
+      const score = isExactText ? { matched: isCorrect ? 1 : 0, total: 1 } : scoreRomajiAnswer(submitted, card?.romaji);
       matchedTokens += score.matched;
       totalTokens += score.total;
 
-      if (isKanjiDeck) {
-        if (areRomajiAnswersEqual(submitted, kanaCards[i]?.romaji)) correct++;
-      } else if (score.matched === score.total) {
-        correct++;
-      }
+      if (isCorrect) correct++;
     }
 
-    if (isKanjiDeck) {
+    if (isKanjiDeck || isVocabDeck) {
       return {
         correct,
         incorrect: total - correct,
@@ -129,7 +167,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
     : null;
   const companionUserId = companionPlayer?.userId ?? null;
 
-  // Supabase Result Sync
   useEffect(() => {
     const saveCurrentAssessmentResult = async () => {
       if (savedResult.current || !supabase || !roomCode || !currentPlayer || !resultStorageKey) return;
@@ -149,11 +186,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
       const playerUserId = currentPlayer.userId ?? user?.id ?? authenticatedUserId;
       if (playerUserId !== authenticatedUserId) {
-        console.error('Assessment result save blocked: player user does not match the active auth session.', {
-          playerUserId,
-          authenticatedUserId,
-          currentPlayerName: currentPlayer.name,
-        });
         return;
       }
 
@@ -161,7 +193,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
       const { error } = await supabase.from('assessment_results').insert({
         user_id: authenticatedUserId,
-        assessment_type: isKanjiDeck ? 'kanji-reading' : 'kana-reading',
+        assessment_type: isKanjiDeck ? 'kanji-reading' : isVocabDeck ? 'vocab' : isGrammarDeck ? 'grammar' : 'kana-reading',
         score_percentage: currentStats.percentage,
         correct_questions: currentStats.correct,
         total_questions: currentStats.total,
@@ -180,12 +212,15 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
       }
 
       sessionStorage.setItem(storageKey, 'true');
+
+      if (companionUserId) {
+        void recordActivity();
+      }
     };
 
     saveCurrentAssessmentResult();
-  }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey, isKanjiDeck, selectedDeckGroups]);
+  }, [currentPlayer, currentStats.correct, currentStats.percentage, currentStats.total, roomCode, user, companionUserId, resultStorageKey, isKanjiDeck, isVocabDeck, isGrammarDeck, selectedDeckGroups, recordActivity]);
 
-  // Determine top score for winner podium
   const maxScore = Math.max(
     ...results.map((p) => computeStats(p.answers || []).percentage)
   );
@@ -195,8 +230,11 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
       {/* 1. Header Bar */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59]">
-        // SESSION COMPLETE
+          <span
+            className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider"
+            style={{ color: themeAccent }}
+          >
+            // SESSION COMPLETE
           </span>
           <h1 className="text-lg sm:text-3xl font-black uppercase tracking-tight text-white leading-tight">
             Assessment Results
@@ -205,11 +243,11 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
         <div className="flex items-center gap-1.5 sm:gap-2 self-start sm:self-auto">
           {roomCode && (
-            <span className="border-2 border-black bg-[#252c3d] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-neutral-300 shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]">
+            <span className="border-2 border-black bg-[#151922] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-neutral-300 shadow-[1.5px_1.5px_0px_0px_#000]">
               ROOM: {roomCode}
             </span>
           )}
-          <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]">
+          <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000]">
             COMPLETED
           </span>
         </div>
@@ -217,57 +255,52 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
       {/* 2. Podium Scoreboard */}
       <div className="grid gap-2.5 sm:gap-4 sm:grid-cols-2">
-        {results.map((player, idx) => {
+          {results.map((player, idx) => {
           const stats = computeStats(player.answers || []);
-          const isWinner = results.length > 1 && stats.percentage === maxScore;
+            const isWinner = results.length > 1 && (room?.winnerUserId
+              ? player.userId === room.winnerUserId
+              : stats.percentage === maxScore);
 
           return (
             <div
               key={idx}
-              className={`relative flex flex-col justify-between border-2 border-black p-3.5 sm:p-5 shadow-[3px_3px_0px_0px_#000000] sm:shadow-[6px_6px_0px_0px_#000000] ${isWinner ? 'bg-[#70CFF8]' : 'bg-[#1a1f2c]'
+              className={`relative flex flex-col justify-between border-2 border-black p-3.5 sm:p-5 shadow-[3px_3px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] ${isWinner ? 'border-l-8 bg-[#1f2637] text-white' : 'bg-[#151922] text-white'
                 }`}
+              style={isWinner ? { borderLeftColor: themeAccent } : undefined}
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase ${isWinner ? 'bg-black text-[#FFDE59]' : 'bg-[#2c3345] text-neutral-300'
+                  className={`border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${isWinner ? 'bg-white text-black' : 'bg-black text-neutral-400'
                     }`}
+                  style={isWinner ? { backgroundColor: themeAccent, color: '#000000' } : undefined}
                 >
                   {isWinner ? '★ WINNER' : results.length > 1 ? `RANK #${idx + 1}` : 'OPERATOR'}
                 </span>
-                <span
-                  className={`font-mono text-[10px] sm:text-xs font-bold ${isWinner ? 'text-black/70' : 'text-neutral-400'
-                    }`}
-                >
+                <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-400">
                   P{idx + 1}
                 </span>
               </div>
 
               <div className="my-2 sm:my-4">
-                <h2
-                  className={`text-base sm:text-xl font-black uppercase truncate ${isWinner ? 'text-black' : 'text-white'
-                    }`}
-                >
+                <h2 className="text-base sm:text-xl font-black uppercase truncate text-white">
                   {player.name}
                 </h2>
                 <div
-                  className={`mt-0.5 sm:mt-1 font-mono text-3xl sm:text-5xl font-black leading-none ${isWinner ? 'text-black' : 'text-[#A3E636]'
-                    }`}
+                  className="mt-0.5 sm:mt-1 font-mono text-3xl sm:text-5xl font-black leading-none"
+                  style={{ color: isWinner ? themeAccent : '#A3E636' }}
                 >
                   {stats.percentage}%
                 </div>
               </div>
 
-              <div
-                className={`flex flex-wrap items-center gap-2 sm:gap-3 border-t-2 pt-2 sm:pt-3 font-mono text-[10px] sm:text-xs font-black ${isWinner ? 'border-black/20 text-black' : 'border-neutral-700 text-neutral-400'
-                  }`}
-              >
-                <span className="text-[#10b981]">✔ {stats.correct}/{stats.total} CORRECT</span>
-                <span>·</span>
-                <span className="text-[#ef4444]">✖ {stats.incorrect} WRONG</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 border-t-2 border-white/10 pt-2 sm:pt-3 font-mono text-[10px] sm:text-xs font-black">
+                <span className="text-[#A3E636]">✔ {stats.correct}/{stats.total} CORRECT</span>
+                <span className="text-neutral-500">·</span>
+                <span className="text-[#FF6B6B]">✖ {stats.incorrect} WRONG</span>
                 {isKanjiDeck && (
                   <>
-                    <span>·</span>
-                    <span className="text-[#FFDE59]">HINTS: {getHintTotal(player)}</span>
+                    <span className="text-neutral-500">·</span>
+                    <span className="text-[#70CFF8]">HINTS: {getHintTotal(player)}</span>
                   </>
                 )}
               </div>
@@ -279,13 +312,13 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
       {/* 3. Action Controls */}
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-1 sm:pt-2">
         {requestedAction ? (
-          <div className="flex items-center gap-2 border-2 border-black bg-[#252c3d] px-3 py-2 sm:px-5 sm:py-3 shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000]">
+          <div className="flex items-center gap-2 border-2 border-black bg-[#151922] px-3 py-2 sm:px-5 sm:py-3 shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000]">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping bg-[#A3E636] opacity-75" />
               <span className="relative inline-flex h-2 w-2 bg-[#A3E636]" />
             </span>
             <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-white">
-              Waiting for Host to <span className="text-[#FFDE59]">Start New Assessment</span>
+              Waiting for Host to <span style={{ color: themeAccent }}>Start New Assessment</span>
               <span className="animate-pulse">...</span>
             </span>
           </div>
@@ -294,14 +327,15 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
             <button
               type="button"
               onClick={onStartNewSession}
-              className="h-9 sm:h-11 border-2 border-black bg-[#FFDE59] px-3 sm:px-5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              className="h-9 sm:h-11 cursor-pointer border-2 border-black bg-white px-3 sm:px-5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               New Session
             </button>
             <button
               type="button"
               onClick={handleReplaySelection}
-              className="h-9 sm:h-11 border-2 border-black bg-[#A3E636] px-3 sm:px-5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000000] sm:shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              style={{ backgroundColor: themeAccent }}
+              className="h-9 sm:h-11 cursor-pointer border-2 border-black px-3 sm:px-5 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               Replay Set →
             </button>
@@ -311,9 +345,12 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
 
       {/* 4. Round-by-Round Breakdown List */}
       <div className="space-y-2.5 sm:space-y-4 pt-2 sm:pt-4">
-        <div className="border-b-2 border-neutral-700 pb-1.5 sm:pb-2">
-          <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#70CFF8]">
-        // CARD EVALUATION ({kanaCards.length} ITEMS)
+        <div className="border-b-2 border-white/10 pb-1.5 sm:pb-2">
+          <span
+            className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider"
+            style={{ color: themeAccent }}
+          >
+            // CARD EVALUATION ({kanaCards.length} ITEMS)
           </span>
         </div>
 
@@ -321,10 +358,9 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
           {kanaCards.map((card, i) => (
             <div
               key={i}
-              className="border-2 border-black bg-[#1a1f2c] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000000] sm:shadow-[4px_4px_0px_0px_#000000] space-y-2.5 sm:space-y-3"
+              className="border-2 border-black bg-[#1f2637] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] space-y-2.5 sm:space-y-3"
             >
-              {/* Top Row: Index, Phrase, English */}
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b-2 border-black/40 pb-2">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b-2 border-white/10 pb-2">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="border border-black bg-white px-1.5 py-0.2 sm:px-2 sm:py-0.5 font-mono text-[10px] sm:text-xs font-black text-black">
                     #{i + 1}
@@ -340,19 +376,16 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 )}
               </div>
 
-              {/* Submissions vs Target */}
               <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
-                {/* Correct Solution */}
-                <div className="border-2 border-black bg-[#A3E636] p-2 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]">
-                  <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-black/70">
-                    TARGET ROMAJI
+                <div className="border-2 border-black bg-white p-2 sm:p-3 shadow-[1.5px_1.5px_0px_0px_#000]">
+                  <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase text-neutral-600">
+                    {isVocabDeck && card.answerType === 'text' ? 'TARGET ANSWER' : 'TARGET ROMAJI'}
                   </span>
                   <p className="mt-0.5 font-mono text-xs sm:text-base font-black text-black">
-                    {card.romaji}
+                    {isVocabDeck && card.answerType === 'text' ? card.correctAnswer : card.romaji}
                   </p>
                 </div>
 
-                {/* Player Answers */}
                 <div className="grid gap-1.5 sm:gap-2">
                   {results.map((player, pi) => {
                     const playerAnswer = player.answers?.[i];
@@ -360,7 +393,7 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                     return (
                       <div
                         key={pi}
-                        className="flex items-center justify-between border-2 border-black bg-[#252c3d] px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-[1.5px_1.5px_0px_0px_#000000] sm:shadow-[2px_2px_0px_0px_#000000]"
+                        className="flex items-center justify-between border-2 border-black bg-[#151922] px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-[1.5px_1.5px_0px_0px_#000]"
                       >
                         <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-300">
                           {player.name}:
@@ -369,7 +402,9 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                           {isUnanswered ? (
                             <span className="text-neutral-500 font-mono">[NO INPUT]</span>
                           ) : (
-                            renderDifference(String(playerAnswer || ''), card.romaji || '', 'given', isKanjiDeck)
+                            isVocabDeck && card.answerType === 'text'
+                              ? String(playerAnswer || '')
+                              : renderDifference(String(playerAnswer || ''), card.romaji || '', 'given', isKanjiDeck)
                           )}
                         </span>
                       </div>
@@ -378,7 +413,6 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 </div>
               </div>
 
-              {/* Hints Footer for Kanji Decks */}
               {isKanjiDeck && (() => {
                 const playersWithHints = results.filter(
                   (player) => Number(player.hintsUsed?.[i] || 0) > 0
@@ -387,14 +421,14 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
                 if (playersWithHints.length === 0) return null;
 
                 return (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-black/40">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/10">
                     <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                  // Hints:
+                      // Hints used:
                     </span>
                     {playersWithHints.map((player, pi) => (
                       <span
                         key={pi}
-                        className="inline-flex items-center gap-1 border-2 border-black bg-[#FFDE59] px-1.5 py-0.2 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000000]"
+                        className="inline-flex items-center gap-1 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1px_1px_0px_0px_#000]"
                       >
                         {player.name}
                       </span>
@@ -409,5 +443,3 @@ function Results({ results = [], roomCode, kanaCards = [], username, user, room,
     </main>
   );
 }
-
-export default Results;

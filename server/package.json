@@ -8,6 +8,7 @@
     "generate:genki-lessons": "tsx scripts/generate-genki-lessons.ts",
     "generate:kanji": "tsx scripts/generate-kanji.ts",
     "seed:kana": "tsx scripts/seed-kana.ts",
+    "seed:vocab": "tsx scripts/seed-vocab.ts",
     "start": "tsx index.ts"
   },
   "dependencies": {

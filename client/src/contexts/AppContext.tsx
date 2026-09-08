@@ -1,28 +1,41 @@
 import { createContext, useContext, type Dispatch, type SetStateAction, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import type { AppStatus, SelectorScreen } from '../types';
+import type { AppStatus, SelectorScreen, UserProfileRecord } from '../types';
 
 export type AppContextValue = {
   authLoading: boolean;
+  isLoggingOut: boolean;
   authRequired: boolean;
   user: User | null;
+  profile?: UserProfileRecord;
+  onProfileSaved: (profile: UserProfileRecord) => void;
+  handleDeleteAccount: () => Promise<void>;
+  isEmailVerifiedSignup: boolean;
+  setIsEmailVerifiedSignup: Dispatch<SetStateAction<boolean>>;
+  getDisplayName: () => string;
   appHomeKey: number;
   status: AppStatus;
   selectorScreen: SelectorScreen;
   setSelectorScreen: Dispatch<SetStateAction<SelectorScreen>>;
   handleBackToPractice: () => void;
   handleOpenFriends: () => void;
+  handleOpenProfile: () => void;
   handleOpenHistory: () => void;
   handleGoBack: () => void;
   handleOpenKanaStudy: () => void;
   handleOpenKanjiStudy: () => void;
+  handleStartKanjiLearning: () => void;
+  handleOpenVocabStudy: () => void;
+  handleStartVocabLearning: () => void;
   handleOpenGrammarStudy: () => void;
+  handleStartGrammarStudy: () => void;
+  handleStartGrammarPractice: (maxLesson?: number, count?: number) => void;
   handleOpenGrammarPractice: (maxLesson?: number, count?: number, mode?: string) => Promise<void>;
   selectedKana: Set<string>;
   handleContinueKanaIntro: () => void;
   handleOpenKanaFilter: () => void;
+  handleKanaSelectionChange: (cells: Set<string>) => void;
   handleApplyKanaFilters: (selectedKana: Set<string>) => void;
-  handleKanaReviewComplete: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
