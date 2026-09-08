@@ -19,6 +19,7 @@ import type {
   StudyCard,
   Toast,
 } from '../types';
+import { isStudyCard } from '../types';
 import {
   bindRoomSocketEvent,
   createRejoinGate,
@@ -302,7 +303,7 @@ export default function useRoomSocket({
         currentOptions.setRoomCode(savedRoomCode);
         currentOptions.setUsername(savedUsername);
         currentOptions.setRoom(nextRoom);
-        currentOptions.setKanaCards((nextRoom.cards as StudyCard[] | undefined) || []);
+        currentOptions.setKanaCards((nextRoom.cards ?? []).filter(isStudyCard));
 
         if (nextRoom.status === 'preparing') {
           currentOptions.setStatus('assessment-preparing');
@@ -336,7 +337,7 @@ export default function useRoomSocket({
       const currentOptions = latestOptionsRef.current;
       if (data?.room) {
         currentOptions.setRoom(data.room);
-        currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+        currentOptions.setKanaCards((data.room.cards ?? []).filter(isStudyCard));
       }
     });
 
@@ -352,7 +353,7 @@ export default function useRoomSocket({
       currentOptions.setIsPreparingAssessment(true);
       if (data?.room) {
         currentOptions.setRoom(data.room);
-        if (data.room.cards) currentOptions.setKanaCards(data.room.cards as StudyCard[]);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards.filter(isStudyCard));
       }
       currentOptions.setStatus('assessment-preparing');
       currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment-preparing' ? previous : [...previous, 'assessment-preparing']);
@@ -362,7 +363,7 @@ export default function useRoomSocket({
       const currentOptions = latestOptionsRef.current;
       if (data?.room) {
         currentOptions.setRoom(data.room);
-        if (data.room.cards) currentOptions.setKanaCards(data.room.cards as StudyCard[]);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards.filter(isStudyCard));
       }
     });
 
@@ -371,7 +372,7 @@ export default function useRoomSocket({
       currentOptions.setIsPreparingAssessment(false);
       if (data?.room) {
         currentOptions.setRoom(data.room);
-        if (data.room.cards) currentOptions.setKanaCards(data.room.cards as StudyCard[]);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards.filter(isStudyCard));
       }
       currentOptions.setStatus('assessment');
       currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment' ? previous : [...previous, 'assessment']);
@@ -417,7 +418,7 @@ export default function useRoomSocket({
       listen(eventName, (data) => {
         if (data?.room) {
           latestOptionsRef.current.setRoom(data.room);
-          if (data.room.cards) latestOptionsRef.current.setKanaCards(data.room.cards as StudyCard[]);
+          if (data.room.cards) latestOptionsRef.current.setKanaCards(data.room.cards.filter(isStudyCard));
         }
       });
     });
@@ -459,7 +460,7 @@ export default function useRoomSocket({
       if (!data?.room) return;
       const currentOptions = latestOptionsRef.current;
       currentOptions.setRoom(data.room);
-      currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+      currentOptions.setKanaCards((data.room.cards ?? []).filter(isStudyCard));
       currentOptions.setResults(null);
       currentOptions.setIsPreparingAssessment(false);
       currentOptions.setStatus('lobby');
@@ -486,7 +487,7 @@ export default function useRoomSocket({
       if (!data?.room) return;
       const currentOptions = latestOptionsRef.current;
       currentOptions.setRoom(data.room);
-      currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+      currentOptions.setKanaCards((data.room.cards ?? []).filter(isStudyCard));
       currentOptions.setResults(null);
       currentOptions.setIsPreparingAssessment(false);
       clearRoomSession();

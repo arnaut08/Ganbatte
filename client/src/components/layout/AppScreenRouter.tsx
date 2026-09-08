@@ -214,7 +214,7 @@ function LegacyAppScreenRouter({
           deckType={room?.deckType}
           selectedGroups={room?.selectedGroups}
           matchWinnerUserId={room?.winnerUserId}
-          matchWinnerSocketId={room?.winnerSocketId as string | undefined}
+          matchWinnerSocketId={room?.winnerSocketId}
           currentSocketId={socket?.id}
           onForfeit={handleForfeitMatch}
           onReturnToLobby={handleReturnGauntletToLobby}
