@@ -236,6 +236,11 @@ function LegacyAppScreenRouter({
           isHost={Boolean(isCurrentPlayerHost)}
           initialMinefield={room.minefield}
           onForfeit={handleForfeitMatch}
+          onReturnToLobby={handleReturnGauntletToLobby}
+          hostPlayerName={room.players[0]?.name}
+          guestPlayerName={room.players[1]?.name}
+          hostSocketId={room.players[0]?.id}
+          guestSocketId={room.players[1]?.id}
         />
       ) : (
         <>

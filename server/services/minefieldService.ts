@@ -13,7 +13,13 @@ export type MinefieldState = {
     currentPrompt: string;
     hostScore: number;
     guestScore: number;
+    roundNumber: number;
+    roundLimit: number;
+    winningScore: number;
 };
+
+export const MINEFIELD_ROUND_LIMIT = 10;
+export const MINEFIELD_WINNING_SCORE = 5;
 
 type VocabWordRow = {
     id: string;
@@ -50,6 +56,7 @@ export async function generateMinefieldBoard(
     supabaseClient: SupabaseClient,
     groupId?: string,
     selectedGroups?: string[],
+    roundNumber = 1,
 ): Promise<MinefieldState> {
     let query = supabaseClient
         .from('vocab_items')
@@ -70,13 +77,26 @@ export async function generateMinefieldBoard(
     const { data, error } = await query;
     if (error) throw error;
 
-    const words = (data ?? [])
+    const rawWords = (data ?? [])
         .filter(isVocabWordRow)
         .filter((word) => word.english.length > 0 && word.english[0].trim().length > 0)
         .map((word) => ({
             ...word,
             english_meaning: word.english[0].trim(),
         }));
+    
+    // Ensure complete uniqueness by filtering out duplicate IDs or kanji/kana entries
+    const seenIds = new Set<string>();
+    const seenMeanings = new Set<string>();
+    const words = rawWords.filter((word) => {
+        const uniqueKey = `${word.kanji}-${word.kana}`;
+        if (seenIds.has(word.id) || seenMeanings.has(uniqueKey)) {
+            return false;
+        }
+        seenIds.add(word.id);
+        seenMeanings.add(uniqueKey);
+        return true;
+    });
 
     if (words.length < 16) {
         throw new Error('At least 16 N5 vocabulary words are required to create a minefield board.');
@@ -98,5 +118,8 @@ export async function generateMinefieldBoard(
         currentPrompt: targetWord.english_meaning,
         hostScore: 0,
         guestScore: 0,
+        roundNumber,
+        roundLimit: MINEFIELD_ROUND_LIMIT,
+        winningScore: MINEFIELD_WINNING_SCORE,
     };
 }

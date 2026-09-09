@@ -22,6 +22,9 @@ export type MinefieldState = {
   currentPrompt: string;
   hostScore: number;
   guestScore: number;
+  roundNumber: number;
+  roundLimit: number;
+  winningScore: number;
 };
 
 /** A player currently (or previously) part of a room. */

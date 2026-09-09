@@ -66,8 +66,8 @@ export function useMinefieldSocket(
 
         return {
           ...previous,
-          hostScore: payload.hostScore,
-          guestScore: payload.guestScore,
+          hostScore: Number(payload.hostScore) || 0,
+          guestScore: Number(payload.guestScore) || 0,
           tiles: previous.tiles.map((tile) => (
             tile.id === payload.tileId
               ? {

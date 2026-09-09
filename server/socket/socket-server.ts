@@ -32,6 +32,7 @@ import { generateGrammarAssessment } from '../services/genki-grammar-service.js'
 import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
 import { configureRoomManager, startMinefieldRound } from '../managers/roomManager.js';
+import { MINEFIELD_ROUND_LIMIT, MINEFIELD_WINNING_SCORE } from '../services/minefieldService.js';
 import {
   advanceRoomIfReady,
   buildAssessmentResults,
@@ -47,8 +48,6 @@ type RoomDeckConfig = {
   maxLesson?: number;
   count?: number;
 };
-
-const MINEFIELD_WINNING_SCORE = 5;
 
 function isPracticeAnswerCorrect(answer: Answer, card: PracticeCard): boolean {
   if (card.answerType === 'text' && card.correctAnswer) {
@@ -581,17 +580,24 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       });
 
       const playerScore = isHost ? minefield.hostScore : minefield.guestScore;
-      if (playerScore >= MINEFIELD_WINNING_SCORE) {
+      const roundLimitReached = minefield.roundNumber >= MINEFIELD_ROUND_LIMIT;
+      if (playerScore >= MINEFIELD_WINNING_SCORE || roundLimitReached) {
+        const hostWins = minefield.hostScore > minefield.guestScore
+          || (minefield.hostScore === minefield.guestScore && isHost);
+        const winner = hostWins ? room.players[0] : room.players[1];
+        const loser = hostWins ? room.players[1] : room.players[0];
         room.status = 'completed';
-        room.winnerUserId = player.userId ?? null;
-        room.winnerSocketId = socket.id;
+        room.winnerUserId = winner?.userId ?? null;
+        room.winnerSocketId = winner?.id;
         roomState.rooms.set(roomCode, room);
         io.to(roomCode).emit('minefield-match-completed', {
           room,
           winnerUserId: room.winnerUserId,
-          winnerSocketId: socket.id,
-          loserSocketId: room.players.find((candidate) => candidate.id !== socket.id)?.id,
+          winnerPlayerName: winner?.name,
+          winnerSocketId: winner?.id,
+          loserSocketId: loser?.id,
           forfeitedByUserId: null,
+          completionReason: playerScore >= MINEFIELD_WINNING_SCORE ? 'score-target' : 'round-limit',
         });
         return;
       }
@@ -643,9 +649,11 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         io.to(roomCode).emit('minefield-match-completed', {
           room,
           winnerUserId: room.winnerUserId,
+          winnerPlayerName: winner.name,
           winnerSocketId: winner.id,
           loserSocketId: forfeitingPlayer.id,
           forfeitedByUserId: room.forfeitedByUserId,
+          completionReason: 'forfeit',
         });
         return;
       }
@@ -674,7 +682,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     socket.on('return-to-lobby', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
-      if (room.mode !== 'gauntlet' && room.players[0]?.id !== socket.id) {
+      if (room.mode !== 'gauntlet' && room.mode !== 'minefield' && room.players[0]?.id !== socket.id) {
         socket.emit('assessment-action-denied', { message: 'Waiting for the host to return the room to the lobby.' });
         return;
       }
@@ -684,6 +692,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       room.forfeitedByUserId = null;
       delete room.winnerSocketId;
       room.currentCardIndex = 0;
+      if (room.mode === 'minefield') delete room.minefield;
       room.players.forEach((player) => {
         player.answers = [];
         player.hintsUsed = [];

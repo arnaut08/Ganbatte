@@ -30,6 +30,7 @@ export type RoomSocketPayload = {
   winnerSocketId?: string;
   loserSocketId?: string;
   forfeitedByUserId?: string | null;
+  completionReason?: 'score-target' | 'round-limit' | 'forfeit';
   friend?: IdentityPayload;
   receiver?: IdentityPayload;
   displayName?: string;
@@ -191,7 +192,12 @@ function normalizeMinefieldState(value: unknown): MinefieldState | undefined {
     return undefined;
   }
 
-  return { tiles: tiles as MinefieldTile[], currentPrompt, hostScore, guestScore };
+  const roundNumber = asNumber(value.roundNumber);
+  const roundLimit = asNumber(value.roundLimit);
+  const winningScore = asNumber(value.winningScore);
+  if (roundNumber === undefined || roundLimit === undefined || winningScore === undefined) return undefined;
+
+  return { tiles: tiles as MinefieldTile[], currentPrompt, hostScore, guestScore, roundNumber, roundLimit, winningScore };
 }
 
 export function normalizeRoom(value: unknown): Room | undefined {
@@ -210,6 +216,9 @@ export function normalizeRoom(value: unknown): Room | undefined {
     currentCardIndex: asNumber(value.currentCardIndex),
     winnerUserId: asString(value.winnerUserId) ?? null,
     forfeitedByUserId: asString(value.forfeitedByUserId) ?? null,
+    completionReason: value.completionReason === 'score-target' || value.completionReason === 'round-limit' || value.completionReason === 'forfeit'
+      ? value.completionReason
+      : undefined,
     winnerSocketId: asString(value.winnerSocketId),
     selectedGroups: Array.isArray(value.selectedGroups)
       ? value.selectedGroups.filter((group): group is string => typeof group === 'string')
@@ -220,11 +229,17 @@ export function normalizeRoom(value: unknown): Room | undefined {
 
 function normalizeMinefieldTileResolvedPayload(
   value: unknown,
-): { tileId: string; success: boolean; ownerId: string | null } | null {
+): { tileId: string; success: boolean; ownerId: string | null; hostScore: number; guestScore: number } | null {
   if (!isRecord(value) || typeof value.success !== 'boolean') return null;
   const tileId = asString(value.tileId);
   if (tileId === undefined) return null;
-  return { tileId, success: value.success, ownerId: asString(value.ownerId) ?? null };
+  return {
+    tileId,
+    success: value.success,
+    ownerId: asString(value.ownerId) ?? null,
+    hostScore: Number(value.hostScore) || 0,
+    guestScore: Number(value.guestScore) || 0,
+  };
 }
 
 function normalizePayload(value: unknown): RoomSocketPayload | null {

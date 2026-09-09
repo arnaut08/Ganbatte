@@ -16,7 +16,13 @@ export async function startMinefieldRound(
   if (!room) return undefined;
 
   const previousMinefield = room.minefield;
-  const board = await generateMinefieldBoard(supabaseClient, undefined, room.selectedGroups);
+  const nextRoundNumber = (previousMinefield?.roundNumber ?? 0) + 1;
+  const board = await generateMinefieldBoard(
+    supabaseClient,
+    undefined,
+    room.selectedGroups,
+    nextRoundNumber,
+  );
   room.minefield = {
     ...board,
     hostScore: previousMinefield?.hostScore ?? 0,
