@@ -6,6 +6,7 @@ import VocabStageMap from './VocabStageMap';
 import VocabStudySession from './VocabStudySession';
 import VocabStageQuiz from './VocabStageQuiz';
 import GroupMapSkeleton from '../GroupMapSkeleton';
+import StudyScreenHeader from '../StudyScreenHeader';
 
 type VocabScreenProps = {
   onBack: () => void;
@@ -164,26 +165,13 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
-      {/* HEADER */}
-      <header className="flex items-center gap-2.5 sm:gap-4">
-        <button
-          type="button"
-          onClick={handleScreenBack}
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
-          aria-label="Return to learning modules"
-        >
-          <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
-        </button>
-        <div className="flex flex-col justify-center text-left">
-          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#A3E636] sm:text-xs">
-            03 // VOCABULARY
-          </span>
-          <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-4xl">
-            N5 Vocabulary
-          </h1>
-        </div>
-      </header>
+    <main className="mx-auto min-w-0 w-full max-w-5xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
+      <StudyScreenHeader
+        onBack={handleScreenBack}
+        eyebrow="03 // VOCABULARY"
+        title="N5 Vocabulary"
+        accentClassName="text-[#A3E636]"
+      />
 
       {/* SUB-HEADER INFO */}
       <div className="flex flex-col gap-1 border-t-2 border-white/20 pt-3 sm:flex-row sm:items-end sm:justify-between sm:pt-4">
@@ -198,10 +186,13 @@ export default function VocabScreen({ onBack }: VocabScreenProps) {
       {/* FILTER CONTROLS */}
       {!vocabLoading && !vocabError && (
         <DeckFilterBar
+          accent="vocab"
           category={vocabCategory}
           search={vocabSearch}
           dueCount={vocabDueCount}
           showDueOnly={showDueOnly}
+          placeholder="Search stage..."
+          searchAriaLabel="Search vocabulary stages"
           onCategoryChange={handleCategoryChange}
           onSearchChange={setVocabSearch}
           onToggleDueOnly={() => setShowDueOnly((prev) => !prev)}

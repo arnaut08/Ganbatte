@@ -50,7 +50,7 @@ export function LearningIntroSkeleton({ accent = '#70CFF8', deck = 'kanji' }: Sk
           </div>
         </div>
 
-        <div className="space-y-1.5 sm:space-y-2">
+        <div className="min-h-[220px] space-y-1.5 sm:min-h-[140px] sm:space-y-2">
           <div className="h-3 w-48 bg-white/20" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
             {[1, 2, 3].map((step) => (
@@ -68,7 +68,7 @@ export function LearningIntroSkeleton({ accent = '#70CFF8', deck = 'kanji' }: Sk
 
         {isKana ? (
           <>
-            <div className="border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:p-4">
+            <div className="min-h-[164px] border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:min-h-[82px] sm:p-4">
               <div className="mb-2 h-3 w-44 bg-white/20" />
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
                 {[1, 2, 3].map((rating) => (
@@ -79,14 +79,17 @@ export function LearningIntroSkeleton({ accent = '#70CFF8', deck = 'kanji' }: Sk
                 ))}
               </div>
             </div>
-            <div className="border-2 border-black border-l-4 bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:p-4" style={{ borderLeftColor: accent }}>
+            <div className="min-h-[116px] border-2 border-black border-l-4 bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:min-h-[96px] sm:p-4" style={{ borderLeftColor: accent }}>
               <div className="h-3 w-48" style={{ backgroundColor: `${accent}99` }} />
+              <div className="mt-1 flex flex-wrap gap-1.5 sm:gap-2">
+                {[1, 2, 3].map((scope) => <div key={scope} className="h-5 w-16 border-2 border-black bg-[#1f2637]" />)}
+              </div>
               <div className="mt-1 space-y-1"><div className="h-3 w-full bg-white/10" /><div className="h-3 w-5/6 bg-white/10" /></div>
             </div>
           </>
         ) : isGrammar ? (
           <>
-            <div className="border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:p-4">
+            <div className="min-h-[92px] border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:min-h-[86px] sm:p-4">
               <div className="mb-2 h-3 w-52 bg-white/20" />
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
                 {[1, 2].map((rating) => (
@@ -97,14 +100,17 @@ export function LearningIntroSkeleton({ accent = '#70CFF8', deck = 'kanji' }: Sk
                 ))}
               </div>
             </div>
-            <div className="border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:p-4">
+            <div className="min-h-[112px] border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:min-h-[102px] sm:p-4">
               <div className="h-3 w-40" style={{ backgroundColor: `${accent}99` }} />
+              <div className="mt-1.5 flex flex-wrap gap-1.5 sm:gap-2">
+                {[1, 2, 3].map((scope) => <div key={scope} className="h-5 w-20 border-2 border-black bg-[#1f2637]" />)}
+              </div>
               <div className="mt-1 space-y-1"><div className="h-3 w-full bg-white/10" /><div className="h-3 w-5/6 bg-white/10" /></div>
             </div>
           </>
         ) : (
           <>
-            <div className="border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:p-4">
+            <div className="min-h-[100px] border-2 border-black bg-[#151922] p-3 shadow-[2px_2px_0px_0px_#000] sm:min-h-[78px] sm:p-4">
               <div className="mb-2 h-3 w-44 bg-white/20" />
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
                 {[1, 2, 3, 4].map((rating) => <div key={rating} className="h-8 border-2 border-black bg-white/10 sm:h-9" />)}
@@ -140,7 +146,7 @@ export function FriendsSkeleton() {
             <div className="mt-0.5 h-5 w-56 bg-white/30 sm:h-8 sm:w-72" />
           </div>
         </div>
-        <div className="flex items-center gap-1.5 self-start pl-10 sm:gap-2 sm:self-auto sm:pl-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 sm:self-auto">
           <div className="h-6 w-20 border-2 border-black bg-[#A3E636]/50 sm:h-7 sm:w-24" />
           <div className="h-6 w-20 border-2 border-black bg-white/30 sm:h-7 sm:w-24" />
         </div>
@@ -244,7 +250,7 @@ export function AssessmentSkeleton({ accent = '#FFDE59' }: SkeletonProps) {
           <div className="mx-auto h-3 w-48 bg-white/20" />
         </div>
         <div className="mt-4 flex gap-2 sm:mt-6 sm:gap-3"><div className="h-10 min-w-0 flex-1 border-2 border-black bg-[#151922] sm:h-13" /><div className="h-10 w-[100px] border-2 border-black bg-white/20 sm:h-13 sm:w-[130px]" /></div>
-        <div className="mt-4 flex items-center justify-between border-t-2 border-white/10 pt-3 sm:mt-5 sm:pt-4"><div className="h-6 w-12 border-2 border-black bg-white/20" /><div className="h-8 w-48 border-2 border-black bg-[#151922] sm:h-9 sm:w-56" /><div className="h-3 w-16 bg-white/10" /></div>
+        <div className="mt-4 flex flex-col items-start gap-4 border-t-2 border-white/10 pt-3 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:pt-4"><div className="flex items-center gap-1.5 sm:gap-2"><div className="h-5 w-12 border-2 border-black bg-[#151922]" /><div className="h-2.5 w-10 bg-white/10" /></div><div className="min-w-0 w-full flex justify-center sm:min-w-[240px]"><div className="h-8 w-48 border-2 border-black bg-[#151922] sm:h-9 sm:w-56" /></div><div className="h-3 w-16 bg-white/10" /></div>
       </section>
     </main>
   );

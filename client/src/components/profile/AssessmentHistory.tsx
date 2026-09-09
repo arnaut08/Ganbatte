@@ -3,6 +3,8 @@ import { supabase } from '../../config/supabase';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import type { AssessmentHistoryRecord } from '../../types';
 import AssessmentHistorySkeleton from './AssessmentHistorySkeleton';
+import DataRow from '@/components/common/DataRow';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 const PAGE_SIZE = 10;
 
@@ -121,33 +123,17 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
 
   return (
     <main className="container mx-auto max-w-4xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8 pb-20 sm:pb-28">
-      {/* 1. Header Bar */}
-      <div className="flex items-center justify-between gap-2.5 sm:gap-4">
-        <div className="flex items-center gap-2.5 sm:gap-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
-            title="Back to previous screen"
-            aria-label="Back"
-          >
-            <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
-          </button>
-
-          <div className="flex flex-col justify-center text-left">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59] sm:text-xs">
-              // ARCHIVE: LOGS
-            </span>
-            <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
-              Assessment History
-            </h1>
-          </div>
-        </div>
-
-        <div className="border-2 border-black bg-[#70CFF8] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-3 sm:text-xs sm:shadow-[2px_2px_0px_0px_#000]">
-          {totalCount} RECORD{totalCount === 1 ? '' : 'S'}
-        </div>
-      </div>
+      <GlobalPageHeader
+        onBack={onBack}
+        punchline="// ARCHIVE: LOGS"
+        title="Assessment History"
+        accentClass="text-[#FFDE59]"
+        rightSlot={(
+          <span className="border-2 border-black bg-[#70CFF8] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-3 sm:text-xs sm:shadow-[2px_2px_0px_0px_#000]">
+            {totalCount} RECORD{totalCount === 1 ? '' : 'S'}
+          </span>
+        )}
+      />
 
       {/* 2. Loading Skeleton */}
       {isLoading && <AssessmentHistorySkeleton />}
@@ -194,13 +180,13 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
               : 0;
 
             return (
-              <div
+              <DataRow
                 key={result.id}
-                style={{ borderLeftColor: domain.accent }}
-                className="flex flex-col justify-between gap-3 border-2 border-black border-l-8 bg-[#1f2637] p-3.5 text-white shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] sm:flex-row sm:items-center sm:p-4 sm:shadow-[4px_4px_0px_0px_#000]"
-              >
-                {/* Left: Metadata */}
-                <div className="space-y-1.5 min-w-0">
+                accentColor={domain.accent}
+                left={(
+                  <>
+                    {/* Left: Metadata */}
+                    <div className="space-y-1.5 min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     {/* Mode / Domain Tag */}
                     <span
@@ -255,12 +241,15 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                       </>
                     )}
                   </div>
-                </div>
+                    </div>
+                  </>
+                )}
 
-                {/* Right: Score Display */}
-                {isGauntlet ? (
+                right={(
+                  /* Right: Score Display */
+                  isGauntlet ? (
                   /* Gauntlet Specific Layout */
-                  <div className="flex items-center justify-between border-t-2 border-white/10 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end sm:gap-4">
+                  <>
                     <div className="text-left sm:text-right font-mono">
                       <span className="text-[9px] font-black uppercase tracking-wider text-neutral-400 sm:text-[10px]">
                         OPPONENT SCORE
@@ -278,10 +267,10 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                         {gauntletScore.toLocaleString()}
                       </span>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   /* Standard Assessment Layout */
-                  <div className="flex items-center justify-between border-t-2 border-white/10 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end sm:gap-4">
+                  <>
                     <div className="text-left sm:text-right">
                       <span className="font-mono text-[9px] font-black uppercase tracking-wider text-neutral-400 sm:text-[10px]">
                         ACCURACY
@@ -296,9 +285,9 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                     >
                       {result.score_percentage}%
                     </div>
-                  </div>
-                )}
-              </div>
+                  </>
+                ))}
+              />
             );
           })}
 

@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '@/config/supabase';
+import { supabase } from '../config/supabase';
+import {
+  bindGauntletMatchChannel,
+  type GauntletAttackType,
+  type GauntletMatchCallbacks,
+} from '../types/socket-events';
 
-type AttackType = 'SPEED_SURGE';
+type AttackType = GauntletAttackType;
 
 interface UseGauntletMatchProps {
   roomId: string;
@@ -11,6 +16,8 @@ interface UseGauntletMatchProps {
   onReceiveAttack: (attackType: AttackType) => void;
   onOpponentKO: () => void;
 }
+
+export type { GauntletMatchCallbacks } from '../types/socket-events';
 
 export function useGauntletMatch({
   roomId,
@@ -29,22 +36,16 @@ export function useGauntletMatch({
     const channel = supabase.channel(`gauntlet:${roomId}`, {
       config: { broadcast: { self: false } },
     });
-    channel
-      .on('broadcast', { event: 'player_sync' }, ({ payload }) => {
-        if (payload?.userId !== userId) callbacksRef.current.onOpponentSync(payload);
-      })
-      .on('broadcast', { event: 'player_attack' }, ({ payload }) => {
-        if (payload?.targetUserId === userId) callbacksRef.current.onReceiveAttack(payload.attackType);
-      })
-      .on('broadcast', { event: 'player_ko' }, ({ payload }) => {
-        if (payload?.userId !== userId) callbacksRef.current.onOpponentKO();
-      })
-      .subscribe();
-
     channelRef.current = channel;
+    const cleanupChannel = bindGauntletMatchChannel(channel, userId, {
+      onOpponentSync: (data) => callbacksRef.current.onOpponentSync(data),
+      onReceiveAttack: (attackType) => callbacksRef.current.onReceiveAttack(attackType),
+      onOpponentKO: () => callbacksRef.current.onOpponentKO(),
+    });
+    channel.subscribe();
     return () => {
-      channelRef.current = null;
-      void channel.unsubscribe();
+      if (channelRef.current === channel) channelRef.current = null;
+      cleanupChannel();
     };
   }, [roomId, userId]);
 

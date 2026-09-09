@@ -5,7 +5,7 @@ type AssessmentHistorySkeletonProps = {
 export default function AssessmentHistorySkeleton({ fullScreen = false }: AssessmentHistorySkeletonProps) {
   if (fullScreen) {
     return (
-      <main className="mx-auto w-full max-w-4xl space-y-4 px-3 py-4 pb-20 animate-pulse sm:space-y-6 sm:px-4 sm:py-8 sm:pb-28">
+      <div className="app-route-skeleton mx-auto w-full max-w-4xl space-y-4 px-3 py-4 pb-20 animate-pulse sm:space-y-6 sm:px-4 sm:py-8 sm:pb-28">
         <div className="flex items-center justify-between gap-2.5 sm:gap-4">
           <div className="flex items-center gap-2.5 sm:gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] sm:h-11 sm:w-11" />
@@ -14,7 +14,7 @@ export default function AssessmentHistorySkeleton({ fullScreen = false }: Assess
           <div className="h-7 w-28 border-2 border-black bg-[#70CFF8]/30 sm:h-8 sm:w-32" />
         </div>
         <AssessmentHistorySkeleton />
-      </main>
+      </div>
     );
   }
 

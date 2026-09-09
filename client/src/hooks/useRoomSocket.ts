@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { io } from 'socket.io-client';
-import type { Socket } from 'socket.io-client';
 import type { User } from '@supabase/supabase-js';
 import { SERVER_URL } from '../config';
 import { supabase } from '../config/supabase';
@@ -16,11 +15,18 @@ import type {
   AppStatus,
   AssessmentResult,
   Room,
-  RoomPlayer,
   SocketAck,
   StudyCard,
   Toast,
 } from '../types';
+import { isStudyCard } from '../types';
+import {
+  bindRoomSocketEvent,
+  createRejoinGate,
+  type RoomSocketEvent,
+  type RoomSocketEventName,
+  type RoomSocket,
+} from '../types/socket-events';
 
 type RoomSocketOptions = {
   authRequired: boolean;
@@ -48,37 +54,9 @@ type RoomSocketOptions = {
   setToast: (toast: Toast) => void;
 };
 
-type IdentityPayload = { display_name?: string };
-
-type SocketPayload = {
-  room?: Room;
-  players?: RoomPlayer[];
-  currentCardIndex?: number;
-  results?: unknown[];
-  message?: string;
-  hostSocketId?: string;
-  action?: string;
-  guestName?: string;
-  exitedPlayerWasHost?: boolean;
-  deckType?: string;
-  roomCode?: string;
-  seed?: number;
-  inviterName?: string;
-  inviterUserId?: string;
-  inviterSocketId?: string;
-  accepted?: boolean;
-  inviteeName?: string;
-  forfeitingPlayerName?: string;
-  winnerUserId?: string | null;
-  winnerPlayerName?: string;
-  returnedBySocketId?: string;
-  returnedByPlayerName?: string;
-  winnerSocketId?: string;
-  loserSocketId?: string;
-  friend?: IdentityPayload;
-  receiver?: IdentityPayload;
-  displayName?: string;
-  success?: boolean;
+type RejoinOptions = {
+  force?: boolean;
+  sessionKey?: string;
 };
 
 function normalizeRoomResults(rawResults: unknown[] = []): AssessmentResult[] {
@@ -118,10 +96,54 @@ export default function useRoomSocket({
   setIsPreparingAssessment,
   setToast,
 }: RoomSocketOptions) {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] = useState<RoomSocket | null>(null);
   const [isSocketReady, setIsSocketReady] = useState(false);
+  const socketRef = useRef<RoomSocket | null>(null);
   const inviteJoinAttemptedRef = useRef(false);
   const lastPresenceSyncRef = useRef<string | null>(null);
+  const rejoinGateRef = useRef(createRejoinGate());
+  const latestOptionsRef = useRef({
+    status,
+    roomCode,
+    room,
+    user,
+    getDisplayName,
+    handleJoinRoom,
+    transitionToStatus,
+    refreshFriends,
+    refreshFriendData,
+    refreshFriendRequests,
+    setRoomCode,
+    setRoom,
+    setUsername,
+    setKanaCards,
+    setResults,
+    setStatus,
+    setScreenHistory,
+    setIsPreparingAssessment,
+    setToast,
+  });
+  latestOptionsRef.current = {
+    status,
+    roomCode,
+    room,
+    user,
+    getDisplayName,
+    handleJoinRoom,
+    transitionToStatus,
+    refreshFriends,
+    refreshFriendData,
+    refreshFriendRequests,
+    setRoomCode,
+    setRoom,
+    setUsername,
+    setKanaCards,
+    setResults,
+    setStatus,
+    setScreenHistory,
+    setIsPreparingAssessment,
+    setToast,
+  };
 
   const clearRoomQueryParam = useCallback(() => {
     const url = new URL(window.location.href);
@@ -137,16 +159,32 @@ export default function useRoomSocket({
   }, [setScreenHistory, setStatus]);
 
   const handleSetAwayStatus = useCallback((nextStatus: string) => {
-    if (!socket || !roomCode) return;
-    const roomPresenceKey = `${roomCode}:${nextStatus}`;
+    const currentOptions = latestOptionsRef.current;
+    const currentSocket = socketRef.current;
+    if (!currentSocket || !currentOptions.roomCode) return;
+    const roomPresenceKey = `${currentOptions.roomCode}:${nextStatus}`;
     if (lastPresenceSyncRef.current === roomPresenceKey) return;
 
-    const currentPlayer = room?.players?.find((player) => player.id === socket.id);
+    const currentPlayer = currentOptions.room?.players?.find((player) => player.id === currentSocket.id);
     if (getPlayerPresenceStatus(currentPlayer) === nextStatus) return;
 
     lastPresenceSyncRef.current = roomPresenceKey;
-    socket.emit('set-player-presence', roomCode, nextStatus);
-  }, [room, roomCode, socket]);
+    currentSocket.emit('set-player-presence', currentOptions.roomCode, nextStatus);
+  }, []);
+
+  const rejoinRoom = useCallback((targetRoomCode: string, targetUsername: string, onResult: ((response: SocketAck) => void) | null = null, options: RejoinOptions = {}) => {
+    const currentSocket = socketRef.current;
+    if (!currentSocket || !targetRoomCode || !targetUsername) return false;
+
+    const sessionKey = options.sessionKey || getSessionKey();
+    const key = `${targetRoomCode}:${targetUsername}:${sessionKey}:${latestOptionsRef.current.user?.id || ''}`;
+    if (!rejoinGateRef.current.claim(currentSocket, key, options.force)) return false;
+    currentSocket.emit('rejoin-room', targetRoomCode, targetUsername, sessionKey, latestOptionsRef.current.user?.id, (response: SocketAck) => {
+      rejoinGateRef.current.resolve(Boolean(response?.success));
+      onResult?.(response);
+    });
+    return true;
+  }, []);
 
   useEffect(() => {
     if (!socket || !roomCode) return undefined;
@@ -172,12 +210,12 @@ export default function useRoomSocket({
   }, [handleSetAwayStatus, room, roomCode, socket, status]);
 
   useEffect(() => {
-    if (!socket || !roomCode) return undefined;
+    if (!socket) return undefined;
 
     const handleVisibilityChange = () => {
-      handleSetAwayStatus(!document.hidden && status === 'lobby' ? 'in_lobby' : 'away');
+      handleSetAwayStatus(!document.hidden && latestOptionsRef.current.status === 'lobby' ? 'in_lobby' : 'away');
     };
-    const handleWindowFocus = () => handleSetAwayStatus(status === 'lobby' ? 'in_lobby' : 'away');
+    const handleWindowFocus = () => handleSetAwayStatus(latestOptionsRef.current.status === 'lobby' ? 'in_lobby' : 'away');
     const handleWindowBlur = () => handleSetAwayStatus('away');
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -188,7 +226,7 @@ export default function useRoomSocket({
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [handleSetAwayStatus, roomCode, socket, status]);
+  }, [handleSetAwayStatus, socket]);
 
   useEffect(() => {
     if (!socket || !isSocketReady || inviteJoinAttemptedRef.current) return;
@@ -218,13 +256,22 @@ export default function useRoomSocket({
       reconnectionDelayMax: 5000,
     });
 
-    setSocket(newSocket);
+    const roomSocket = newSocket as RoomSocket;
+    socketRef.current = roomSocket;
+    setSocket(roomSocket);
 
-    newSocket.on('connect', () => {
+    const roomEventCleanups: Array<() => void> = [];
+    const listen = <TEvent extends RoomSocketEventName>(
+      event: TEvent,
+      handler: (payload: RoomSocketEvent<TEvent>) => void,
+    ) => {
+      roomEventCleanups.push(bindRoomSocketEvent(newSocket, event, handler));
+    };
+
+    const handleConnect = () => {
+      const currentOptions = latestOptionsRef.current;
       setIsSocketReady(true);
-      if (roomCode) {
-        newSocket.emit('set-player-presence', roomCode, status === 'lobby' ? 'in_lobby' : 'away');
-      }
+      if (currentOptions.roomCode) handleSetAwayStatus(currentOptions.status === 'lobby' ? 'in_lobby' : 'away');
       if (newSocket.recovered) return;
 
       const savedSession = readRoomSession();
@@ -232,7 +279,7 @@ export default function useRoomSocket({
       if (!shouldRestore || !savedSession) return;
 
       const { roomCode: savedRoomCode, username: savedUsername } = savedSession;
-      newSocket.emit('rejoin-room', savedRoomCode, savedUsername, savedSession.sessionKey || getSessionKey(), user?.id, (response: SocketAck) => {
+      rejoinRoom(savedRoomCode, savedUsername, (response: SocketAck) => {
         if (!response?.success || !response.room) {
           clearRoomSession();
           clearRoomQueryParam();
@@ -245,221 +292,255 @@ export default function useRoomSocket({
         if (nextRoom.status === 'completed') {
           clearRoomSession();
           clearRoomQueryParam();
-          setRoom(null);
-          setRoomCode(null);
-          setResults(null);
-          setStatus('selector');
-          setScreenHistory(['selector']);
+          currentOptions.setRoom(null);
+          currentOptions.setRoomCode(null);
+          currentOptions.setResults(null);
+          currentOptions.setStatus('selector');
+          currentOptions.setScreenHistory(['selector']);
           return;
         }
 
-        setRoomCode(savedRoomCode);
-        setUsername(savedUsername);
-        setRoom(nextRoom);
-        setKanaCards((nextRoom.cards as StudyCard[] | undefined) || []);
+        currentOptions.setRoomCode(savedRoomCode);
+        currentOptions.setUsername(savedUsername);
+        currentOptions.setRoom(nextRoom);
+        currentOptions.setKanaCards((nextRoom.cards ?? []).filter(isStudyCard));
 
         if (nextRoom.status === 'preparing') {
-          forceRoomStatus('assessment-preparing');
+          currentOptions.setStatus('assessment-preparing');
+          currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment-preparing' ? previous : [...previous, 'assessment-preparing']);
         } else if (nextRoom.status === 'active') {
-          forceRoomStatus('assessment');
+          currentOptions.setStatus('assessment');
+          currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment' ? previous : [...previous, 'assessment']);
         } else {
-          forceRoomStatus('lobby');
+          currentOptions.setStatus('lobby');
+          currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
         }
-      });
-    });
+      }, { sessionKey: savedSession.sessionKey || getSessionKey() });
+    };
+    newSocket.on('connect', handleConnect);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && !newSocket.connected) newSocket.connect();
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    newSocket.on('disconnect', (reason) => {
+    const handleDisconnect = (reason: string) => {
       setIsSocketReady(false);
+      rejoinGateRef.current.reset();
       if (reason === 'io server disconnect') newSocket.connect();
-    });
-    newSocket.on('connect_error', () => setIsSocketReady(false));
+    };
+    newSocket.on('disconnect', handleDisconnect);
+    const handleConnectError = () => setIsSocketReady(false);
+    newSocket.on('connect_error', handleConnectError);
 
-    newSocket.on('player-rejoined', (data: SocketPayload) => {
+    listen('player-rejoined', (data) => {
+      const currentOptions = latestOptionsRef.current;
       if (data?.room) {
-        setRoom(data.room);
-        setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+        currentOptions.setRoom(data.room);
+        currentOptions.setKanaCards((data.room.cards ?? []).filter(isStudyCard));
       }
     });
 
-    newSocket.on('room-created', (code: string) => {
-      setRoomCode(code);
-      forceRoomStatus('lobby');
+    listen('room-created', (code) => {
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoomCode(code);
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
     });
 
-    newSocket.on('assessment-preparing', (data: SocketPayload) => {
-      setIsPreparingAssessment(true);
+    listen('assessment-preparing', (data) => {
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setIsPreparingAssessment(true);
       if (data?.room) {
-        setRoom(data.room);
-        if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+        currentOptions.setRoom(data.room);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards.filter(isStudyCard));
       }
-      forceRoomStatus('assessment-preparing');
+      currentOptions.setStatus('assessment-preparing');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment-preparing' ? previous : [...previous, 'assessment-preparing']);
     });
 
-    newSocket.on('player-joined', (data: SocketPayload) => {
+    listen('player-joined', (data) => {
+      const currentOptions = latestOptionsRef.current;
       if (data?.room) {
-        setRoom(data.room);
-        if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+        currentOptions.setRoom(data.room);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards.filter(isStudyCard));
       }
     });
 
-    newSocket.on('assessment-started', (data: SocketPayload) => {
-      setIsPreparingAssessment(false);
+    listen('assessment-started', (data) => {
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setIsPreparingAssessment(false);
       if (data?.room) {
-        setRoom(data.room);
-        if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+        currentOptions.setRoom(data.room);
+        if (data.room.cards) currentOptions.setKanaCards(data.room.cards.filter(isStudyCard));
       }
-      forceRoomStatus('assessment');
+      currentOptions.setStatus('assessment');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'assessment' ? previous : [...previous, 'assessment']);
     });
 
-    newSocket.on('gauntlet-started', (data: SocketPayload) => {
-      if (data?.room) setRoom(data.room);
-      forceRoomStatus('gauntlet');
-    });
-
-    newSocket.on('assessment-generation-failed', (data: SocketPayload) => {
-      setIsPreparingAssessment(false);
+    listen('gauntlet-started', (data) => {
+      const currentOptions = latestOptionsRef.current;
       if (data?.room) {
-        setRoom(data.room);
-        setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+        currentOptions.setRoom({
+          ...data.room,
+          mode: 'gauntlet',
+          status: 'active',
+          seed: data.seed ?? data.room.seed,
+        });
       }
-      setResults(null);
-      forceRoomStatus('lobby');
-      setToast({
+      currentOptions.setStatus('gauntlet');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'gauntlet' ? previous : [...previous, 'gauntlet']);
+    });
+
+    listen('assessment-generation-failed', (data) => {
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setIsPreparingAssessment(false);
+      if (data?.room) {
+        currentOptions.setRoom(data.room);
+        currentOptions.setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
+      }
+      currentOptions.setResults(null);
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
+      currentOptions.setToast({
         message: data?.message || 'The assessment deck could not be generated. Please try again.',
         type: 'warning',
       });
     });
 
-    ['answer-submitted', 'hint-used', 'player-ready-updated'].forEach((eventName) => {
-      newSocket.on(eventName, (data: SocketPayload) => {
-        if (data?.room) setRoom(data.room);
+    (['answer-submitted', 'hint-used', 'player-ready-updated'] as const).forEach((eventName) => {
+      listen(eventName, (data) => {
+        if (data?.room) latestOptionsRef.current.setRoom(data.room);
       });
     });
 
-    ['both-submitted', 'cards-updated'].forEach((eventName) => {
-      newSocket.on(eventName, (data: SocketPayload) => {
+    (['both-submitted', 'cards-updated'] as const).forEach((eventName) => {
+      listen(eventName, (data) => {
         if (data?.room) {
-          setRoom(data.room);
-          if (data.room.cards) setKanaCards(data.room.cards as StudyCard[]);
+          latestOptionsRef.current.setRoom(data.room);
+          if (data.room.cards) latestOptionsRef.current.setKanaCards(data.room.cards.filter(isStudyCard));
         }
       });
     });
 
-    newSocket.on('card-updated', (data: SocketPayload) => {
-      if (data?.room) setRoom(data.room);
-      else setRoom((previous: Room | null) => ({ ...(previous ?? {}), currentCardIndex: data.currentCardIndex }) as Room);
+    listen('card-updated', (data) => {
+      if (data?.room) latestOptionsRef.current.setRoom(data.room);
+      else latestOptionsRef.current.setRoom((previous: Room | null) => ({ ...(previous ?? {}), currentCardIndex: data.currentCardIndex }) as Room);
     });
 
-    newSocket.on('assessment-completed', (data: SocketPayload) => {
-      if (data?.room) setRoom(data.room);
+    listen('assessment-completed', (data) => {
+      const currentOptions = latestOptionsRef.current;
+      if (data?.room) currentOptions.setRoom(data.room);
       const rawResults = data?.results || (Array.isArray(data?.room?.players) ? data.room.players : []);
-      setResults(normalizeRoomResults(rawResults));
-      forceRoomStatus('results');
+      currentOptions.setResults(normalizeRoomResults(rawResults));
+      currentOptions.setStatus('results');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'results' ? previous : [...previous, 'results']);
       clearRoomSession();
       clearRoomQueryParam();
     });
 
-    newSocket.on('gauntlet-match-completed', (data: SocketPayload) => {
+    listen('gauntlet-match-completed', (data) => {
       if (!data?.room) return;
-      setRoom({ ...data.room, winnerSocketId: data.winnerSocketId });
-      setResults(null);
-      setIsPreparingAssessment(false);
-      forceRoomStatus('gauntlet');
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom({ ...data.room, winnerSocketId: data.winnerSocketId });
+      currentOptions.setResults(null);
+      currentOptions.setIsPreparingAssessment(false);
+      currentOptions.setStatus('gauntlet');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'gauntlet' ? previous : [...previous, 'gauntlet']);
     });
 
-    newSocket.on('match-forfeited', (data: SocketPayload) => {
-      setToast({
+    listen('match-forfeited', (data) => {
+      latestOptionsRef.current.setToast({
         message: `${data?.forfeitingPlayerName || 'Your opponent'} forfeited the match. You win!`,
         type: 'success',
       });
     });
 
-    newSocket.on('room-returned-to-lobby', (data: SocketPayload) => {
+    listen('room-returned-to-lobby', (data) => {
       if (!data?.room) return;
-      setRoom(data.room);
-      setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
-      setResults(null);
-      setIsPreparingAssessment(false);
-      forceRoomStatus('lobby');
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom(data.room);
+      currentOptions.setKanaCards((data.room.cards ?? []).filter(isStudyCard));
+      currentOptions.setResults(null);
+      currentOptions.setIsPreparingAssessment(false);
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
       if (data.returnedBySocketId !== newSocket.id) {
-        setToast({
+        currentOptions.setToast({
           message: `${data.returnedByPlayerName || 'Your opponent'} returned the room to the lobby.`,
           type: 'neutral',
         });
       }
     });
 
-    newSocket.on('assessment-action-denied', (data: SocketPayload) => {
-      setToast({ message: data?.message || 'Waiting for the host to choose an action.', type: 'warning' });
+    listen('assessment-action-denied', (data) => {
+      latestOptionsRef.current.setToast({ message: data?.message || 'Waiting for the host to choose an action.', type: 'warning' });
     });
 
-    newSocket.on('assessment-action-requested', (data: SocketPayload) => {
+    listen('assessment-action-requested', (data) => {
       if (data?.hostSocketId && data.hostSocketId !== newSocket.id) return;
       const actionLabel = data?.action === 'replay' ? 'Start a New Assessment' : 'Start New Session';
-      setToast({ message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`, type: 'neutral' });
+      latestOptionsRef.current.setToast({ message: `${data?.guestName || 'Your guest'} wants to ${actionLabel}.`, type: 'neutral' });
     });
 
-    newSocket.on('player-exited-lobby', (data: SocketPayload) => {
+    listen('player-exited-lobby', (data) => {
       if (!data?.room) return;
-      setRoom(data.room);
-      setKanaCards((data.room.cards as StudyCard[] | undefined) || []);
-      setResults(null);
-      setIsPreparingAssessment(false);
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom(data.room);
+      currentOptions.setKanaCards((data.room.cards ?? []).filter(isStudyCard));
+      currentOptions.setResults(null);
+      currentOptions.setIsPreparingAssessment(false);
       clearRoomSession();
       clearRoomQueryParam();
-      forceRoomStatus('lobby');
-      setToast({
+      currentOptions.setStatus('lobby');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
+      currentOptions.setToast({
         message: data.exitedPlayerWasHost ? 'The host exited the lobby. You are now the host.' : 'The guest exited the lobby.',
         type: 'warning',
       });
     });
 
-    newSocket.on('player-left', (data: SocketPayload) => {
+    listen('player-left', (data) => {
       const roomData = data?.room ?? { players: data?.players ?? [] };
-      setRoom((previous: Room | null) => {
+      latestOptionsRef.current.setRoom((previous: Room | null) => {
         const nextRoom = Array.isArray(roomData.players)
           ? ({ ...(previous ?? {}), ...roomData, players: roomData.players } as Room)
           : previous;
         if (Array.isArray(roomData.players) && roomData.players.length <= 1) {
-          setToast({ message: 'Your opponent left the room.', type: 'warning' });
+          latestOptionsRef.current.setToast({ message: 'Your opponent left the room.', type: 'warning' });
         }
         return nextRoom;
       });
     });
 
-    newSocket.on('player-presence-updated', (data: SocketPayload) => {
+    listen('player-presence-updated', (data) => {
       if (data?.room) {
         const payloadRoom = data.room;
-        setRoom((previous: Room | null) => ({ ...(previous ?? {}), ...payloadRoom, players: payloadRoom.players || previous?.players || [] } as Room));
+        latestOptionsRef.current.setRoom((previous: Room | null) => ({ ...(previous ?? {}), ...payloadRoom, players: payloadRoom.players || previous?.players || [] } as Room));
       }
     });
 
-    newSocket.on('friend-request-received', () => {
-      refreshFriendRequests(true);
-      setToast({ message: 'You received a new friend request.', type: 'neutral' });
+    listen('friend-request-received', () => {
+      latestOptionsRef.current.refreshFriendRequests(true);
+      latestOptionsRef.current.setToast({ message: 'You received a new friend request.', type: 'neutral' });
     });
 
-    newSocket.on('friend-request-accepted', (data: SocketPayload) => {
-      refreshFriendData(true);
-      setToast({ message: `${data?.friend?.display_name || 'Your friend'} accepted your friend request.`, type: 'success' });
+    listen('friend-request-accepted', (data) => {
+      latestOptionsRef.current.refreshFriendData(true);
+      latestOptionsRef.current.setToast({ message: `${data?.friend?.display_name || 'Your friend'} accepted your friend request.`, type: 'success' });
     });
 
-    newSocket.on('friend-request-rejected', (data: SocketPayload) => {
-      refreshFriendRequests(true);
-      setToast({ message: `${data?.receiver?.display_name || 'Your friend request'} declined your friend request.`, type: 'warning' });
+    listen('friend-request-rejected', (data) => {
+      latestOptionsRef.current.refreshFriendRequests(true);
+      latestOptionsRef.current.setToast({ message: `${data?.receiver?.display_name || 'Your friend request'} declined your friend request.`, type: 'warning' });
     });
 
-    newSocket.on('friend-online', (data: SocketPayload) => {
-      refreshFriends(true);
-      setToast({ message: `${data?.displayName || 'Your friend'} is online.`, type: 'neutral' });
+    listen('friend-online', (data) => {
+      latestOptionsRef.current.refreshFriends(true);
+      latestOptionsRef.current.setToast({ message: `${data?.displayName || 'Your friend'} is online.`, type: 'neutral' });
     });
 
-    newSocket.on('room-invite-received', (data: SocketPayload) => {
+    listen('room-invite-received', (data) => {
       const assessmentLabel = data?.deckType === 'kanji'
         ? 'Kanji'
         : data?.deckType === 'vocab'
@@ -467,15 +548,16 @@ export default function useRoomSocket({
         : data?.deckType === 'grammar'
           ? 'Grammar'
           : 'Kana';
-      setToast({
+      latestOptionsRef.current.setToast({
         message: `${data?.inviterName || 'A friend'} invited you to a ${assessmentLabel} assessment.`,
         type: 'neutral',
         actions: [
           {
             label: 'Join',
             onClick: () => {
-              const playerName = getDisplayName().trim();
-              handleJoinRoom(data.roomCode || '', playerName, (response: SocketAck) => {
+              const currentOptions = latestOptionsRef.current;
+              const playerName = currentOptions.getDisplayName().trim();
+              currentOptions.handleJoinRoom(data.roomCode || '', playerName, (response: SocketAck) => {
                 const inviteRoomCode = data.roomCode;
                 newSocket.emit('room-invite-response', {
                   roomCode: inviteRoomCode,
@@ -484,7 +566,8 @@ export default function useRoomSocket({
                   accepted: response?.success === true,
                 });
                 if (response?.success) {
-                  forceRoomStatus('lobby');
+                  currentOptions.setStatus('lobby');
+                  currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'lobby' ? previous : [...previous, 'lobby']);
                 }
               });
             },
@@ -502,8 +585,8 @@ export default function useRoomSocket({
       });
     });
 
-    newSocket.on('room-invite-responded', (data: SocketPayload) => {
-      setToast({
+    listen('room-invite-responded', (data) => {
+      latestOptionsRef.current.setToast({
         message: data?.accepted
           ? `${data?.inviteeName || 'Your friend'} joined room ${data?.roomCode || ''}.`
           : `${data?.inviteeName || 'Your friend'} declined your room invite.`,
@@ -512,11 +595,16 @@ export default function useRoomSocket({
     });
 
     return () => {
+      roomEventCleanups.forEach((cleanup) => cleanup());
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      newSocket.off('connect', handleConnect);
+      newSocket.off('disconnect', handleDisconnect);
+      newSocket.off('connect_error', handleConnectError);
+      rejoinGateRef.current.reset();
+      if (socketRef.current === newSocket) socketRef.current = null;
       setIsSocketReady(false);
       newSocket.disconnect();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, authRequired, user?.id]);
 
   return {
@@ -526,6 +614,7 @@ export default function useRoomSocket({
     saveRoomSession,
     clearRoomSession,
     clearRoomQueryParam,
+    rejoinRoom,
     handleSetAwayStatus,
   };
 }

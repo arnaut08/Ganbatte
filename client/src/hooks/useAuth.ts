@@ -8,6 +8,29 @@ type UseAuthOptions = {
 };
 
 export default function useAuth(options?: UseAuthOptions) {
+  // Playwright visual regression test bypass
+  if (typeof window !== 'undefined' && (window as any).__PLAYWRIGHT_VISUAL_TEST__) {
+    return {
+      user: {
+        id: 'test-user-id',
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: 'test@ganbatte.app',
+        app_metadata: {},
+        user_metadata: { full_name: 'Test Learner' },
+        created_at: new Date().toISOString(),
+      } as User,
+      authLoading: false,
+      authRequired: true,
+      isPasswordRecovery: false,
+      setIsPasswordRecovery: () => { },
+      isEmailVerifiedSignup: false,
+      setIsEmailVerifiedSignup: () => { },
+      getDisplayName: () => 'Test Learner',
+      handleLogout: async () => { },
+    };
+  }
+
   const showToast = options?.showToast;
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);

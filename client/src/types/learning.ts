@@ -68,6 +68,9 @@ export function isGrammarAnswer(value: unknown): value is GrammarAnswer {
 /** A kanji study-group option (as offered by the deck / group pickers). */
 export type KanjiGroup = { id: string; name: string };
 
+/** An identifier accepted by the multiplayer deck selectors. */
+export type RoomSelectionId = string | number;
+
 /**
  * Confidence rating shared by the kana/kanji recall + review screens. Both
  * screens use the same labels; KanaRecall represents "unrated" as `null` while

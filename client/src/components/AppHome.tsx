@@ -19,7 +19,7 @@ import {
   getVocabOverview,
   getGrammarOverview,
 } from '../services/api';
-import type { ApiRecord, Deck, DeckOptions, SelectorScreen, KanjiGroupOverview, VocabStage, MatchMode } from '../types';
+import type { Deck, DeckOptions, SelectorScreen, KanjiGroup, KanjiGroupOverview, VocabStage, MatchMode } from '../types';
 
 type LegacyProps = {
   children?: ReactNode;
@@ -27,7 +27,6 @@ type LegacyProps = {
 };
 
 const LegacyButton = Button as unknown as ComponentType<LegacyProps>;
-const LegacyPracticeScreen = PracticeScreen as unknown as ComponentType<LegacyProps>;
 
 type AppHomeProps = {
   onCreateRoom: (settings?: DeckOptions) => void;
@@ -137,7 +136,7 @@ export default function AppHome({
   const [grammarLevel, setGrammarLevel] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState<Array<string | number>>([]);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
-  const [kanjiGroups, setKanjiGroups] = useState<ApiRecord[]>([]);
+  const [kanjiGroups, setKanjiGroups] = useState<KanjiGroup[]>([]);
   const [vocabStages, setVocabStages] = useState<VocabStage[]>([]);
 
   // Player Passport Data States
@@ -165,7 +164,7 @@ export default function AppHome({
 
   useEffect(() => {
     getKanjiCards()
-      .then((data) => setKanjiGroups(data.groups || []))
+      .then((data) => setKanjiGroups((data.groups || []) as KanjiGroup[]))
       .catch((error) => {
         console.error('Failed to fetch kanji cards:', error);
       });
@@ -243,14 +242,14 @@ export default function AppHome({
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-64px-4rem)] items-center justify-center p-3 sm:p-4 pb-20 sm:pb-24">
+    <div className="app-home-content flex items-center justify-center p-3 pb-20 sm:p-4 sm:pb-24">
       <div className="w-full max-w-5xl">
         {screen === 'home' ? (
           <div className="space-y-3 sm:space-y-6">
             {/* --- PLAYER PASSPORT & STATS HUD --- */}
             <section className="mx-auto w-full max-w-4xl border-2 border-black bg-[#151922] p-2.5 sm:p-4 text-white shadow-[3px_3px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] space-y-2 sm:space-y-3">
               {/* Header Bar */}
-              <div className="flex items-center justify-between gap-2 border-b-2 border-white/20 pb-2">
+              <div className="flex min-w-0 flex-row items-center justify-between gap-2 border-b-2 border-white/20 pb-2">
                 <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
                   <span className="shrink-0 border border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]">
                     PASSPORT
@@ -260,7 +259,7 @@ export default function AppHome({
                   </span>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                <div className="flex shrink-0 flex-row items-center justify-end gap-1.5 sm:gap-2">
                   {/* Daily Streak Badge */}
                   <div
                     className={`flex items-center gap-1 sm:gap-1.5 border-2 border-black px-1.5 py-0.5 sm:px-2.5 font-mono text-[9px] sm:text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_#000] ${(profileStreak?.currentStreak ?? 0) > 0
@@ -437,9 +436,9 @@ export default function AppHome({
             </section>
 
             {/* --- CORE ACTION CARDS --- */}
-            <div className="grid gap-3 sm:gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+            <div className="grid min-w-0 max-w-4xl gap-3 sm:gap-6 md:grid-cols-2 mx-auto">
               {/* Card 1: Study & Recall */}
-              <Card className="group relative overflow-hidden bg-[#1f2637] border-2 border-black border-l-8 border-l-[#FFDE59] shadow-[4px_4px_0px_0px_#000] sm:shadow-[7px_7px_0px_0px_#000] p-3.5 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000]">
+              <Card className="group relative min-w-0 overflow-hidden bg-[#1f2637] border-2 border-black border-l-8 border-l-[#FFDE59] shadow-[4px_4px_0px_0px_#000] sm:shadow-[7px_7px_0px_0px_#000] p-3.5 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000]">
                 <span
                   className="absolute -right-3 -bottom-4 sm:-right-4 sm:-bottom-6 text-[100px] sm:text-[155px] font-black pointer-events-none select-none leading-none font-mono text-transparent transition-all duration-300 group-hover:scale-105"
                   style={{
@@ -450,7 +449,7 @@ export default function AppHome({
                 </span>
 
                 <CardHeader className="p-0 pb-2.5 sm:pb-5 relative z-10">
-                  <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                     <span className="border-2 border-black bg-[#FFDE59] px-1.5 py-0.2 sm:px-2 sm:py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000]">
                       01 // SOLO DRILL
                     </span>
@@ -480,7 +479,7 @@ export default function AppHome({
               </Card>
 
               {/* Card 2: Live Co-Op Room */}
-              <Card className="group relative overflow-hidden bg-[#1f2637] border-2 border-black border-l-8 border-l-[#70CFF8] shadow-[4px_4px_0px_0px_#000] sm:shadow-[7px_7px_0px_0px_#000] p-3.5 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000]">
+              <Card className="group relative min-w-0 overflow-hidden bg-[#1f2637] border-2 border-black border-l-8 border-l-[#70CFF8] shadow-[4px_4px_0px_0px_#000] sm:shadow-[7px_7px_0px_0px_#000] p-3.5 sm:p-6 flex flex-col justify-between transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000]">
                 <span
                   className="absolute -right-3 -bottom-4 sm:-right-4 sm:-bottom-6 text-[100px] sm:text-[155px] font-black pointer-events-none select-none leading-none font-mono text-transparent transition-all duration-300 group-hover:scale-105"
                   style={{
@@ -491,7 +490,7 @@ export default function AppHome({
                 </span>
 
                 <CardHeader className="p-0 pb-2.5 sm:pb-5 relative z-10">
-                  <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                     <span className="border-2 border-black bg-[#70CFF8] px-1.5 py-0.2 sm:px-2 sm:py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_0px_#000]">
                       02 // MULTIPLAYER
                     </span>
@@ -530,7 +529,7 @@ export default function AppHome({
             onOpenGrammarStudy={onOpenGrammarStudy}
           />
         ) : (
-          <LegacyPracticeScreen
+          <PracticeScreen
             onBackToHome={() => setScreen('home')}
             onCreateRoom={handleCreate}
             onJoinRoom={handleJoin}
@@ -539,16 +538,16 @@ export default function AppHome({
             setJoinCode={setJoinCode}
             joinCodeInputRef={joinCodeInputRef}
             mode={mode}
-            setMode={setMode}
+            onModeChange={setMode}
             deckType={deckType}
-            setDeckType={setDeckType}
+            onDeckTypeChange={setDeckType}
             grammarLevel={grammarLevel}
-            setGrammarLevel={setGrammarLevel}
+            onGrammarLevelChange={setGrammarLevel}
             selectedGroups={selectedGroups}
-            handleGroupToggle={handleGroupToggle}
+            onGroupToggle={handleGroupToggle}
             onClearSelectedGroups={handleClearSelectedGroups}
             isGroupMenuOpen={isGroupMenuOpen}
-            setIsGroupMenuOpen={setIsGroupMenuOpen}
+            onGroupMenuOpenChange={setIsGroupMenuOpen}
             kanjiGroups={kanjiGroups}
             vocabStages={vocabStages}
           />

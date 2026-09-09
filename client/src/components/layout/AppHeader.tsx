@@ -111,13 +111,13 @@ export default function AppHeader({
         : 'bg-transparent border-b border-transparent'
         }`}
     >
-      <div className="flex h-16 sm:h-20 items-center justify-between gap-4">
+      <div className="flex h-16 items-center justify-between gap-4 sm:h-20">
         {/* Left: Brand Logo & Slogan */}
         <button
           type="button"
           onClick={onHome}
           aria-label="Go to home"
-          className="group flex min-w-0 cursor-pointer items-center gap-2.5 sm:gap-3.5 border-0 bg-transparent p-0 text-left transition-transform hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px]"
+          className="group flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 overflow-hidden border-0 bg-transparent p-0 text-left transition-transform hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] sm:gap-3.5"
         >
           <div className="-rotate-3 flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center border-2 border-black bg-[#FFDE59] shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-transform duration-150 group-hover:rotate-0">
             <img src={logo} alt="Ganbatte Logo" className="h-7 w-7 sm:h-9 sm:w-9 scale-110 object-contain brightness-0" />
@@ -183,14 +183,14 @@ export default function AppHeader({
               <TypedDropdownMenuContent
                 align="end"
                 sideOffset={8}
-                className="w-64 border-2 border-black bg-[#1f2637] p-2 shadow-[5px_5px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] space-y-1.5"
+                className="w-[min(16rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] border-2 border-black bg-[#1f2637] p-2 shadow-[5px_5px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] space-y-1.5"
               >
                 {/* User Identity Dossier Header */}
                 <TypedDropdownMenuItem
                   onSelect={onOpenProfile}
                   className="group flex cursor-pointer items-center justify-between border-2 border-black border-l-4 border-l-[#FFDE59] bg-[#151922] p-2.5 transition-all hover:bg-[#1a2130] focus:bg-[#1a2130] outline-none"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-black shadow-[1.5px_1.5px_0px_0px_#000] overflow-hidden">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -203,7 +203,7 @@ export default function AppHeader({
                         {userName}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59]">
+                        <span className="truncate font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59]">
                           {accountTier}
                         </span>
                       </div>

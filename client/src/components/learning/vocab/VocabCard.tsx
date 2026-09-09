@@ -103,17 +103,17 @@ export default function VocabCard({ vocab, position, total, onRate }: VocabCardP
           }`}
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
-          <div className="flex items-center gap-1.5">
-            <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:text-[10px]">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            <span className="shrink-0 border-2 border-black bg-[#A3E636] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:text-[10px]">
               JLPT {level}
             </span>
-            <span className="border-2 border-black bg-[#151922] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-neutral-300 shadow-[1px_1px_0px_0px_#000] sm:text-[10px]">
+            <span className="shrink-0 border-2 border-black bg-[#151922] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-neutral-300 shadow-[1px_1px_0px_0px_#000] sm:text-[10px]">
               {formatLabel(vocab.pos)}
             </span>
           </div>
           {position != null && total != null && (
-            <span className="font-mono text-[10px] font-black uppercase text-neutral-400">
+            <span className="shrink-0 font-mono text-[10px] font-black uppercase text-neutral-400">
               {position} / {total}
             </span>
           )}
@@ -174,14 +174,14 @@ export default function VocabCard({ vocab, position, total, onRate }: VocabCardP
           }`}
       >
         {/* TOP BAR */}
-        <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-2.5 sm:pb-3">
-          <span className="font-mono text-[9px] font-black uppercase tracking-wider text-black sm:text-xs">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-2 border-black pb-2.5 sm:pb-3">
+          <span className="shrink-0 font-mono text-[9px] font-black uppercase tracking-wider text-black sm:text-xs">
             ANSWER // {vocab.kana}
           </span>
           <button
             type="button"
             onClick={() => speak(vocab.kana)}
-            className="flex cursor-pointer items-center gap-1 border-2 border-black bg-white px-2 py-0.5 font-mono text-[9px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-2.5 sm:py-1 sm:text-[10px]"
+            className="flex shrink-0 cursor-pointer items-center gap-1 border-2 border-black bg-white px-2 py-0.5 font-mono text-[9px] font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-2.5 sm:py-1 sm:text-[10px]"
           >
             <SpeakerLoudIcon className="h-3 w-3 text-black" aria-hidden="true" />
             <span>AUDIO</span>

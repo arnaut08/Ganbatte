@@ -6,6 +6,7 @@ import { FlameIcon } from '@/components/ui/flameIcon';
 import useProfileStreak from '../../hooks/useProfileStreak';
 import { LightningBoltIcon } from '@radix-ui/react-icons';
 import { MasteryPassportSkeleton } from './MasteryPassportSkeleton';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 type MasteryPassportScreenProps = {
   onBack: () => void;
@@ -208,27 +209,12 @@ export default function MasteryPassportScreen({
 
   return (
     <main className="container mx-auto max-w-5xl space-y-3 px-3 py-3 sm:space-y-6 sm:px-4 sm:py-8 pb-20 sm:pb-28">
-      {/* Header Section */}
-      <div className="flex items-start gap-2.5 sm:gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-          title="Back to previous screen"
-          aria-label="Back"
-        >
-          <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
-        </button>
-
-        <div className="flex flex-col -mt-1 sm:-mt-1.5 text-left">
-          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#A3E636] leading-tight">
-            // PLAYER PROFILE &amp; RECORDS
-          </span>
-          <h1 className="mt-0.5 font-mono text-lg sm:text-3xl font-black uppercase tracking-tight text-white leading-none">
-            MASTERY PASSPORT
-          </h1>
-        </div>
-      </div>
+      <GlobalPageHeader
+        onBack={onBack}
+        punchline="// PLAYER PROFILE & RECORDS"
+        title="MASTERY PASSPORT"
+        accentClass="text-[#A3E636]"
+      />
 
       {/* Top Stats Strip: 2-Col on Mobile, 3-Col on Desktop */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">

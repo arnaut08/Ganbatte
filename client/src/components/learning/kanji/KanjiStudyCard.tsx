@@ -80,11 +80,11 @@ export default function KanjiStudyCard({
             : 'z-10 opacity-100 [transform:rotateY(0deg)]'
           }`}
       >
-        <div className="flex items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
-          <span className="border-2 border-black bg-[#70CFF8] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:text-[10px]">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
+          <span className="shrink-0 border-2 border-black bg-[#70CFF8] px-2 py-0.5 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:text-[10px]">
             {groupName}
           </span>
-          <span className="font-mono text-[10px] font-black uppercase text-neutral-400">
+          <span className="shrink-0 font-mono text-[10px] font-black uppercase text-neutral-400">
             {position} / {total}
           </span>
         </div>
@@ -117,11 +117,11 @@ export default function KanjiStudyCard({
           }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-2.5 sm:pb-3">
-          <span className="border-2 border-black bg-black px-2 py-0.5 font-mono text-[9px] font-black uppercase text-[#70CFF8] shadow-[1px_1px_0px_0px_#000] sm:text-[10px]">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-2 border-black pb-2.5 sm:pb-3">
+          <span className="shrink-0 border-2 border-black bg-black px-2 py-0.5 font-mono text-[9px] font-black uppercase text-[#70CFF8] shadow-[1px_1px_0px_0px_#000] sm:text-[10px]">
             ANSWER // {groupName}
           </span>
-          <span className="font-mono text-[10px] font-black uppercase text-black">
+          <span className="shrink-0 font-mono text-[10px] font-black uppercase text-black">
             {position} / {total}
           </span>
         </div>

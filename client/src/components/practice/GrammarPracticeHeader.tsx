@@ -15,12 +15,12 @@ function GrammarPracticeHeader({
 }: GrammarPracticeHeaderProps) {
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-col">
+      <div className="flex w-full flex-row items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 flex flex-col">
           <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#C084FC]">
             // {sessionLabel.toUpperCase()} SESSION: LESSON {lesson ?? 1}
           </span>
-          <h1 className="text-base sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
+          <h1 className="truncate text-base sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
             Grammar {sessionLabel}
           </h1>
         </div>

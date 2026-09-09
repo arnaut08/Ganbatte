@@ -56,11 +56,58 @@
 }
 
 .app-container {
-  min-height: 100vh;
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  overflow-x: clip;
   background-color: var(--background);
   background-image:
     radial-gradient(circle at 1px 1px, var(--pattern-dot) 1.5px, transparent 0);
   background-size: 26px 26px;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100dvh;
+  flex: 1;
+  flex-direction: column;
+}
+
+.app-shell-header-placeholder {
+  height: 4rem;
+}
+
+.app-shell-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.app-home-content {
+  min-height: 0;
+  flex: 1;
+}
+
+.app-route-skeleton {
+  width: 100%;
+}
+
+.app-match-restoring {
+  min-height: 0;
+  flex: 1;
+}
+
+@media (min-width: 640px) {
+  .app-shell-header-placeholder {
+    height: 5rem;
+  }
+
+  .app-shell-content,
+  .app-home-content,
+  .app-match-restoring {
+    min-height: 0;
+  }
 }
 
 /* ===== Responsive adjustments ===== */

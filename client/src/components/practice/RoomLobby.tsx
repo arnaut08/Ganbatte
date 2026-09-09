@@ -5,6 +5,8 @@ import { CopyIcon, CheckIcon, LightningBoltIcon } from '@radix-ui/react-icons';
 import { canStartAssessment, getPlayerPresenceStatus } from '../../utils/roomStatus';
 import { getDeckAccent } from '../../utils/deck-theme';
 import type { Friend, Room } from '../../types';
+import { getSessionKey } from '../../utils/roomSession';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 type RoomLobbyProps = {
   roomCode: string;
@@ -15,7 +17,6 @@ type RoomLobbyProps = {
   currentSocketId?: string;
   currentUserId?: string | null;
   isPreparingAssessment?: boolean;
-  currentSessionKey?: string;
   friends?: Friend[];
   onInviteFriend?: (userId: string) => void;
 };
@@ -37,7 +38,6 @@ export default function RoomLobby({
   currentSocketId,
   currentUserId,
   isPreparingAssessment = false,
-  currentSessionKey,
   friends = [],
   onInviteFriend,
 }: RoomLobbyProps) {
@@ -46,11 +46,12 @@ export default function RoomLobby({
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   const joinLink = `${window.location.origin}?room=${encodeURIComponent(roomCode || '')}`;
+  const sessionKey = getSessionKey();
   const hostPlayer = room?.players?.[0];
   const isHost =
     hostPlayer?.id === currentSocketId ||
     (currentUserId && hostPlayer?.userId === currentUserId) ||
-    (currentSessionKey && hostPlayer?.sessionKey === currentSessionKey);
+    hostPlayer?.sessionKey === sessionKey;
 
   const isGauntlet = room?.mode === 'gauntlet';
   const isKanji = room?.deckType === 'kanji';
@@ -92,28 +93,13 @@ export default function RoomLobby({
 
   return (
     <div className="mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-8">
-      {/* Screen Header */}
-      <div className="mb-4 flex items-center gap-2.5 sm:mb-6 sm:gap-4">
-        <button
-          type="button"
-          onClick={onLeaveRoom}
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
-          title="Leave room"
-          aria-label="Leave room"
-        >
-          <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
-        </button>
-        <div className="flex flex-col justify-center text-left">
-          <span
-            className="font-mono text-[9px] font-bold uppercase tracking-wider sm:text-xs"
-            style={{ color: themeAccent }}
-          >
-            {themeLabel}
-          </span>
-          <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
-            Match Setup
-          </h1>
-        </div>
+      <div className="mb-4 sm:mb-6">
+        <GlobalPageHeader
+          onBack={onLeaveRoom}
+          punchline={typeof themeLabel === 'string' ? themeLabel : 'ARCADE // SURVIVAL GAUNTLET'}
+          title="Match Setup"
+          accentClass={isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
+        />
       </div>
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-12 lg:items-start">
@@ -162,7 +148,7 @@ export default function RoomLobby({
                   <LegacyInput
                     value={joinLink}
                     readOnly
-                    className="h-9 flex-1 border-2 border-black bg-[#151922] px-3 font-mono text-[10px] font-bold text-white shadow-none focus-visible:ring-0 sm:h-10 sm:text-xs"
+                    className="h-9 min-w-0 flex-1 border-2 border-black bg-[#151922] px-3 font-mono text-[10px] font-bold text-white shadow-none focus-visible:ring-0 sm:h-10 sm:text-xs"
                   />
                   <LegacyButton
                     onClick={handleCopyLink}
@@ -177,8 +163,8 @@ export default function RoomLobby({
 
               {/* Online Friends Picker */}
               <div className="border-2 border-black bg-[#1f2637] p-3.5 shadow-[3px_3px_0px_0px_#000] sm:p-4">
-                <div className="flex items-center justify-between gap-2 sm:gap-4">
-                  <div className="flex flex-col gap-0.5 sm:gap-1">
+                  <div className="flex items-center justify-between gap-2 sm:gap-4">
+                  <div className="min-w-0 flex flex-col gap-0.5 sm:gap-1">
                     <span
                       className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]"
                       style={{ color: themeAccent }}
@@ -190,7 +176,7 @@ export default function RoomLobby({
                         className="h-2 w-2 border border-black sm:h-2.5 sm:w-2.5"
                         style={{ backgroundColor: onlineFriends.length > 0 ? themeAccent : '#6b7280' }}
                       />
-                      <span className="font-mono text-xs font-bold text-white sm:text-sm">
+                      <span className="truncate font-mono text-xs font-bold text-white sm:text-sm">
                         {onlineFriends.length > 0
                           ? `${onlineFriends.length} friend${onlineFriends.length > 1 ? 's' : ''} available`
                           : 'No friends online'}
@@ -334,11 +320,11 @@ export default function RoomLobby({
             </div>
 
             {/* Actions */}
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3">
+            <div className="mt-4 flex flex-row gap-2 sm:mt-5 sm:gap-3">
               <LegacyButton
                 size="lg"
                 onClick={onLeaveRoom}
-                className="h-10 cursor-pointer border-2 border-black bg-white font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FF6B6B] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:text-xs"
+                className="h-10 min-w-0 flex-1 cursor-pointer border-2 border-black bg-white font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FF6B6B] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:text-xs"
               >
                 Leave
               </LegacyButton>
@@ -348,7 +334,7 @@ export default function RoomLobby({
                 onClick={handlePrimaryLaunch}
                 disabled={!isReady || isPreparingAssessment || !isHost}
                 style={isReady && !isPreparingAssessment && isHost ? { backgroundColor: themeAccent } : undefined}
-                className={`h-10 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none whitespace-nowrap leading-none sm:h-11 ${!isReady || isPreparingAssessment || !isHost
+                className={`h-10 min-w-0 flex-1 font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none leading-tight sm:h-11 ${!isReady || isPreparingAssessment || !isHost
                     ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
                     : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000]'
                   }`}

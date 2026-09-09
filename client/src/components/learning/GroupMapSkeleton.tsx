@@ -10,24 +10,26 @@ function GroupMapFilterSkeleton({ deck }: { deck: 'kanji' | 'vocab' }) {
   if (deck === 'kanji') {
     return (
       <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-3 sm:shadow-[4px_4px_0px_0px_#000]">
-        <div className="flex items-center gap-2">
-          <div className="h-9 min-w-0 flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10 sm:w-1/2" />
-          <div className="h-9 w-24 shrink-0 border-2 border-black bg-white/20 sm:h-10 sm:w-28" />
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex w-full min-w-0 items-center gap-4 md:w-auto">
+            <div className="h-9 min-w-0 flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10 sm:flex-none sm:w-1/2" />
+            <div className="h-9 w-24 shrink-0 border-2 border-black bg-white/20 sm:h-10 sm:w-28" />
+          </div>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-4 sm:shadow-[4px_4px_0px_0px_#000]">
-      <div className="flex flex-col gap-2.5 sm:gap-3.5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-nowrap gap-1.5 overflow-hidden pb-1 sm:gap-2 sm:pb-0">
+    <section className="border-2 border-black bg-[#151922] p-2.5 shadow-[3px_3px_0px_0px_#000] sm:p-3 sm:shadow-[4px_4px_0px_0px_#000]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2 sm:pb-0">
           {[1, 2, 3, 4, 5].map((tab) => <div key={tab} className="h-8 w-24 shrink-0 border-2 border-black bg-[#1f2637] sm:h-9 sm:w-28" />)}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-9 min-w-0 flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10" />
-          <div className="h-9 w-24 shrink-0 border-2 border-black bg-white/20 sm:h-10 sm:w-28" />
-        </div>
+          <div className="flex w-full min-w-0 items-center gap-4 md:w-auto">
+            <div className="h-9 min-w-0 flex-1 border-2 border-black bg-[#1f2637] shadow-[2px_2px_0px_0px_#000] sm:h-10 sm:flex-none sm:w-1/2" />
+            <div className="h-9 w-24 shrink-0 border-2 border-black bg-white/20 sm:h-10 sm:w-28" />
+          </div>
       </div>
     </section>
   );
@@ -42,21 +44,21 @@ export default function GroupMapSkeleton({
 }: GroupMapSkeletonProps) {
   if (fullScreen) {
     return (
-      <main className="mx-auto w-full max-w-5xl space-y-4 px-3 py-4 animate-pulse sm:space-y-6 sm:px-4 sm:py-8">
+      <div className="app-route-skeleton mx-auto w-full max-w-5xl space-y-4 px-3 py-4 animate-pulse sm:space-y-6 sm:px-4 sm:py-8">
         <header className="flex items-center gap-2.5 sm:gap-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] sm:h-11 sm:w-11" />
-          <div className="flex flex-col justify-center text-left">
+          <div className={`flex flex-col justify-center text-left ${deck === 'kanji' ? 'space-y-0.5' : ''}`}>
             <div className="h-3 w-24 bg-white/20 sm:w-32" />
-            <div className="mt-0.5 h-7 w-40 bg-white/30 sm:h-10 sm:w-56" />
+            <div className={`${deck === 'kanji' ? 'h-6 sm:h-9' : 'mt-0.5 h-7 sm:h-10'} w-40 bg-white/30 sm:w-56`} />
           </div>
         </header>
-        <div className="flex flex-col gap-1 border-t-2 border-white/20 pt-3 sm:flex-row sm:items-end sm:justify-between sm:pt-4">
+        <div className={`flex flex-col gap-1 border-t-2 border-white/20 pt-3 sm:flex-row sm:items-end sm:justify-between sm:pt-4 ${deck === 'kanji' ? 'min-h-[42px] sm:min-h-[32px]' : ''}`}>
           <div className="h-3 w-64 bg-white/20 sm:w-80" />
           <div className="h-3 w-36 bg-white/15" />
         </div>
         <GroupMapFilterSkeleton deck={deck} />
         <GroupMapSkeleton count={count} accentColor={accentColor} deck={deck} />
-      </main>
+      </div>
     );
   }
 

@@ -9,6 +9,7 @@ import useActivityRecorder from '../../../hooks/useActivityRecorder';
 import { useCelebrations } from '../../../contexts/CelebrationContext';
 import type { KanaCard } from '../../../types';
 import KanaRecallSkeleton from './KanaRecallSkeleton';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 type KanaRecallCard = KanaCard & { id: string };
 
@@ -207,34 +208,21 @@ function KanaRecall({ onBack, onOpenFilter, selectedKana }: KanaRecallProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-3 px-3 py-4 pb-20 sm:space-y-5 sm:px-4 sm:py-6 sm:pb-28">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2.5 sm:gap-4">
-        <div className="flex items-center gap-2.5 sm:gap-4">
+      <GlobalPageHeader
+        onBack={handleScreenBack}
+        punchline="// ACTIVE RECALL: KANA"
+        title="Read the character"
+        accentClass="text-[#FFDE59]"
+        rightSlot={(
           <button
             type="button"
-            onClick={handleScreenBack}
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000000]"
-            title="Back"
+            onClick={onOpenFilter}
+            className="cursor-pointer border-2 border-black bg-[#151922] border-l-4 border-l-[#A3E636] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-white shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#252c3d] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-3.5 sm:py-1.5 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000000]"
           >
-            <span className="font-mono text-sm font-black sm:text-lg">&lt;</span>
+            <strong className="text-[#A3E636]">{activeCards.length}</strong> CARDS
           </button>
-          <div>
-            <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59] sm:text-xs">
-              // ACTIVE RECALL: KANA
-            </span>
-            <h1 className="text-lg font-black uppercase leading-tight tracking-tight text-white sm:text-2xl">
-              Read the character
-            </h1>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenFilter}
-          className="cursor-pointer border-2 border-black bg-[#151922] border-l-4 border-l-[#A3E636] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-white shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#252c3d] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-3.5 sm:py-1.5 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000000]"
-        >
-          <strong className="text-[#A3E636]">{activeCards.length}</strong> CARDS
-        </button>
-      </div>
+        )}
+      />
 
       {isLoading && <KanaRecallSkeleton />}
 
