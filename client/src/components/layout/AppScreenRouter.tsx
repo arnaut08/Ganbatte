@@ -171,8 +171,11 @@ function LegacyAppScreenRouter({
       !shouldRenderPreparing &&
       !shouldRenderResults);
 
-  // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
-  const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating;
+  // 1. Detect if the URL contains a Supabase auth token
+  const isAuthVerification = typeof window !== 'undefined' && window.location.search.includes('token_hash=');
+
+  // 2. Force the AuthPage to render if verifying a token, regardless of current user state
+  const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating || isAuthVerification;
 
   if (isFullyHydrating) {
     return (
@@ -339,7 +342,7 @@ function LegacyAppScreenRouter({
                     ? 'Preparing the kanji drill'
                     : room?.deckType === 'vocab'
                       ? 'Preparing the vocabulary drill'
-                    : 'Preparing the reading deck'
+                      : 'Preparing the reading deck'
               }
               description="Generating the question set and synchronizing operators..."
               accent={getDeckAccent(room?.deckType)}

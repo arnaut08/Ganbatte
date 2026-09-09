@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { supabase } from '../../config/supabase';
 
-type AuthMode = 'signin' | 'signup' | 'forgot';
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'verify' | 'update_password';
 type CredentialField = 'email' | 'password' | null;
 type AuthForm = { name: string; email: string; password: string };
 
@@ -38,6 +38,46 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token_hash = params.get('token_hash');
+    const type = params.get('type') as 'signup' | 'recovery' | null;
+
+    if (token_hash && type) {
+      setMode('verify');
+      setIsSubmitting(true);
+
+      supabase.auth.verifyOtp({ token_hash, type })
+        .then(({ error }) => {
+          if (error) {
+            setIsSubmitting(false);
+            setMessageType('error');
+            setMessage('Verification link invalid or expired.');
+            setMode('signin');
+          } else {
+            if (type === 'recovery') {
+              // Token valid, user is securely logged in. Now prompt for new password.
+              setIsSubmitting(false);
+              setMode('update_password');
+              setMessageType('success');
+              setMessage('Recovery verified. Enter your new access cipher.');
+              // window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+              onStartSuccessAnimation?.();
+              setIsAccessGranted(true);
+              setMessageType('success');
+              setMessage('Identity verified. Access granted.');
+
+              setTimeout(() => {
+                onSuccessComplete?.();
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }, 1600);
+            }
+          }
+        });
+    }
+  }, [onStartSuccessAnimation, onSuccessComplete]);
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
@@ -47,7 +87,7 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
   };
 
   const handleSetMode = (nextMode: AuthMode) => {
-    if (mode !== nextMode && !isAccessGranted) {
+    if (mode !== nextMode && !isAccessGranted && mode !== 'verify' && mode !== 'update_password') {
       setMode(nextMode);
       setMessage('');
       setCredentialField(null);
@@ -69,7 +109,7 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
     try {
       if (mode === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-          redirectTo: `${window.location.origin}`,
+          redirectTo: `${window.location.origin}/auth?type=recovery`,
         });
 
         setIsSubmitting(false);
@@ -85,11 +125,35 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
         return;
       }
 
+      if (mode === 'update_password') {
+        const { error } = await supabase.auth.updateUser({ password: form.password });
+
+        setIsSubmitting(false);
+        if (error) {
+          setMessageType('error');
+          setMessage(error.message);
+          setCredentialField('password');
+          passwordInputRef.current?.focus();
+        } else {
+          onStartSuccessAnimation?.();
+          setIsAccessGranted(true);
+          setMessageType('success');
+          setMessage('Cipher updated securely. Access granted.');
+
+          setTimeout(() => {
+            onSuccessComplete?.();
+            // ADDED: Clean the URL only after the password is successfully changed
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }, 1600);
+        }
+        return;
+      }
+
       const response = mode === 'signup'
         ? await supabase.auth.signUp({
           email: form.email.trim(),
           password: form.password,
-          options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin },
+          options: { data: { full_name: form.name.trim() } },
         })
         : await supabase.auth.signInWithPassword({
           email: form.email.trim(),
@@ -117,13 +181,11 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
         setMessageType('success');
         setMessage('Cadet ID issued. Please check your inbox to confirm your account.');
       } else {
-        // Trigger Stamp Animation & lock form
         onStartSuccessAnimation?.();
         setIsAccessGranted(true);
         setMessageType('success');
         setMessage('Credentials verified. Access granted.');
 
-        // Delay to allow the physical stamp slam animation to complete
         setTimeout(() => {
           onSuccessComplete?.();
         }, 1600);
@@ -137,7 +199,6 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
 
   return (
     <main className="flex min-h-[calc(100dvh-80px)] items-center justify-center p-3 pb-20 sm:p-6 sm:pb-28">
-      {/* Inline Keyframes for Circular Hanko Slam */}
       <style>{`
         @keyframes hankoStampSlam {
           0% {
@@ -161,15 +222,12 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
         }
       `}</style>
 
-      {/* 1. Physical Passport / ID Card Shell */}
       <div className="relative w-full max-w-2xl border-3 border-black bg-[#F8F7F4] p-5 shadow-[6px_6px_0px_0px_#000] sm:p-8 sm:shadow-[10px_10px_0px_0px_#000] overflow-hidden">
 
-        {/* Background Kanji Watermark */}
         <div className="pointer-events-none absolute -bottom-6 -left-4 select-none font-mono text-7xl sm:text-9xl font-black text-black/[0.04]">
           頑張って
         </div>
 
-        {/* 2. Top ID Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-black pb-4">
           <div className="flex items-center gap-2">
             <span className="border-2 border-black bg-[#FFDE59] px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000]">
@@ -185,28 +243,26 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
             <div>
               STATUS:{' '}
               <span className={`font-black uppercase ${isAccessGranted ? 'text-[#DC2626]' : 'text-black'}`}>
-                {isAccessGranted ? 'ACCESS_GRANTED' : mode === 'signup' ? 'CADET_ENROLL' : mode === 'forgot' ? 'RECOVERY_MODE' : 'VERIFY_OPERATOR'}
+                {isAccessGranted ? 'ACCESS_GRANTED' : mode === 'signup' ? 'CADET_ENROLL' : mode === 'forgot' ? 'RECOVERY_MODE' : mode === 'verify' ? 'VERIFYING_TOKEN' : mode === 'update_password' ? 'RESET_CIPHER' : 'VERIFY_OPERATOR'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* 3. Main ID Body */}
         <div className="mt-5 grid gap-5 sm:grid-cols-12 sm:gap-6">
-          {/* Left: Dynamic Cadet Monogram Badge */}
           <div className="flex flex-col items-center sm:col-span-4">
             <div className="relative flex h-36 w-32 sm:h-44 sm:w-full flex-col items-center justify-between border-2 border-black bg-[#E7E5E0] p-3 shadow-[3px_3px_0px_0px_#000]">
               <div className="flex w-full items-center justify-between border-b border-black/20 pb-1 font-mono text-[8px] font-black text-neutral-600 uppercase">
                 <span>CHIP://ID</span>
-                <span className={`h-2 w-2 rounded-full border border-black ${isAccessGranted ? 'bg-[#DC2626] animate-pulse' : 'bg-[#FFDE59]'}`} />
+                <span className={`h-2 w-2 rounded-full border border-black ${isAccessGranted || mode === 'verify' ? 'bg-[#DC2626] animate-pulse' : 'bg-[#FFDE59]'}`} />
               </div>
 
               <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center border-2 border-black bg-[#FFDE59] font-mono text-3xl sm:text-4xl font-black text-black shadow-[2px_2px_0px_0px_#000]">
-                {form.name.trim().charAt(0).toUpperCase() || (mode === 'signup' ? '?' : mode === 'forgot' ? '!' : 'OP')}
+                {form.name.trim().charAt(0).toUpperCase() || (mode === 'signup' ? '?' : mode === 'forgot' ? '!' : mode === 'verify' ? '...' : 'OP')}
               </div>
 
               <span className="border border-black bg-black px-2 py-0.5 font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white">
-                {mode === 'signup' ? 'NEW_CADET' : mode === 'forgot' ? 'RECOVERY' : 'OPERATOR'}
+                {mode === 'signup' ? 'NEW_CADET' : mode === 'forgot' ? 'RECOVERY' : mode === 'verify' ? 'PROCESSING' : mode === 'update_password' ? 'UPDATING' : 'OPERATOR'}
               </span>
             </div>
             <span className="mt-2 font-mono text-[9px] sm:text-[10px] font-bold tracking-widest text-neutral-500 uppercase text-center">
@@ -214,35 +270,41 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
             </span>
           </div>
 
-          {/* Right: Forms & Mode Toggle */}
-          <div className="sm:col-span-8 space-y-4">
-            {/* Mode Switcher Tabs */}
-            <div className="grid grid-cols-2 gap-1.5 border-2 border-black bg-[#E7E5E0] p-1">
-              <button
-                type="button"
-                disabled={isAccessGranted}
-                onClick={() => handleSetMode('signin')}
-                className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signin'
-                  ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
-                  : 'text-neutral-500 hover:text-black cursor-pointer'
-                  }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                disabled={isAccessGranted}
-                onClick={() => handleSetMode('signup')}
-                className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signup'
-                  ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
-                  : 'text-neutral-500 hover:text-black cursor-pointer'
-                  }`}
-              >
-                Create Account
-              </button>
-            </div>
+          <div className="sm:col-span-8 space-y-4 relative">
+            {mode === 'verify' && !isAccessGranted && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#F8F7F4]/90 backdrop-blur-sm border-2 border-black">
+                <div className="animate-spin h-8 w-8 border-4 border-black border-t-[#DC2626] rounded-full mb-4"></div>
+                <p className="font-mono text-xs font-black uppercase text-black">Verifying Credentials...</p>
+              </div>
+            )}
 
-            {/* Form Fields */}
+            {mode !== 'update_password' && (
+              <div className="grid grid-cols-2 gap-1.5 border-2 border-black bg-[#E7E5E0] p-1">
+                <button
+                  type="button"
+                  disabled={isAccessGranted || mode === 'verify'}
+                  onClick={() => handleSetMode('signin')}
+                  className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signin' || mode === 'forgot'
+                    ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
+                    : 'text-neutral-500 hover:text-black cursor-pointer'
+                    }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  disabled={isAccessGranted || mode === 'verify'}
+                  onClick={() => handleSetMode('signup')}
+                  className={`py-1.5 sm:py-2 font-mono text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'signup'
+                    ? 'border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000]'
+                    : 'text-neutral-500 hover:text-black cursor-pointer'
+                    }`}
+                >
+                  Create Account
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-3">
               {mode === 'signup' && (
                 <div className="space-y-1">
@@ -267,42 +329,44 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label
-                  htmlFor="email"
-                  className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
-                >
-                  EMAIL CREDENTIAL
-                </label>
-                <input
-                  id="email"
-                  ref={emailInputRef}
-                  name="email"
-                  type="email"
-                  disabled={isAccessGranted || isSubmitting}
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="operator@domain.com"
-                  required
-                  aria-invalid={credentialField === 'email'}
-                  className={`h-10 w-full border-2 bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:outline-none sm:text-sm ${credentialField === 'email'
-                    ? 'border-solid border-[#FF6B6B] bg-[#FFF1F2]'
-                    : 'border-dashed border-black focus:border-solid'
-                    }`}
-                />
-              </div>
+              {(mode === 'signin' || mode === 'signup' || mode === 'forgot') && (
+                <div className="space-y-1">
+                  <label
+                    htmlFor="email"
+                    className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
+                  >
+                    EMAIL CREDENTIAL
+                  </label>
+                  <input
+                    id="email"
+                    ref={emailInputRef}
+                    name="email"
+                    type="email"
+                    disabled={isAccessGranted || isSubmitting}
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="operator@domain.com"
+                    required
+                    aria-invalid={credentialField === 'email'}
+                    className={`h-10 w-full border-2 bg-white px-3 font-mono text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-neutral-400 focus:outline-none sm:text-sm ${credentialField === 'email'
+                      ? 'border-solid border-[#FF6B6B] bg-[#FFF1F2]'
+                      : 'border-dashed border-black focus:border-solid'
+                      }`}
+                  />
+                </div>
+              )}
 
-              {mode !== 'forgot' && (
+              {(mode === 'signin' || mode === 'signup' || mode === 'update_password') && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <label
                       htmlFor="password"
                       className="font-mono text-[10px] font-black uppercase tracking-wider text-black sm:text-[11px]"
                     >
-                      ACCESS CIPHER
+                      {mode === 'update_password' ? 'NEW ACCESS CIPHER' : 'ACCESS CIPHER'}
                     </label>
                     <div className="flex items-center gap-3">
-                      {mode === 'signup' && (
+                      {(mode === 'signup' || mode === 'update_password') && (
                         <span className="font-mono text-[9px] font-bold text-neutral-500">
                           MIN. 8 CHARS
                         </span>
@@ -338,7 +402,6 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                 </div>
               )}
 
-              {/* Passport Rejection / Verification Notice Box */}
               {message && (
                 <div
                   role="alert"
@@ -379,7 +442,6 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                 </div>
               )}
 
-              {/* Submit CTA Button */}
               <div className="pt-2 space-y-2">
                 <button
                   type="submit"
@@ -394,12 +456,16 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
                         ? 'REGISTERING CADET...'
                         : mode === 'forgot'
                           ? 'DISPATCHING RECOVERY...'
-                          : 'VALIDATING ACCESS...'
+                          : mode === 'update_password'
+                            ? 'UPDATING CIPHER...'
+                            : 'VALIDATING ACCESS...'
                       : mode === 'signup'
                         ? 'ISSUE PASSPORT & SIGN UP →'
                         : mode === 'forgot'
                           ? 'SEND RECOVERY INSTRUCTIONS →'
-                          : 'ENTER SYSTEM →'}
+                          : mode === 'update_password'
+                            ? 'CONFIRM NEW CIPHER →'
+                            : 'ENTER SYSTEM →'}
                 </button>
 
                 {mode === 'forgot' && (
@@ -416,11 +482,9 @@ export default function AuthPage({ onStartSuccessAnimation, onSuccessComplete }:
           </div>
         </div>
 
-        {/* Circular Japanese Hanko / Verification Seal */}
         {isAccessGranted && (
           <div className="hanko-animate pointer-events-none absolute top-12 right-6 sm:top-8 sm:right-10 z-30 select-none">
             <div className="relative flex h-24 w-24 sm:h-28 sm:w-28 flex-col items-center justify-center rounded-full border-3 border-dashed border-[#DC2626] bg-[#DC2626]/[0.06] p-1 shadow-[0px_0px_1px_1px_#DC2626]">
-              {/* Inner Solid Ring */}
               <div className="flex h-full w-full flex-col items-center justify-center rounded-full border-2 border-[#DC2626]">
                 <span className="font-mono text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-[#DC2626]">
                   GANBATTE · 2026
