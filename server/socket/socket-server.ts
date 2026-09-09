@@ -31,6 +31,7 @@ import { getPersistedVocabDeck } from '../repositories/vocab-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
+import { configureRoomManager, startMinefieldRound } from '../managers/roomManager.js';
 import {
   advanceRoomIfReady,
   buildAssessmentResults,
@@ -70,6 +71,8 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       skipMiddlewares: false,                   // Must be false to re-populate socket.data.user
     },
   });
+
+  configureRoomManager(io);
 
   app.set('io', io);
 
@@ -515,6 +518,48 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     };
 
     socket.on('start-assessment', startAssessment);
+
+    socket.on('minefield-claim-attempt', async (roomCode: RoomCode, tileId: string) => {
+      const room = roomState.rooms.get(roomCode);
+      const player = room?.players.find((candidate) => candidate.id === socket.id);
+      const minefield = room?.minefield;
+      const tile = minefield?.tiles.find((candidate) => candidate.id === tileId);
+      if (!room || !player || !minefield || !tile || tile.status !== 'idle') return;
+
+      const isHost = room.players[0]?.id === socket.id;
+      const isGuest = room.players[1]?.id === socket.id;
+      if (!isHost && !isGuest) return;
+
+      if (tile.isMine) {
+        tile.status = 'exploded';
+        if (isHost) minefield.hostScore -= 1;
+        else minefield.guestScore -= 1;
+        roomState.rooms.set(roomCode, room);
+        io.to(roomCode).emit('minefield-tile-resolved', {
+          tileId,
+          success: false,
+          ownerId: socket.id,
+        });
+        return;
+      }
+
+      tile.status = isHost ? 'claimed-host' : 'claimed-guest';
+      tile.claimedBy = socket.id;
+      if (isHost) minefield.hostScore += 1;
+      else minefield.guestScore += 1;
+      roomState.rooms.set(roomCode, room);
+      io.to(roomCode).emit('minefield-tile-resolved', {
+        tileId,
+        success: true,
+        ownerId: socket.id,
+      });
+
+      try {
+        await startMinefieldRound(roomCode, getSupabaseClient());
+      } catch (error) {
+        console.error(`Failed to start next Minefield round for room ${roomCode}:`, error);
+      }
+    });
 
     socket.on('start-gauntlet', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);

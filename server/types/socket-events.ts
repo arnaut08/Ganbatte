@@ -24,6 +24,7 @@ export interface ClientToServerEvents {
   'exit-lobby': (roomCode: RoomCode, callback: RoomCallback) => void;
   'request-assessment-action': (roomCode: RoomCode, action: string) => void;
   'set-player-presence': (roomCode: RoomCode, presence: string, callback: RoomCallback) => void;
+  'minefield-claim-attempt': (roomCode: RoomCode, tileId: string) => void;
   'invite-friend-to-room': (roomCode: RoomCode, targetUserId: string, callback: RoomCallback) => void;
   'room-invite-response': (data: Record<string, unknown>) => void;
 }
