@@ -80,6 +80,7 @@ type RoomSocketCommands = {
     accepted: boolean;
   }) => void;
   'minefield-claim-attempt': (roomCode: string, tileId: string) => void;
+  'minefield-start-request': (roomCode: string) => void;
 };
 
 export type RoomSocketEventName = keyof RoomSocketEvents;

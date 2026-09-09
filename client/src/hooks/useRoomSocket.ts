@@ -392,6 +392,14 @@ export default function useRoomSocket({
       currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'gauntlet' ? previous : [...previous, 'gauntlet']);
     });
 
+    listen('minefield-sync', (data) => {
+      if (!data?.room?.minefield) return;
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom(data.room);
+      currentOptions.setStatus('minefield');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'minefield' ? previous : [...previous, 'minefield']);
+    });
+
     listen('assessment-generation-failed', (data) => {
       const currentOptions = latestOptionsRef.current;
       currentOptions.setIsPreparingAssessment(false);

@@ -7,7 +7,7 @@ export type RoomStatus = 'waiting' | 'preparing' | 'active' | 'completed';
 export type PlayerPresence = 'online' | 'away' | 'offline' | 'disconnected' | 'in_lobby' | 'ready';
 
 /** Format of the 1v1 match. */
-export type MatchMode = 'standard' | 'gauntlet';
+export type MatchMode = 'standard' | 'gauntlet' | 'minefield';
 
 export type MinefieldTile = {
   id: string;

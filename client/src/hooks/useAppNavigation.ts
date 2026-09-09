@@ -24,6 +24,7 @@ const screenPriority: Record<AppStatus, number> = {
   profile: 0,
   lobby: 0,
   gauntlet: 0,
+  minefield: 1,
   assessment: 1,
   results: 1,
   'assessment-preparing': 0,

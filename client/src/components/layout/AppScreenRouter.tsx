@@ -28,6 +28,7 @@ const FriendsPanel = lazy(() => import('../social/FriendsPanel'));
 const ProfileScreen = lazy(() => import('../profile/ProfileScreen'));
 const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScreen'));
 const GauntletPvpScreen = lazy(() => import('../gauntlet/GauntletPvpScreen'));
+const MinefieldArena = lazy(() => import('../practice/MinefieldArena'));
 
 type ScreenRouterProps = AppContextValue & RoomContextValue;
 
@@ -118,6 +119,10 @@ function LegacyAppScreenRouter({
   const handleStartAuthAnimation = useCallback(() => {
     setIsStampAnimating(true);
   }, []);
+
+  const handleOpenMinefield = () => {
+    if (socket && room?.code) socket.emit('minefield-start-request', room.code);
+  };
 
   const { toast, showToast, clearToast } = useToast();
 
@@ -222,6 +227,14 @@ function LegacyAppScreenRouter({
           onForfeit={handleForfeitMatch}
           onReturnToLobby={handleReturnGauntletToLobby}
           onExit={handleReturnToRoom}
+        />
+      ) : status === 'minefield' && room ? (
+        <MinefieldArena
+          roomCode={room.code || roomCode}
+          socket={socket as never}
+          currentUserId={user?.id || ''}
+          isHost={Boolean(isCurrentPlayerHost)}
+          initialMinefield={room.minefield}
         />
       ) : (
         <>
@@ -355,6 +368,7 @@ function LegacyAppScreenRouter({
               room={room}
               onStartAssessment={handleStartAssessment}
               onOpenGauntlet={handleStartGauntlet}
+              onOpenMinefield={handleOpenMinefield}
               onLeaveRoom={handleLeaveRoom}
               currentSocketId={socket?.id || ''}
               currentUserId={user?.id || null}

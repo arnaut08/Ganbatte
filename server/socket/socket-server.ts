@@ -42,7 +42,7 @@ import {
 
 type RoomDeckConfig = {
   type?: 'kana' | 'kanji' | 'vocab' | 'grammar';
-  mode?: 'standard' | 'gauntlet';
+  mode?: 'standard' | 'gauntlet' | 'minefield';
   groups?: string[];
   maxLesson?: number;
   count?: number;
@@ -203,7 +203,11 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
       const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : deckConfig?.type === 'vocab' ? 'vocab' : 'kana';
-      const deckMode = deckConfig?.mode === 'gauntlet' ? 'gauntlet' : 'standard';
+      const deckMode = deckConfig?.mode === 'gauntlet'
+        ? 'gauntlet'
+        : deckConfig?.mode === 'minefield'
+          ? 'minefield'
+          : 'standard';
       let cards: PracticeCard[] = [];
       if (deckMode !== 'gauntlet' && deckType === 'kanji') {
         let deck;
@@ -518,6 +522,23 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     };
 
     socket.on('start-assessment', startAssessment);
+
+    socket.on('minefield-start-request', async (roomCode: RoomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      if (!room || room.mode !== 'minefield' || room.status !== 'waiting') return;
+      if (room.players[0]?.id !== socket.id || room.players.length < 2) return;
+
+      room.status = 'active';
+      roomState.rooms.set(roomCode, room);
+
+      try {
+        await startMinefieldRound(roomCode, getSupabaseClient());
+      } catch (error) {
+        room.status = 'waiting';
+        roomState.rooms.set(roomCode, room);
+        console.error(`Failed to start Minefield room ${roomCode}:`, error);
+      }
+    });
 
     socket.on('minefield-claim-attempt', async (roomCode: RoomCode, tileId: string) => {
       const room = roomState.rooms.get(roomCode);

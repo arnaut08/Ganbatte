@@ -13,6 +13,7 @@ type RoomLobbyProps = {
   room: Room;
   onStartAssessment: () => void;
   onOpenGauntlet?: () => void;
+  onOpenMinefield?: () => void;
   onLeaveRoom: () => void;
   currentSocketId?: string;
   currentUserId?: string | null;
@@ -34,6 +35,7 @@ export default function RoomLobby({
   room,
   onStartAssessment,
   onOpenGauntlet,
+  onOpenMinefield,
   onLeaveRoom,
   currentSocketId,
   currentUserId,
@@ -54,13 +56,16 @@ export default function RoomLobby({
     hostPlayer?.sessionKey === sessionKey;
 
   const isGauntlet = room?.mode === 'gauntlet';
+  const isMinefield = room?.mode === 'minefield';
   const isKanji = room?.deckType === 'kanji';
   const isVocab = room?.deckType === 'vocab';
   const isGrammar = room?.deckType === 'grammar';
 
   // Gauntlet highlights with high-visibility red; standard uses deck accents
-  const themeAccent = isGauntlet ? '#FF6B6B' : getDeckAccent(room?.deckType);
-  const themeLabel = isGauntlet
+  const themeAccent = isMinefield ? '#A3E636' : isGauntlet ? '#FF6B6B' : getDeckAccent(room?.deckType);
+  const themeLabel = isMinefield
+    ? 'ARCADE // MINEFIELD RUSH'
+    : isGauntlet
     ? <><LightningBoltIcon className="inline-block h-3 w-3" aria-hidden="true" /> ARCADE // SURVIVAL GAUNTLET</>
     : isKanji
       ? '02 // KANJI 1v1'
@@ -84,7 +89,9 @@ export default function RoomLobby({
   };
 
   const handlePrimaryLaunch = () => {
-    if (isGauntlet && onOpenGauntlet) {
+    if (isMinefield && onOpenMinefield) {
+      onOpenMinefield();
+    } else if (isGauntlet && onOpenGauntlet) {
       onOpenGauntlet();
     } else {
       onStartAssessment();
@@ -98,7 +105,7 @@ export default function RoomLobby({
           onBack={onLeaveRoom}
           punchline={typeof themeLabel === 'string' ? themeLabel : 'ARCADE // SURVIVAL GAUNTLET'}
           title="Match Setup"
-          accentClass={isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
+          accentClass={isMinefield ? 'text-[#A3E636]' : isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
         />
       </div>
 
@@ -345,7 +352,9 @@ export default function RoomLobby({
                     ? 'Wait for Host'
                     : isReady
                       ? isGauntlet
-                        ? <span className="flex items-center justify-center gap-1">Start Gauntlet <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /></span>
+                        ? isMinefield
+                          ? 'Start Minefield →'
+                          : <span className="flex items-center justify-center gap-1">Start Gauntlet <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /></span>
                         : 'Start Match →'
                       : 'Waiting...'}
               </LegacyButton>
@@ -378,6 +387,21 @@ export default function RoomLobby({
                   <li className="flex gap-2">
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FF6B6B]" />
                     <span>Last player surviving in the arena wins.</span>
+                  </li>
+                </>
+              ) : isMinefield ? (
+                <>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
+                    <span>Scan the grid to find the matching Japanese translation for the English prompt.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
+                    <span>Watch out for traps! Clicking a mine costs you points.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
+                    <span>The player with the highest territory control and score wins.</span>
                   </li>
                 </>
               ) : (

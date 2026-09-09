@@ -10,8 +10,13 @@ export function useMinefieldSocket(
   roomCode?: string,
   currentUserId?: string,
   isHost?: boolean,
+  initialMinefield?: MinefieldState,
 ) {
-  const [localMinefield, setLocalMinefield] = useState<MinefieldState | null>(null);
+  const [localMinefield, setLocalMinefield] = useState<MinefieldState | null>(initialMinefield ?? null);
+
+  useEffect(() => {
+    if (initialMinefield) setLocalMinefield(initialMinefield);
+  }, [initialMinefield]);
 
   useEffect(() => {
     if (!socket) return undefined;
@@ -29,8 +34,9 @@ export function useMinefieldSocket(
       setLocalMinefield((previous) => {
         if (!previous) return previous;
 
+        const isCurrentUserOwner = payload.ownerId === currentUserId || payload.ownerId === socket.id;
         const status = payload.success
-          ? payload.ownerId === currentUserId
+          ? isCurrentUserOwner
             ? isHost ? 'claimed-host' : 'claimed-guest'
             : isHost ? 'claimed-guest' : 'claimed-host'
           : 'exploded';

@@ -1,4 +1,5 @@
 import useMinefieldSocket from '../../hooks/useMinefieldSocket';
+import type { MinefieldState } from '../../types/room';
 import type { RoomSocket } from '../../types/socket-events';
 import MinefieldGrid from './MinefieldGrid';
 
@@ -7,10 +8,11 @@ type MinefieldArenaProps = {
   socket: RoomSocket | null;
   currentUserId: string;
   isHost: boolean;
+  initialMinefield?: MinefieldState;
 };
 
-export function MinefieldArena({ roomCode, socket, currentUserId, isHost }: MinefieldArenaProps) {
-  const { localMinefield, claimTile } = useMinefieldSocket(socket, roomCode, currentUserId, isHost);
+export function MinefieldArena({ roomCode, socket, currentUserId, isHost, initialMinefield }: MinefieldArenaProps) {
+  const { localMinefield, claimTile } = useMinefieldSocket(socket, roomCode, currentUserId, isHost, initialMinefield);
 
   if (!localMinefield) {
     return (
