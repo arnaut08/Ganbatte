@@ -1,6 +1,6 @@
 import type { Socket } from 'socket.io-client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { Room, RoomPlayer, SocketAck } from './room';
+import type { MinefieldState, MinefieldTile, Room, RoomPlayer, SocketAck } from './room';
 
 export type IdentityPayload = { display_name?: string };
 
@@ -66,6 +66,8 @@ type RoomSocketEvents = {
   'friend-online': RoomEventPayload;
   'room-invite-received': RoomEventPayload;
   'room-invite-responded': RoomEventPayload;
+  'minefield-sync': RoomEventPayload;
+  'minefield-tile-resolved': { tileId: string; success: boolean; ownerId: string | null };
 };
 
 type RoomSocketCommands = {
@@ -77,6 +79,7 @@ type RoomSocketCommands = {
     inviterSocketId?: string;
     accepted: boolean;
   }) => void;
+  'minefield-claim-attempt': (roomCode: string, tileId: string) => void;
 };
 
 export type RoomSocketEventName = keyof RoomSocketEvents;
@@ -134,6 +137,53 @@ function normalizePlayer(value: unknown): RoomPlayer | null {
   };
 }
 
+function normalizeMinefieldStatus(value: unknown): MinefieldTile['status'] | undefined {
+  switch (value) {
+    case 'idle':
+    case 'verifying':
+    case 'claimed-host':
+    case 'claimed-guest':
+    case 'exploded':
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function normalizeMinefieldTile(value: unknown): MinefieldTile | null {
+  if (!isRecord(value)) return null;
+  const id = asString(value.id);
+  const text = asString(value.text);
+  const status = normalizeMinefieldStatus(value.status);
+  if (id === undefined || text === undefined || status === undefined || typeof value.isMine !== 'boolean') return null;
+
+  return {
+    id,
+    text,
+    isMine: value.isMine,
+    status,
+    claimedBy: asString(value.claimedBy) ?? null,
+  };
+}
+
+function normalizeMinefieldState(value: unknown): MinefieldState | undefined {
+  if (!isRecord(value) || !Array.isArray(value.tiles)) return undefined;
+  const tiles = value.tiles.map(normalizeMinefieldTile);
+  const currentPrompt = asString(value.currentPrompt);
+  const hostScore = asNumber(value.hostScore);
+  const guestScore = asNumber(value.guestScore);
+  if (
+    tiles.some((tile): tile is null => tile === null) ||
+    currentPrompt === undefined ||
+    hostScore === undefined ||
+    guestScore === undefined
+  ) {
+    return undefined;
+  }
+
+  return { tiles: tiles as MinefieldTile[], currentPrompt, hostScore, guestScore };
+}
+
 export function normalizeRoom(value: unknown): Room | undefined {
   if (!isRecord(value) || !Array.isArray(value.players)) return undefined;
   const players = value.players.map(normalizePlayer).filter((player): player is RoomPlayer => player !== null);
@@ -154,7 +204,17 @@ export function normalizeRoom(value: unknown): Room | undefined {
     selectedGroups: Array.isArray(value.selectedGroups)
       ? value.selectedGroups.filter((group): group is string => typeof group === 'string')
       : undefined,
+    minefield: normalizeMinefieldState(value.minefield),
   };
+}
+
+function normalizeMinefieldTileResolvedPayload(
+  value: unknown,
+): { tileId: string; success: boolean; ownerId: string | null } | null {
+  if (!isRecord(value) || typeof value.success !== 'boolean') return null;
+  const tileId = asString(value.tileId);
+  if (tileId === undefined) return null;
+  return { tileId, success: value.success, ownerId: asString(value.ownerId) ?? null };
 }
 
 function normalizePayload(value: unknown): RoomSocketPayload | null {
@@ -201,6 +261,9 @@ export function normalizeRoomSocketEvent<TEvent extends RoomSocketEventName>(
   if (event === 'room-created') {
     const roomCode = asString(value);
     return roomCode === undefined ? null : roomCode as RoomSocketEvent<TEvent>;
+  }
+  if (event === 'minefield-tile-resolved') {
+    return normalizeMinefieldTileResolvedPayload(value) as RoomSocketEvent<TEvent> | null;
   }
   return normalizePayload(value) as RoomSocketEvent<TEvent> | null;
 }
