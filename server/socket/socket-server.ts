@@ -48,6 +48,8 @@ type RoomDeckConfig = {
   count?: number;
 };
 
+const MINEFIELD_WINNING_SCORE = 5;
+
 function isPracticeAnswerCorrect(answer: Answer, card: PracticeCard): boolean {
   if (card.answerType === 'text' && card.correctAnswer) {
     return String(answer).trim().toLowerCase() === card.correctAnswer.trim().toLowerCase();
@@ -552,7 +554,6 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       if (!isHost && !isGuest) return;
 
       if (tile.isMine) {
-        tile.status = 'exploded';
         if (isHost) minefield.hostScore -= 1;
         else minefield.guestScore -= 1;
         roomState.rooms.set(roomCode, room);
@@ -560,6 +561,8 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           tileId,
           success: false,
           ownerId: socket.id,
+          hostScore: minefield.hostScore,
+          guestScore: minefield.guestScore,
         });
         return;
       }
@@ -573,7 +576,25 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         tileId,
         success: true,
         ownerId: socket.id,
+        hostScore: minefield.hostScore,
+        guestScore: minefield.guestScore,
       });
+
+      const playerScore = isHost ? minefield.hostScore : minefield.guestScore;
+      if (playerScore >= MINEFIELD_WINNING_SCORE) {
+        room.status = 'completed';
+        room.winnerUserId = player.userId ?? null;
+        room.winnerSocketId = socket.id;
+        roomState.rooms.set(roomCode, room);
+        io.to(roomCode).emit('minefield-match-completed', {
+          room,
+          winnerUserId: room.winnerUserId,
+          winnerSocketId: socket.id,
+          loserSocketId: room.players.find((candidate) => candidate.id !== socket.id)?.id,
+          forfeitedByUserId: null,
+        });
+        return;
+      }
 
       try {
         await startMinefieldRound(roomCode, getSupabaseClient());
@@ -617,6 +638,16 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           winnerUserId: room.winnerUserId,
           winnerPlayerName: winner.name,
         });
+      }
+      if (room.mode === 'minefield') {
+        io.to(roomCode).emit('minefield-match-completed', {
+          room,
+          winnerUserId: room.winnerUserId,
+          winnerSocketId: winner.id,
+          loserSocketId: forfeitingPlayer.id,
+          forfeitedByUserId: room.forfeitedByUserId,
+        });
+        return;
       }
       const completionEvent = room.mode === 'gauntlet' ? 'gauntlet-match-completed' : 'assessment-completed';
       io.to(roomCode).emit(completionEvent, {

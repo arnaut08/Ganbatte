@@ -29,6 +29,7 @@ export type RoomSocketPayload = {
   returnedByPlayerName?: string;
   winnerSocketId?: string;
   loserSocketId?: string;
+  forfeitedByUserId?: string | null;
   friend?: IdentityPayload;
   receiver?: IdentityPayload;
   displayName?: string;
@@ -67,7 +68,14 @@ type RoomSocketEvents = {
   'room-invite-received': RoomEventPayload;
   'room-invite-responded': RoomEventPayload;
   'minefield-sync': RoomEventPayload;
-  'minefield-tile-resolved': { tileId: string; success: boolean; ownerId: string | null };
+  'minefield-tile-resolved': {
+    tileId: string;
+    success: boolean;
+    ownerId: string | null;
+    hostScore: number;
+    guestScore: number;
+  };
+  'minefield-match-completed': RoomEventPayload;
 };
 
 type RoomSocketCommands = {
@@ -81,6 +89,7 @@ type RoomSocketCommands = {
   }) => void;
   'minefield-claim-attempt': (roomCode: string, tileId: string) => void;
   'minefield-start-request': (roomCode: string) => void;
+  'forfeit-match': (roomCode: string) => void;
 };
 
 export type RoomSocketEventName = keyof RoomSocketEvents;
@@ -248,6 +257,7 @@ function normalizePayload(value: unknown): RoomSocketPayload | null {
     returnedByPlayerName: asString(value.returnedByPlayerName),
     winnerSocketId: asString(value.winnerSocketId),
     loserSocketId: asString(value.loserSocketId),
+    forfeitedByUserId: asString(value.forfeitedByUserId) ?? null,
     friend: isRecord(value.friend) ? { display_name: asString(value.friend.display_name) } : undefined,
     receiver: isRecord(value.receiver) ? { display_name: asString(value.receiver.display_name) } : undefined,
     displayName: asString(value.displayName),

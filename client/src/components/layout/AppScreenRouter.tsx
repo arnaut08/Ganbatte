@@ -235,6 +235,7 @@ function LegacyAppScreenRouter({
           currentUserId={user?.id || ''}
           isHost={Boolean(isCurrentPlayerHost)}
           initialMinefield={room.minefield}
+          onForfeit={handleForfeitMatch}
         />
       ) : (
         <>
