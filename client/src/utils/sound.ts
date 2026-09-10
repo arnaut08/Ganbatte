@@ -13,58 +13,54 @@ class SoundFX {
     return this.ctx;
   }
 
+  // Upgraded: Bright, arcade "coin/chime" double-tone for correct guesses
   playSuccess() {
     try {
       const ctx = this.getContext();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+      osc.type = 'sine';
+      // Quick jump from B5 to E6
+      osc.frequency.setValueAtTime(987.77, ctx.currentTime);
+      osc.frequency.setValueAtTime(1318.51, ctx.currentTime + 0.08);
 
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      // Smoother attack and decay to prevent audio popping
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start();
-      osc.stop(ctx.currentTime + 0.15);
+      osc.stop(ctx.currentTime + 0.3);
     } catch {
       // Ignore audio context errors if blocked by browser policy
     }
   }
 
+  // Upgraded: Punchy, low-frequency buzzer/thud for incorrect mine clicks
   playExplosion() {
     try {
       const ctx = this.getContext();
-      // Create white noise buffer for explosion/mine sound
-      const bufferSize = ctx.sampleRate * 0.3; // 300ms
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
-      }
-
-      const whiteNoise = ctx.createBufferSource();
-      whiteNoise.buffer = buffer;
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(300, ctx.currentTime);
-      filter.frequency.linearRampToValueAtTime(50, ctx.currentTime + 0.3);
-
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
 
-      whiteNoise.connect(filter);
-      filter.connect(gain);
+      osc.type = 'sawtooth';
+      // Harsh low frequency dropping rapidly
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.2);
+
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+      osc.connect(gain);
       gain.connect(ctx.destination);
 
-      whiteNoise.start();
-      whiteNoise.stop(ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
     } catch {
       // Ignore
     }
@@ -79,7 +75,8 @@ class SoundFX {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(440, ctx.currentTime); // A4
 
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
 
       osc.connect(gain);
@@ -87,6 +84,60 @@ class SoundFX {
 
       osc.start();
       osc.stop(ctx.currentTime + 0.08);
+    } catch {
+      // Ignore
+    }
+  }
+
+  playVictory() {
+    try {
+      const ctx = this.getContext();
+      // Ascending major arpeggio
+      const frequencies = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+
+      frequencies.forEach((freq, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const startTime = ctx.currentTime + (index * 0.1);
+
+        osc.type = 'square';
+        osc.frequency.value = freq;
+
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.1, startTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+      });
+    } catch {
+      // Ignore
+    }
+  }
+
+  playDefeat() {
+    try {
+      const ctx = this.getContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      // Descending dissonant slide
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.6);
+
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
     } catch {
       // Ignore
     }
