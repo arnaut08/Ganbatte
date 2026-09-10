@@ -196,8 +196,20 @@ function normalizeMinefieldState(value: unknown): MinefieldState | undefined {
   const roundLimit = asNumber(value.roundLimit);
   const winningScore = asNumber(value.winningScore);
   if (roundNumber === undefined || roundLimit === undefined || winningScore === undefined) return undefined;
+  const usedPromptMeanings = Array.isArray(value.usedPromptMeanings)
+    ? value.usedPromptMeanings.filter((meaning): meaning is string => typeof meaning === 'string')
+    : [];
 
-  return { tiles: tiles as MinefieldTile[], currentPrompt, hostScore, guestScore, roundNumber, roundLimit, winningScore };
+  return {
+    tiles: tiles as MinefieldTile[],
+    currentPrompt,
+    hostScore,
+    guestScore,
+    roundNumber,
+    roundLimit,
+    winningScore,
+    usedPromptMeanings,
+  };
 }
 
 export function normalizeRoom(value: unknown): Room | undefined {

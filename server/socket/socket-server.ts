@@ -32,7 +32,7 @@ import { generateGrammarAssessment } from '../services/genki-grammar-service.js'
 import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
 import { configureRoomManager, startMinefieldRound } from '../managers/roomManager.js';
-import { MINEFIELD_ROUND_LIMIT, MINEFIELD_WINNING_SCORE } from '../services/minefieldService.js';
+import { MINEFIELD_WINNING_SCORE } from '../services/minefieldService.js';
 import {
   advanceRoomIfReady,
   buildAssessmentResults,
@@ -580,7 +580,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       });
 
       const playerScore = isHost ? minefield.hostScore : minefield.guestScore;
-      const roundLimitReached = minefield.roundNumber >= MINEFIELD_ROUND_LIMIT;
+      const roundLimitReached = minefield.roundNumber >= minefield.roundLimit;
       if (playerScore >= MINEFIELD_WINNING_SCORE || roundLimitReached) {
         const hostWins = minefield.hostScore > minefield.guestScore
           || (minefield.hostScore === minefield.guestScore && isHost);

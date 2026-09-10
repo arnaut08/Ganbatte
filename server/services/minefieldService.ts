@@ -16,6 +16,7 @@ export type MinefieldState = {
     roundNumber: number;
     roundLimit: number;
     winningScore: number;
+    usedPromptMeanings: string[];
 };
 
 export const MINEFIELD_ROUND_LIMIT = 10;
@@ -52,11 +53,48 @@ function shuffle<T>(items: T[]): T[] {
     return items;
 }
 
+function normalizeWords(data: unknown): MinefieldWord[] {
+    if (!Array.isArray(data)) return [];
+
+    return data
+        .filter(isVocabWordRow)
+        .filter((word) => word.english.length > 0 && word.english[0].trim().length > 0)
+        .map((word) => ({
+            ...word,
+            english_meaning: word.english[0].trim(),
+        }));
+}
+
+function normalizePromptMeaning(meaning: string): string {
+    return meaning.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+function getUniqueWords(words: MinefieldWord[]): MinefieldWord[] {
+    const seenIds = new Set<string>();
+    const seenReadings = new Set<string>();
+    const seenPromptMeanings = new Set<string>();
+
+    return words.filter((word) => {
+        const readingKey = `${word.kanji}-${word.kana}`;
+        const promptMeaning = normalizePromptMeaning(word.english_meaning);
+        if (
+            seenIds.has(word.id)
+            || seenReadings.has(readingKey)
+            || seenPromptMeanings.has(promptMeaning)
+        ) return false;
+        seenIds.add(word.id);
+        seenReadings.add(readingKey);
+        seenPromptMeanings.add(promptMeaning);
+        return true;
+    });
+}
+
 export async function generateMinefieldBoard(
     supabaseClient: SupabaseClient,
     groupId?: string,
     selectedGroups?: string[],
     roundNumber = 1,
+    usedPromptMeanings: string[] = [],
 ): Promise<MinefieldState> {
     let query = supabaseClient
         .from('vocab_items')
@@ -77,38 +115,39 @@ export async function generateMinefieldBoard(
     const { data, error } = await query;
     if (error) throw error;
 
-    const rawWords = (data ?? [])
-        .filter(isVocabWordRow)
-        .filter((word) => word.english.length > 0 && word.english[0].trim().length > 0)
-        .map((word) => ({
-            ...word,
-            english_meaning: word.english[0].trim(),
-        }));
-    
-    // Ensure complete uniqueness by filtering out duplicate IDs or kanji/kana entries
-    const seenIds = new Set<string>();
-    const seenMeanings = new Set<string>();
-    const words = rawWords.filter((word) => {
-        const uniqueKey = `${word.kanji}-${word.kana}`;
-        if (seenIds.has(word.id) || seenMeanings.has(uniqueKey)) {
-            return false;
-        }
-        seenIds.add(word.id);
-        seenMeanings.add(uniqueKey);
-        return true;
-    });
+    const preferredWords = getUniqueWords(normalizeWords(data));
+    const roundLimit = Math.min(MINEFIELD_ROUND_LIMIT, preferredWords.length);
+    let words = preferredWords;
+
+    if (preferredWords.length < 16) {
+        const { data: fallbackData, error: fallbackError } = await supabaseClient
+            .from('vocab_items')
+            .select('id, kanji, kana, english')
+            .eq('jlpt_level', 'N5');
+        if (fallbackError) throw fallbackError;
+
+        words = getUniqueWords([...preferredWords, ...normalizeWords(fallbackData)]);
+    }
 
     if (words.length < 16) {
         throw new Error('At least 16 N5 vocabulary words are required to create a minefield board.');
     }
 
-    const selectedWords = shuffle([...words]).slice(0, 16);
-    const targetIndex = Math.floor(Math.random() * selectedWords.length);
-    const targetWord = selectedWords[targetIndex];
-    const tiles = selectedWords.map((word, index) => ({
+    const usedPromptKeys = new Set(usedPromptMeanings.map(normalizePromptMeaning));
+    const targetPool = preferredWords
+        .filter((word) => !usedPromptKeys.has(normalizePromptMeaning(word.english_meaning)));
+    if (targetPool.length === 0) {
+        throw new Error('No unused vocabulary questions remain in the selected Minefield groups.');
+    }
+    const targetWord = targetPool[Math.floor(Math.random() * targetPool.length)];
+    const selectedWords = [
+        targetWord,
+        ...shuffle(words.filter((word) => word.id !== targetWord.id)).slice(0, 15),
+    ];
+    const tiles = selectedWords.map((word) => ({
         id: word.id,
         text: word.kanji === word.kana ? word.kana : `${word.kanji} / ${word.kana}`,
-        isMine: index !== targetIndex,
+        isMine: word.id !== targetWord.id,
         status: 'idle' as const,
         claimedBy: null,
     }));
@@ -119,7 +158,11 @@ export async function generateMinefieldBoard(
         hostScore: 0,
         guestScore: 0,
         roundNumber,
-        roundLimit: MINEFIELD_ROUND_LIMIT,
+        roundLimit,
         winningScore: MINEFIELD_WINNING_SCORE,
+        usedPromptMeanings: [
+            ...usedPromptMeanings,
+            normalizePromptMeaning(targetWord.english_meaning),
+        ],
     };
 }

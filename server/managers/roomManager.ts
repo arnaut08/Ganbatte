@@ -22,6 +22,7 @@ export async function startMinefieldRound(
     undefined,
     room.selectedGroups,
     nextRoundNumber,
+    previousMinefield?.usedPromptMeanings ?? [],
   );
   room.minefield = {
     ...board,

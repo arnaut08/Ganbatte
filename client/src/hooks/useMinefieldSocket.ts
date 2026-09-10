@@ -52,7 +52,7 @@ export function useMinefieldSocket(
 
     return bindRoomSocketEvent(socket, 'minefield-tile-resolved', (payload) => {
       if (payload.success) sound.playSuccess();
-      else sound.playExplosion();
+      else if (payload.ownerId === currentUserId || payload.ownerId === socket.id) sound.playExplosion();
 
       setLocalMinefield((previous) => {
         if (!previous) return previous;
@@ -87,9 +87,13 @@ export function useMinefieldSocket(
 
     return bindRoomSocketEvent(socket, 'minefield-match-completed', (payload) => {
       if (payload.room?.minefield) setLocalMinefield(payload.room.minefield);
+      const isWinner = payload.winnerSocketId === socket.id
+        || (Boolean(payload.winnerUserId) && payload.winnerUserId === currentUserId);
+      if (isWinner) sound.playVictory();
+      else sound.playDefeat();
       setMatchResult(payload);
     });
-  }, [socket]);
+  }, [currentUserId, socket]);
 
   const claimTile = useCallback((tileId: string) => {
     if (!socket || !roomCode) return;
