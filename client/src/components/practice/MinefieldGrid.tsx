@@ -6,24 +6,25 @@ export type MinefieldGridProps = {
   disabled: boolean;
 };
 
+// Converted generic flat buttons into 3D tactile arcade keys
 function getTileStatusClasses(status: MinefieldTile['status']): string {
   switch (status) {
     case 'verifying':
-      return 'bg-[#FFDE59] text-black animate-pulse pointer-events-none translate-x-[2px] translate-y-[2px] shadow-none';
+      return 'bg-[#FFDE59] text-black border-b-2 translate-y-[4px] animate-pulse pointer-events-none';
     case 'claimed-host':
-      return 'bg-[#70CFF8] text-black pointer-events-none translate-x-[2px] translate-y-[2px] shadow-none';
+      return 'bg-[#70CFF8] text-black border-b-2 translate-y-[4px] pointer-events-none';
     case 'claimed-guest':
-      return 'bg-[#A3E636] text-black pointer-events-none translate-x-[2px] translate-y-[2px] shadow-none';
+      return 'bg-[#A3E636] text-black border-b-2 translate-y-[4px] pointer-events-none';
     case 'exploded':
-      return 'bg-[#FF6B6B] text-black pointer-events-none translate-x-[2px] translate-y-[2px] shadow-none';
+      return 'bg-[#FF6B6B] text-black border-b-2 translate-y-[4px] pointer-events-none';
     case 'idle':
-      return 'bg-[#151922] text-white hover:bg-[#283248] cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none';
+      return 'bg-[#151922] text-white border-b-[6px] hover:bg-[#283248] hover:border-b-[4px] hover:translate-y-[2px] active:border-b-2 active:translate-y-[4px] cursor-pointer';
   }
 }
 
 export function MinefieldGrid({ tiles, onTileClick, disabled }: MinefieldGridProps) {
   return (
-    <div className="w-full max-w-md mx-auto grid grid-cols-4 gap-2 sm:gap-3">
+    <div className="w-full max-w-[440px] mx-auto grid grid-cols-4 gap-2 sm:gap-3">
       {tiles.map((tile) => {
         const tileDisabled = disabled || tile.status !== 'idle';
 
@@ -35,7 +36,7 @@ export function MinefieldGrid({ tiles, onTileClick, disabled }: MinefieldGridPro
             onClick={() => {
               if (!tileDisabled) onTileClick(tile.id);
             }}
-            className={`aspect-square flex items-center justify-center border-2 border-black font-mono text-sm sm:text-lg font-black uppercase tracking-wider transition-colors shadow-[2px_2px_0px_0px_#000] ${getTileStatusClasses(tile.status)}`}
+            className={`aspect-square flex items-center justify-center border-2 border-black font-mono text-[10px] sm:text-sm font-black uppercase tracking-wider transition-all break-words px-1 text-center ${getTileStatusClasses(tile.status)}`}
           >
             {tile.text}
           </button>

@@ -69,7 +69,8 @@ export function MinefieldArena({
             : 'TARGET SCORE REACHED';
 
     return (
-        <div className="mx-auto max-w-5xl px-3 py-4 space-y-4 sm:px-4 sm:py-6 relative">
+        <div className="mx-auto max-w-7xl px-3 py-4 space-y-5 sm:px-4 sm:py-6 relative">
+            {/* Header */}
             <header className="flex items-center justify-between gap-3 border-b-2 border-black/20 pb-3">
                 <div>
                     <span className="font-mono text-xs font-black uppercase tracking-widest text-[#A3E636] sm:text-sm">
@@ -89,55 +90,75 @@ export function MinefieldArena({
                 </button>
             </header>
 
-            {/* Balanced Grid Layout preventing left offset or awkward side shifts */}
-            <div className="grid items-start gap-6 lg:grid-cols-[1fr_320px]">
+            {/* Symmetric 3-Column Layout: Stacks on Mobile, perfectly balances on Desktop */}
+            <div className="flex flex-col lg:grid lg:grid-cols-[240px_minmax(0,500px)_240px] xl:grid-cols-[280px_minmax(0,520px)_280px] justify-center items-start gap-5 sm:gap-6">
 
-                {/* Main Arena Column (Centered Grid & HUD) */}
-                <main className="relative w-full space-y-4">
+                {/* LEFT COLUMN: Protocol (Order 3 on mobile, Order 1 on Desktop) */}
+                <aside className="order-3 lg:order-1 w-full border-2 border-black bg-[#151922] p-4 text-white shadow-[4px_4px_0px_0px_#000]">
+                    <span className="font-mono text-xs font-black uppercase tracking-widest text-[#FFDE59]">// PROTOCOL</span>
+                    <div className="mt-4 space-y-3 font-mono text-[11px] font-bold uppercase text-neutral-300">
+                        <div className="flex gap-2">
+                            <span className="text-[#A3E636]">01.</span>
+                            <p>Find the tile matching the English prompt.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <span className="text-[#FF6B6B]">02.</span>
+                            <p>Red tiles are personal mine penalties.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <span className="text-[#70CFF8]">03.</span>
+                            <p>First operator to {winningScore} wins.</p>
+                        </div>
+                        <div className="mt-6 border-t border-white/10 pt-4 flex items-center justify-between">
+                            <span className="text-[9px] text-neutral-500">SYSTEM STATUS</span>
+                            <span className="text-[#A3E636] text-[9px] animate-pulse">ACTIVE</span>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* CENTER COLUMN: Main Arena (Order 1 on mobile, Order 2 on Desktop) */}
+                <main className="order-1 lg:order-2 w-full space-y-4">
                     <div className="flex items-center justify-between gap-3 px-1">
                         <span className="font-mono text-[10px] font-black uppercase tracking-widest text-neutral-400">LIVE TARGET</span>
-                        <span className="font-mono text-[10px] font-black uppercase text-[#FFDE59]">GET TO {winningScore}</span>
+                        <span className="font-mono text-[10px] font-black uppercase text-[#FFDE59]">GET TO {winningScore} WINS</span>
                     </div>
 
-                    {/* Stable HUD Row with locked badge widths */}
-                    <div className="grid grid-cols-[80px_minmax(0,1fr)_80px] items-stretch gap-2 sm:grid-cols-[110px_minmax(0,1fr)_110px] sm:gap-4">
+                    <div className="grid grid-cols-[80px_minmax(0,1fr)_80px] items-stretch gap-2 sm:grid-cols-[100px_minmax(0,1fr)_100px] sm:gap-3">
                         <div className="flex flex-col items-center justify-center border-2 border-black bg-[#70CFF8] px-2 py-2 text-center text-black shadow-[3px_3px_0px_0px_#000]">
-                            <span className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]">Host</span>
+                            <span className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]">{hostPlayerName}</span>
                             <span className="font-mono text-xl font-black sm:text-3xl">{hostScore}</span>
                         </div>
 
-                        {/* Fixed clipping issue by allowing text wrapping and flexible padding */}
                         <div className="flex items-center justify-center border-2 border-black bg-[#151922] px-3 py-2 text-center shadow-[3px_3px_0px_0px_#000]">
-                            <div className="w-full text-base font-black uppercase leading-tight text-[#FFDE59] sm:text-2xl line-clamp-2">
+                            <div className="w-full font-black uppercase leading-tight text-[#FFDE59] text-sm sm:text-xl break-words">
                                 {localMinefield.currentPrompt}
                             </div>
                         </div>
 
                         <div className="flex flex-col items-center justify-center border-2 border-black bg-[#A3E636] px-2 py-2 text-center text-black shadow-[3px_3px_0px_0px_#000]">
-                            <span className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]">Guest</span>
+                            <span className="font-mono text-[9px] font-black uppercase tracking-wider sm:text-[10px]">{guestPlayerName}</span>
                             <span className="font-mono text-xl font-black sm:text-3xl">{guestScore}</span>
                         </div>
                     </div>
 
-                    {/* Playing Grid */}
-                    <div className="pt-1">
+                    <div className="pt-2">
                         <MinefieldGrid tiles={localMinefield.tiles} onTileClick={claimTile} disabled={!socket || Boolean(matchResult)} />
                     </div>
                 </main>
 
-                {/* Compact Sidebar Radar */}
-                <aside className="w-full border-2 border-black bg-[#151922] p-4 text-white shadow-[4px_4px_0px_0px_#000]">
-                    <div className="flex items-center justify-between border-b border-white/20 pb-2.5">
+                {/* RIGHT COLUMN: Radar (Order 2 on mobile, Order 3 on Desktop) */}
+                <aside className="order-2 lg:order-3 w-full border-2 border-black bg-[#151922] p-4 text-white shadow-[4px_4px_0px_0px_#000]">
+                    <div className="flex items-center justify-between border-b border-white/20 pb-3">
                         <span className="font-mono text-xs font-black uppercase tracking-widest text-[#FFDE59]">// OPPONENT RADAR</span>
                         <span className="h-2 w-2 animate-pulse rounded-full bg-[#A3E636]" aria-label="Live sync" />
                     </div>
-                    <div className="mt-3 space-y-3 font-mono text-[11px] font-bold uppercase">
+                    <div className="mt-4 space-y-4 font-mono text-[11px] font-bold uppercase">
                         <div>
                             <div className="flex justify-between text-neutral-400 text-[10px]">
                                 <span>Round Progress</span>
                                 <span className="text-white">{roundNumber}/{roundLimit}</span>
                             </div>
-                            <div className="mt-1.5 h-2 border border-black bg-[#283248]">
+                            <div className="mt-1.5 h-2.5 border border-black bg-[#283248]">
                                 <div className="h-full bg-[#70CFF8]" style={{ width: `${roundProgress}%` }} />
                             </div>
                         </div>
@@ -146,23 +167,20 @@ export function MinefieldArena({
                                 <span>Target Pressure</span>
                                 <span className="text-[#A3E636]">{targetPressureScore}/{winningScore}</span>
                             </div>
-                            <div className="mt-1.5 h-2 border border-black bg-[#283248]">
+                            <div className="mt-1.5 h-2.5 border border-black bg-[#283248]">
                                 <div className="h-full bg-[#A3E636]" style={{ width: `${scoreProgress}%` }} />
                             </div>
                         </div>
-                        <div className="border-y border-white/20 py-2 text-[10px] text-[#A3E636]">● LIVE SYNC // LINKED</div>
-                        <div className="space-y-0.5 text-[10px] text-neutral-400 font-normal">
-                            <p className="font-bold text-[#FFDE59]">QUICK PROTOCOL</p>
-                            <p>Find the tile matching the English prompt.</p>
-                            <p>Red tiles are personal mine penalties.</p>
-                            <p>First to {winningScore} wins.</p>
+                        <div className="border-t border-white/20 pt-4 mt-2 flex justify-between items-center text-[10px] text-neutral-400">
+                            <span>LATENCY</span>
+                            <span className="text-[#A3E636]">SECURE</span>
                         </div>
                     </div>
                 </aside>
 
             </div>
 
-            {/* Containered Victory / Defeat Overlay (Fixed positioning within parent component bounds) */}
+            {/* Containered Victory / Defeat Overlay */}
             {matchResult && (
                 <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-xs p-4 text-center">
                     <span className="border border-black bg-[#151922] px-2 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-[#FFDE59]">
