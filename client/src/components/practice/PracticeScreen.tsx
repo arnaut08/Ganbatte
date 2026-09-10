@@ -173,7 +173,7 @@ function CreateRoomCard({
         </div>
 
         {/* Select Deck Segment Control */}
-        <div className="space-y-1 sm:space-y-1.5">
+        {!isMinefield && (<div className="space-y-1 sm:space-y-1.5">
           <div className="flex flex-wrap items-center justify-between gap-1">
             <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
               SELECT DECK
@@ -181,11 +181,6 @@ function CreateRoomCard({
             {isGauntlet && (
               <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#FF6B6B]">
                 [KANA &amp; N5 KANJI ONLY]
-              </span>
-            )}
-            {isMinefield && (
-              <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
-                [VOCAB ONLY]
               </span>
             )}
           </div>
@@ -218,7 +213,7 @@ function CreateRoomCard({
               </button>
             ))}
           </div>
-        </div>
+        </div>)}
 
         {/* Grammar Level Selector (Standard Mode Only) */}
         {!isGauntlet && deckType === 'grammar' && (
@@ -269,10 +264,16 @@ function CreateRoomCard({
         {/* Kanji Themes / Vocab Stages Selector */}
         {(isKanji || (!isGauntlet && isVocab)) && (
           <div className="relative z-50 space-y-1 sm:space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-1">
             <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
               {isKanji ? 'KANJI THEMES' : 'VOCAB STAGES'}
             </span>
-
+            {isMinefield && (
+              <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
+                [VOCAB ONLY]
+              </span>
+            )}
+          </div>
             <button
               type="button"
               onClick={() => onGroupMenuOpenChange(!isGroupMenuOpen)}
