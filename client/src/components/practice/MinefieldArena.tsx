@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import useMinefieldSocket from '../../hooks/useMinefieldSocket';
+import { supabase } from '../../config/supabase';
 import type { MinefieldState } from '../../types/room';
 import type { RoomSocket } from '../../types/socket-events';
 import MinefieldGrid from './MinefieldGrid';
@@ -15,6 +17,9 @@ type MinefieldArenaProps = {
     guestPlayerName?: string;
     hostSocketId?: string;
     guestSocketId?: string;
+    hostUserId?: string | null;
+    guestUserId?: string | null;
+    selectedGroups?: string[];
 };
 
 export function MinefieldArena({
@@ -29,8 +34,12 @@ export function MinefieldArena({
     guestPlayerName = 'GUEST',
     hostSocketId,
     guestSocketId,
+    hostUserId,
+    guestUserId,
+    selectedGroups = [],
 }: MinefieldArenaProps) {
     const { localMinefield, claimTile, matchResult } = useMinefieldSocket(socket, roomCode, currentUserId, isHost, initialMinefield);
+    const savedResultRef = useRef(false);
 
     if (!localMinefield) {
         return (
@@ -61,6 +70,62 @@ export function MinefieldArena({
 
     const winnerIsHost = matchResult?.winnerSocketId === hostSocketId || (!matchResult?.winnerSocketId && isWinner && isHost);
     const winnerIsGuest = matchResult?.winnerSocketId === guestSocketId || (!matchResult?.winnerSocketId && isWinner && !isHost);
+
+    useEffect(() => {
+        if (!matchResult || !supabase || savedResultRef.current) return;
+        const database = supabase;
+
+        const saveMinefieldResult = async () => {
+            const { data: { session }, error: sessionError } = await database.auth.getSession();
+            if (sessionError || !session?.user?.id) return;
+
+            const localScore = isHost ? hostScore : guestScore;
+            const opponentScore = isHost ? guestScore : hostScore;
+            const companionUserId = isHost ? guestUserId : hostUserId;
+
+            savedResultRef.current = true;
+            const { error } = await database.from('assessment_results').insert({
+                user_id: session.user.id,
+                companion_user_id: companionUserId || null,
+                assessment_type: 'minefield',
+                score_percentage: isWinner ? 100 : 0,
+                correct_questions: Math.max(localScore, 0),
+                total_questions: Math.max(roundLimit, 1),
+                details: {
+                    mode: 'minefield',
+                    room_code: roomCode,
+                    selected_groups: selectedGroups,
+                    round_limit: roundLimit,
+                    rounds_played: roundNumber,
+                    winning_score: winningScore,
+                    score: localScore,
+                    opponent_score: opponentScore,
+                    result: isWinner ? 'WIN' : 'DEFEAT',
+                    completion_reason: matchResult.completionReason,
+                },
+            });
+
+            if (error) {
+                savedResultRef.current = false;
+                console.error('Unable to save Minefield result:', error);
+            }
+        };
+
+        void saveMinefieldResult();
+    }, [
+        guestScore,
+        guestUserId,
+        hostScore,
+        hostUserId,
+        isHost,
+        isWinner,
+        matchResult,
+        roomCode,
+        roundLimit,
+        roundNumber,
+        selectedGroups,
+        winningScore,
+    ]);
 
     const completionMessage = matchResult?.completionReason === 'forfeit'
         ? 'MATCH ENDED BY SURRENDER'
