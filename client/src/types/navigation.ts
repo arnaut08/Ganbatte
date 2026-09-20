@@ -22,6 +22,7 @@ export type AppStatus =
   | 'history'
   | 'lobby'
   | 'assessment'
+  | 'minefield'
   | 'gauntlet'
   | 'results'
   | 'assessment-preparing';
@@ -36,6 +37,7 @@ export type SelectorScreen = 'home' | 'learning' | 'practice';
 export const ROOM_VIEW_STATUSES: readonly AppStatus[] = [
   'lobby',
   'assessment',
+  'minefield',
   'results',
   'assessment-preparing',
 ];

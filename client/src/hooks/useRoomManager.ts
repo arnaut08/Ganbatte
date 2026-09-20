@@ -243,6 +243,8 @@ export default function useRoomManager({
             } else if (ack.room.status === 'active') {
               if (ack.room.mode === 'gauntlet') {
                 transitionToStatus('gauntlet');
+              } else if (ack.room.mode === 'minefield') {
+                transitionToStatus('minefield');
               } else {
                 transitionToStatus('assessment');
               }
@@ -268,6 +270,8 @@ export default function useRoomManager({
       setIsPreparingAssessment(false);
       if (room.mode === 'gauntlet') {
         transitionToStatus('gauntlet');
+      } else if (room.mode === 'minefield') {
+        transitionToStatus('minefield');
       } else {
         transitionToStatus('assessment');
       }
@@ -394,7 +398,7 @@ export default function useRoomManager({
     const savedSession = readRoomSession();
     if (room && roomCode) {
       const nextStatus = room.status === 'active'
-        ? (room.mode === 'gauntlet' ? 'gauntlet' : 'assessment')
+        ? (room.mode === 'gauntlet' ? 'gauntlet' : room.mode === 'minefield' ? 'minefield' : 'assessment')
         : 'lobby';
       if (activeSocket && nextStatus === 'lobby') activeSocket.emit('set-player-presence', roomCode, 'in_lobby');
       setStatus(nextStatus);
@@ -417,7 +421,7 @@ export default function useRoomManager({
       setRoom(rejoinedRoom);
       setKanaCards((rejoinedRoom.cards ?? []).filter(isStudyCard));
       const nextStatus = rejoinedRoom.status === 'active'
-        ? (rejoinedRoom.mode === 'gauntlet' ? 'gauntlet' : 'assessment')
+        ? (rejoinedRoom.mode === 'gauntlet' ? 'gauntlet' : rejoinedRoom.mode === 'minefield' ? 'minefield' : 'assessment')
         : 'lobby';
       if (nextStatus === 'lobby') activeSocket.emit('set-player-presence', savedRoomCode, 'in_lobby');
       setStatus(nextStatus);

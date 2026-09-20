@@ -7,7 +7,26 @@ export type RoomStatus = 'waiting' | 'preparing' | 'active' | 'completed';
 export type PlayerPresence = 'online' | 'away' | 'offline' | 'disconnected' | 'in_lobby' | 'ready';
 
 /** Format of the 1v1 match. */
-export type MatchMode = 'standard' | 'gauntlet';
+export type MatchMode = 'standard' | 'gauntlet' | 'minefield';
+
+export type MinefieldTile = {
+  id: string;
+  text: string;
+  isMine: boolean;
+  status: 'idle' | 'verifying' | 'claimed-host' | 'claimed-guest' | 'exploded';
+  claimedBy: string | null;
+};
+
+export type MinefieldState = {
+  tiles: MinefieldTile[];
+  currentPrompt: string;
+  hostScore: number;
+  guestScore: number;
+  roundNumber: number;
+  roundLimit: number;
+  winningScore: number;
+  usedPromptMeanings: string[];
+};
 
 /** A player currently (or previously) part of a room. */
 export type RoomPlayer = ApiRecord & {
@@ -37,6 +56,7 @@ export type Room = ApiRecord & RoomSelectionHint & {
   winnerUserId?: string | null;
   forfeitedByUserId?: string | null;
   winnerSocketId?: string;
+  minefield?: MinefieldState;
 };
 
 /** Normalized per-player result shown on the results screen. */

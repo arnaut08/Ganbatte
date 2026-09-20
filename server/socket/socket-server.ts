@@ -31,6 +31,8 @@ import { getPersistedVocabDeck } from '../repositories/vocab-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
+import { configureRoomManager, startMinefieldRound } from '../managers/roomManager.js';
+import { MINEFIELD_WINNING_SCORE } from '../services/minefieldService.js';
 import {
   advanceRoomIfReady,
   buildAssessmentResults,
@@ -41,7 +43,7 @@ import {
 
 type RoomDeckConfig = {
   type?: 'kana' | 'kanji' | 'vocab' | 'grammar';
-  mode?: 'standard' | 'gauntlet';
+  mode?: 'standard' | 'gauntlet' | 'minefield';
   groups?: string[];
   maxLesson?: number;
   count?: number;
@@ -70,6 +72,8 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       skipMiddlewares: false,                   // Must be false to re-populate socket.data.user
     },
   });
+
+  configureRoomManager(io);
 
   app.set('io', io);
 
@@ -200,7 +204,11 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       const playerName = parsedHostName.success ? parsedHostName.data : 'Player 1';
       const roomCode = generateRoomCode();
       const deckType = deckConfig?.type === 'grammar' ? 'grammar' : deckConfig?.type === 'kanji' ? 'kanji' : deckConfig?.type === 'vocab' ? 'vocab' : 'kana';
-      const deckMode = deckConfig?.mode === 'gauntlet' ? 'gauntlet' : 'standard';
+      const deckMode = deckConfig?.mode === 'gauntlet'
+        ? 'gauntlet'
+        : deckConfig?.mode === 'minefield'
+          ? 'minefield'
+          : 'standard';
       let cards: PracticeCard[] = [];
       if (deckMode !== 'gauntlet' && deckType === 'kanji') {
         let deck;
@@ -516,6 +524,91 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
     socket.on('start-assessment', startAssessment);
 
+    socket.on('minefield-start-request', async (roomCode: RoomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      if (!room || room.mode !== 'minefield' || room.status !== 'waiting') return;
+      if (room.players[0]?.id !== socket.id || room.players.length < 2) return;
+
+      room.status = 'active';
+      roomState.rooms.set(roomCode, room);
+
+      try {
+        await startMinefieldRound(roomCode, getSupabaseClient());
+      } catch (error) {
+        room.status = 'waiting';
+        roomState.rooms.set(roomCode, room);
+        console.error(`Failed to start Minefield room ${roomCode}:`, error);
+      }
+    });
+
+    socket.on('minefield-claim-attempt', async (roomCode: RoomCode, tileId: string) => {
+      const room = roomState.rooms.get(roomCode);
+      const player = room?.players.find((candidate) => candidate.id === socket.id);
+      const minefield = room?.minefield;
+      const tile = minefield?.tiles.find((candidate) => candidate.id === tileId);
+      if (!room || !player || !minefield || !tile || tile.status !== 'idle') return;
+
+      const isHost = room.players[0]?.id === socket.id;
+      const isGuest = room.players[1]?.id === socket.id;
+      if (!isHost && !isGuest) return;
+
+      if (tile.isMine) {
+        if (isHost) minefield.hostScore -= 1;
+        else minefield.guestScore -= 1;
+        roomState.rooms.set(roomCode, room);
+        io.to(roomCode).emit('minefield-tile-resolved', {
+          tileId,
+          success: false,
+          ownerId: socket.id,
+          hostScore: minefield.hostScore,
+          guestScore: minefield.guestScore,
+        });
+        return;
+      }
+
+      tile.status = isHost ? 'claimed-host' : 'claimed-guest';
+      tile.claimedBy = socket.id;
+      if (isHost) minefield.hostScore += 1;
+      else minefield.guestScore += 1;
+      roomState.rooms.set(roomCode, room);
+      io.to(roomCode).emit('minefield-tile-resolved', {
+        tileId,
+        success: true,
+        ownerId: socket.id,
+        hostScore: minefield.hostScore,
+        guestScore: minefield.guestScore,
+      });
+
+      const playerScore = isHost ? minefield.hostScore : minefield.guestScore;
+      const roundLimitReached = minefield.roundNumber >= minefield.roundLimit;
+      if (playerScore >= MINEFIELD_WINNING_SCORE || roundLimitReached) {
+        const hostWins = minefield.hostScore > minefield.guestScore
+          || (minefield.hostScore === minefield.guestScore && isHost);
+        const winner = hostWins ? room.players[0] : room.players[1];
+        const loser = hostWins ? room.players[1] : room.players[0];
+        room.status = 'completed';
+        room.winnerUserId = winner?.userId ?? null;
+        room.winnerSocketId = winner?.id;
+        roomState.rooms.set(roomCode, room);
+        io.to(roomCode).emit('minefield-match-completed', {
+          room,
+          winnerUserId: room.winnerUserId,
+          winnerPlayerName: winner?.name,
+          winnerSocketId: winner?.id,
+          loserSocketId: loser?.id,
+          forfeitedByUserId: null,
+          completionReason: playerScore >= MINEFIELD_WINNING_SCORE ? 'score-target' : 'round-limit',
+        });
+        return;
+      }
+
+      try {
+        await startMinefieldRound(roomCode, getSupabaseClient());
+      } catch (error) {
+        console.error(`Failed to start next Minefield round for room ${roomCode}:`, error);
+      }
+    });
+
     socket.on('start-gauntlet', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       const player = room?.players.find((candidate) => candidate.id === socket.id);
@@ -552,6 +645,18 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
           winnerPlayerName: winner.name,
         });
       }
+      if (room.mode === 'minefield') {
+        io.to(roomCode).emit('minefield-match-completed', {
+          room,
+          winnerUserId: room.winnerUserId,
+          winnerPlayerName: winner.name,
+          winnerSocketId: winner.id,
+          loserSocketId: forfeitingPlayer.id,
+          forfeitedByUserId: room.forfeitedByUserId,
+          completionReason: 'forfeit',
+        });
+        return;
+      }
       const completionEvent = room.mode === 'gauntlet' ? 'gauntlet-match-completed' : 'assessment-completed';
       io.to(roomCode).emit(completionEvent, {
         room,
@@ -577,7 +682,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     socket.on('return-to-lobby', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
-      if (room.mode !== 'gauntlet' && room.players[0]?.id !== socket.id) {
+      if (room.mode !== 'gauntlet' && room.mode !== 'minefield' && room.players[0]?.id !== socket.id) {
         socket.emit('assessment-action-denied', { message: 'Waiting for the host to return the room to the lobby.' });
         return;
       }
@@ -587,6 +692,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       room.forfeitedByUserId = null;
       delete room.winnerSocketId;
       room.currentCardIndex = 0;
+      if (room.mode === 'minefield') delete room.minefield;
       room.players.forEach((player) => {
         player.answers = [];
         player.hintsUsed = [];

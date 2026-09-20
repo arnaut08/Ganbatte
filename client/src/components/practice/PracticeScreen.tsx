@@ -61,6 +61,7 @@ function CreateRoomCard({
   const isKanji = deckType === 'kanji';
   const isVocab = deckType === 'vocab';
   const isGauntlet = mode === 'gauntlet';
+  const isMinefield = mode === 'minefield';
 
   const defaultOptions = [
     { type: 'kana', label: 'Kana', color: '#FFDE59' },
@@ -69,9 +70,11 @@ function CreateRoomCard({
     { type: 'grammar', label: 'Grammar', color: '#C084FC' },
   ];
 
-  const subMenuOptions = isGauntlet
-    ? defaultOptions.filter((option) => option.type === 'kana' || option.type === 'kanji')
-    : defaultOptions;
+  const subMenuOptions = isMinefield
+    ? defaultOptions.filter((option) => option.type === 'vocab')
+    : isGauntlet
+      ? defaultOptions.filter((option) => option.type === 'kana' || option.type === 'kanji')
+      : defaultOptions;
 
   const selectionItems = isKanji
     ? kanjiGroups.map((group) => ({ id: group.id, label: group.name }))
@@ -115,7 +118,7 @@ function CreateRoomCard({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
             <button
               type="button"
               onClick={() => onModeChange('standard')}
@@ -147,11 +150,30 @@ function CreateRoomCard({
                 <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /> Gauntlet
               </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onModeChange('minefield');
+                if (deckType !== 'vocab') {
+                  onDeckTypeChange('vocab');
+                  onClearSelectedGroups();
+                }
+                onGroupMenuOpenChange(false);
+                setIsGrammarMenuOpen(false);
+              }}
+              className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'minefield'
+                ? 'border-2 border-black bg-[#A3E636] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                }`}
+            >
+              Minefield
+            </button>
           </div>
         </div>
 
         {/* Select Deck Segment Control */}
-        <div className="space-y-1 sm:space-y-1.5">
+        {!isMinefield && (<div className="space-y-1 sm:space-y-1.5">
           <div className="flex flex-wrap items-center justify-between gap-1">
             <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
               SELECT DECK
@@ -164,7 +186,7 @@ function CreateRoomCard({
           </div>
 
           <div
-            className={`grid ${isGauntlet ? 'grid-cols-2' : 'grid-cols-4'
+            className={`grid ${isGauntlet ? 'grid-cols-2' : isMinefield ? 'grid-cols-1' : 'grid-cols-4'
               } gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1`}
           >
             {subMenuOptions.map(({ type, label, color }) => (
@@ -191,7 +213,7 @@ function CreateRoomCard({
               </button>
             ))}
           </div>
-        </div>
+        </div>)}
 
         {/* Grammar Level Selector (Standard Mode Only) */}
         {!isGauntlet && deckType === 'grammar' && (
@@ -242,10 +264,16 @@ function CreateRoomCard({
         {/* Kanji Themes / Vocab Stages Selector */}
         {(isKanji || (!isGauntlet && isVocab)) && (
           <div className="relative z-50 space-y-1 sm:space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-1">
             <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
               {isKanji ? 'KANJI THEMES' : 'VOCAB STAGES'}
             </span>
-
+            {isMinefield && (
+              <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
+                [VOCAB ONLY]
+              </span>
+            )}
+          </div>
             <button
               type="button"
               onClick={() => onGroupMenuOpenChange(!isGroupMenuOpen)}
