@@ -21,9 +21,20 @@ interface GauntletDetails {
   selected_groups?: string[];
   hints_used?: number[];
   groups?: string[];
+  round_limit?: number;
+  rounds_played?: number;
+  completion_reason?: string;
 }
 
 function getDomainMeta(type: string, details?: GauntletDetails) {
+  const isMinefield =
+    details?.mode === 'minefield' ||
+    (type || '').toLowerCase().includes('minefield');
+
+  if (isMinefield) {
+    return { accent: '#A3E636', label: 'MINEFIELD // VOCAB', isGauntlet: true };
+  }
+
   const isGauntlet =
     details?.mode === 'survival-gauntlet' ||
     (type || '').toLowerCase().includes('gauntlet');
@@ -55,6 +66,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [stageTitles, setStageTitles] = useState<Record<string, string>>({});
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -89,7 +101,31 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
         if (queryError) {
           setError('Failed to load assessment records');
         } else {
-          setResults((data || []) as AssessmentHistoryRecord[]);
+          const historyResults = (data || []) as AssessmentHistoryRecord[];
+          const stageNumbers = Array.from(new Set(
+            historyResults.flatMap((record) => {
+              const details = record.details;
+              const groups = Array.isArray(details?.selected_groups)
+                ? details.selected_groups
+                : details?.groups ?? [];
+              return groups.filter((group) => /^\d+$/.test(group));
+            }),
+          ))
+
+          if (stageNumbers.length > 0) {
+            const { data: stages } = await supabase
+              .from('vocab_items')
+              .select('stage_number, theme')
+              .in('stage_number', stageNumbers.map(Number));
+
+            const titles = (stages ?? []).reduce<Record<string, string>>((map, stage) => {
+              if (stage.theme) map[String(stage.stage_number)] = stage.theme;
+              return map;
+            }, {});
+            if (!cancelled) setStageTitles(titles);
+          }
+
+          setResults(historyResults);
           setTotalCount(count ?? (data ? data.length : 0));
         }
       } catch {
@@ -162,6 +198,8 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
           {results.map((result) => {
             const details = (result.details || {}) as GauntletDetails;
             const isGauntlet =
+              details?.mode === 'minefield' ||
+              result.assessment_type?.toLowerCase().includes('minefield') ||
               details?.mode === 'survival-gauntlet' ||
               result.assessment_type?.toLowerCase().includes('gauntlet');
 
@@ -169,6 +207,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
             const isVictory = details?.result === 'WIN';
             const gauntletScore = details?.score ?? 0;
             const opponentScore = details?.opponent_score ?? 0;
+            const resultGroups = Array.isArray(details?.groups) ? details.groups : details?.selected_groups;
 
             // Standard metrics
             const isPerfect = result.score_percentage === 100;
@@ -218,13 +257,12 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                     )}
 
                     {/* Groups Filtered */}
-                    {Array.isArray(details?.groups) &&
-                      details.groups.map((group) => (
+                    {resultGroups?.map((group) => (
                         <span
                           key={group}
                           className="border border-white/10 bg-[#151922] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-neutral-400 sm:text-[10px]"
                         >
-                          {group}
+                          {stageTitles[group] || group}
                         </span>
                       ))}
                   </div>

@@ -243,7 +243,16 @@ export type GrammarLesson = {
 /** `details` payload of a stored assessment record shown on the history screen. */
 export type AssessmentHistoryDetails = {
   groups?: string[];
+  selected_groups?: string[];
   hints_used?: number[];
+  mode?: string;
+  score?: number;
+  opponent_score?: number;
+  result?: string;
+  round_limit?: number;
+  rounds_played?: number;
+  winning_score?: number;
+  completion_reason?: string;
 };
 
 /**
