@@ -115,7 +115,7 @@ export default function LearningScreen({ onBackToHome, onOpenKanaStudy, onOpenKa
                   event.stopPropagation();
                   module.onOpen();
                 }}
-                className={`w-full border-2 border-black bg-white py-2 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2.5px_2.5px_0px_0px_#000] transition-colors active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:py-3 sm:text-sm ${module.buttonHoverClass}`}
+                className={`w-full cursor-pointer border-2 border-black bg-white py-2 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[2.5px_2.5px_0px_0px_#000] transition-colors active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:py-3 sm:text-sm ${module.buttonHoverClass}`}
               >
                 Study Now →
               </LegacyButton>

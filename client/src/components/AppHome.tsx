@@ -471,7 +471,7 @@ export default function AppHome({
                   <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('learning')}
-                    className="w-full py-2.5 sm:py-5 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] hover:bg-[#FFDE59] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-colors"
+                    className="w-full cursor-pointer py-2.5 sm:py-5 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] hover:bg-[#FFDE59] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-colors"
                   >
                     Start Study Deck →
                   </LegacyButton>
@@ -512,7 +512,7 @@ export default function AppHome({
                   <LegacyButton
                     variant="neutral"
                     onClick={() => setScreen('practice')}
-                    className="w-full py-2.5 sm:py-5 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] hover:bg-[#70CFF8] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-colors"
+                    className="w-full cursor-pointer py-2.5 sm:py-5 text-xs sm:text-base font-black uppercase tracking-wider border-2 border-black bg-white text-black shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] hover:bg-[#70CFF8] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-colors"
                   >
                     Enter Match Lobby →
                   </LegacyButton>
