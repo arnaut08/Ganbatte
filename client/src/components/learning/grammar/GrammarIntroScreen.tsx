@@ -169,7 +169,7 @@ export default function GrammarIntroScreen({ onBack, onStartLearning }: GrammarI
           <button
             type="button"
             onClick={onStartLearning}
-            className="w-full sm:w-auto cursor-pointer border-2 border-black bg-white px-5 py-2.5 sm:px-6 sm:py-3 font-mono text-xs font-black uppercase text-black shadow-[2.5px_2.5px_0px_0px_#000] hover:bg-[#C084FC] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all text-center"
+            className="w-full sm:w-auto cursor-pointer border-2 border-black bg-white px-5 py-2.5 sm:px-6 sm:py-3 font-mono text-xs font-black uppercase text-black shadow-[2.5px_2.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#C084FC] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none text-center"
           >
             START STUDYING →
           </button>
