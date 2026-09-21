@@ -30,6 +30,27 @@ test('falls back to the next model after a rate limit response', async () => {
   assert.equal(result.model, 'gemini-3.7-flash');
 });
 
+test('falls back to the next model after temporary provider overload', async () => {
+  const requestedModels: string[] = [];
+  const fetchImpl = async (url: string | URL | Request) => {
+    const model = url.toString().match(/models\/([^:]+)/)?.[1] || '';
+    requestedModels.push(model);
+    if (requestedModels.length === 1) {
+      return new Response(JSON.stringify({ error: { message: 'Service temporarily unavailable' } }), { status: 503 });
+    }
+    return new Response('{}', { status: 200 });
+  };
+
+  const result = await fetchGeminiWithFallback({
+    fetchImpl,
+    model: 'gemini-3.8-flash',
+    init: requestInit(),
+  });
+
+  assert.deepEqual(requestedModels, ['gemini-3.8-flash', 'gemini-3.7-flash']);
+  assert.equal(result.model, 'gemini-3.7-flash');
+});
+
 test('skips models marked as daily-quota exhausted', async () => {
   const requestedModels: string[] = [];
   const fetchImpl = async (url: string | URL | Request) => {

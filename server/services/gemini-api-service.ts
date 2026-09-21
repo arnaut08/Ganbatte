@@ -15,6 +15,7 @@ type GeminiModel = typeof GEMINI_MODELS[number];
 type FetchLike = typeof fetch;
 
 const dailyExhaustion = new Map<GeminiModel, number>();
+let requestSequence = 0;
 
 export class GeminiRateLimitError extends Error {
   constructor() {
@@ -38,6 +39,19 @@ function nextUtcMidnight(): number {
 
 function isDailyQuotaMessage(message: string): boolean {
   return /per.?day|daily|requests.*day|day.*requests/i.test(message);
+}
+
+function isTransientResponse(response: Response): boolean {
+  return response.status === 429 || [408, 500, 502, 503, 504].includes(response.status);
+}
+
+async function responseDetails(response: Response): Promise<string> {
+  try {
+    const body = typeof response.clone === 'function' ? await response.clone().text() : '';
+    return body.replace(/\s+/g, ' ').trim().slice(0, 500);
+  } catch {
+    return '';
+  }
 }
 
 async function isDailyQuotaResponse(response: Response): Promise<boolean> {
@@ -77,24 +91,85 @@ export async function fetchGeminiWithFallback({
   model = GEMINI_MODEL,
   init,
 }: GeminiRequestOptions): Promise<GeminiResponse> {
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required for Gemini generation');
-
-  const models = availableModels(model);
-  if (models.length === 0) throw new GeminiRateLimitError();
-  let lastResponse: Response | undefined;
-
-  for (const candidate of models) {
-    const response = await fetchImpl(
-      `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent?key=${GEMINI_API_KEY}`,
-      init,
-    );
-    if (response.ok) return { response, model: candidate };
-
-    lastResponse = response;
-    if (response.status !== 429) break;
-    if (await isDailyQuotaResponse(response)) dailyExhaustion.set(candidate, nextUtcMidnight());
+  const requestId = `gemini-${Date.now()}-${requestSequence += 1}`;
+  if (!GEMINI_API_KEY) {
+    console.error('[Gemini] request rejected: API key is not configured', { requestId });
+    throw new Error('GEMINI_API_KEY is required for Gemini generation');
   }
 
-  if (lastResponse?.status === 429) throw new GeminiRateLimitError();
+  const models = availableModels(model);
+  console.info('[Gemini] request started', {
+    requestId,
+    requestedModel: model,
+    resolvedModel: resolveGeminiModel(model),
+    candidateModels: models,
+  });
+  if (models.length === 0) {
+    console.warn('[Gemini] request stopped: all candidate models are daily-quota exhausted', { requestId });
+    throw new GeminiRateLimitError();
+  }
+  let lastResponse: Response | undefined;
+
+  for (const [attemptIndex, candidate] of models.entries()) {
+    const attempt = attemptIndex + 1;
+    const startedAt = Date.now();
+    console.info('[Gemini] attempt started', { requestId, attempt, candidate });
+    let response: Response;
+    try {
+      response = await fetchImpl(
+        `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent?key=${GEMINI_API_KEY}`,
+        init,
+      );
+    } catch (error) {
+      console.error('[Gemini] attempt failed before receiving a response', {
+        requestId,
+        attempt,
+        candidate,
+        durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+
+    if (response.ok) {
+      console.info('[Gemini] attempt succeeded', {
+        requestId,
+        attempt,
+        candidate,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+      });
+      return { response, model: candidate };
+    }
+
+    lastResponse = response;
+    const transient = isTransientResponse(response);
+    const details = await responseDetails(response);
+    console.warn('[Gemini] attempt returned an error', {
+      requestId,
+      attempt,
+      candidate,
+      status: response.status,
+      transient,
+      durationMs: Date.now() - startedAt,
+      details,
+    });
+    if (!transient) {
+      console.warn('[Gemini] stopping fallback: response is not retryable', { requestId, candidate, status: response.status });
+      break;
+    }
+    if (await isDailyQuotaResponse(response)) {
+      dailyExhaustion.set(candidate, nextUtcMidnight());
+      console.warn('[Gemini] candidate marked daily-quota exhausted', { requestId, candidate });
+    }
+    const nextCandidate = models[attemptIndex + 1];
+    if (nextCandidate) console.info('[Gemini] falling back to next candidate', { requestId, from: candidate, to: nextCandidate });
+  }
+
+  if (lastResponse?.status === 429) {
+    console.warn('[Gemini] request exhausted rate limits', { requestId });
+    throw new GeminiRateLimitError();
+  }
+  console.error('[Gemini] request failed after all attempts', { requestId, status: lastResponse?.status ?? 429 });
   throw new Error(`Gemini API returned ${lastResponse?.status ?? 429}`);
 }
