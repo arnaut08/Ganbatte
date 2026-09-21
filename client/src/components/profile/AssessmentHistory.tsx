@@ -24,9 +24,19 @@ interface GauntletDetails {
   round_limit?: number;
   rounds_played?: number;
   completion_reason?: string;
+  winner_name?: string;
+  loser_name?: string;
 }
 
 function getDomainMeta(type: string, details?: GauntletDetails) {
+  const isTugOfWar =
+    details?.mode === 'tug-of-war' ||
+    (type || '').toLowerCase().includes('tug-of-war');
+
+  if (isTugOfWar) {
+    return { accent: '#C084FC', label: 'TUG OF WAR // GRAMMAR', isGauntlet: true };
+  }
+
   const isMinefield =
     details?.mode === 'minefield' ||
     (type || '').toLowerCase().includes('minefield');
@@ -198,12 +208,15 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
           {results.map((result) => {
             const details = (result.details || {}) as GauntletDetails;
             const isGauntlet =
+              details?.mode === 'tug-of-war' ||
+              result.assessment_type?.toLowerCase().includes('tug-of-war') ||
               details?.mode === 'minefield' ||
               result.assessment_type?.toLowerCase().includes('minefield') ||
               details?.mode === 'survival-gauntlet' ||
               result.assessment_type?.toLowerCase().includes('gauntlet');
 
             const domain = getDomainMeta(result.assessment_type, details);
+            const isTugOfWar = details?.mode === 'tug-of-war' || result.assessment_type?.toLowerCase().includes('tug-of-war');
             const isVictory = details?.result === 'WIN';
             const gauntletScore = details?.score ?? 0;
             const opponentScore = details?.opponent_score ?? 0;
@@ -256,6 +269,14 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                       </span>
                     )}
 
+                    {isTugOfWar && (details?.winner_name || details?.loser_name) && (
+                      <span className="font-mono text-[9px] font-bold uppercase text-neutral-400 sm:text-[10px]">
+                        {details.winner_name ? `WINNER: ${details.winner_name}` : ''}
+                        {details.winner_name && details.loser_name ? ' · ' : ''}
+                        {details.loser_name ? `DEFEATED: ${details.loser_name}` : ''}
+                      </span>
+                    )}
+
                     {/* Groups Filtered */}
                     {resultGroups?.map((group) => (
                         <span
@@ -297,7 +318,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                       </p>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center border-2 border-black bg-[#FFDE59] px-3 py-1 font-mono text-black shadow-[2px_2px_0px_0px_#000] sm:px-4 sm:shadow-[2.5px_2.5px_0px_0px_#000]">
+                    <div className="flex flex-col items-center justify-center border-2 border-black px-3 py-1 font-mono text-black shadow-[2px_2px_0px_0px_#000] sm:px-4 sm:shadow-[2.5px_2.5px_0px_0px_#000]" style={{ backgroundColor: isTugOfWar ? domain.accent : '#FFDE59' }}>
                       <span className="text-[8px] font-black uppercase tracking-wider text-black/70 leading-none">
                         FINAL SCORE
                       </span>

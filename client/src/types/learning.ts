@@ -252,6 +252,9 @@ export type AssessmentHistoryDetails = {
   round_limit?: number;
   rounds_played?: number;
   winning_score?: number;
+  winning_threshold?: number;
+  winner_name?: string;
+  loser_name?: string;
   completion_reason?: string;
 };
 

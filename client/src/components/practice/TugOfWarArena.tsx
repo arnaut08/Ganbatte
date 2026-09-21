@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import useTugOfWarSocket from '../../hooks/useTugOfWarSocket';
+import { supabase } from '../../config/supabase';
 import type { TugOfWarState } from '../../types/room';
 import type { RoomSocket } from '../../types/socket-events';
 import TugOfWarArenaSkeleton from './TugOfWarArenaSkeleton';
@@ -13,6 +15,10 @@ type TugOfWarArenaProps = {
     onReturnToLobby: () => void;
     hostPlayerName?: string;
     guestPlayerName?: string;
+    hostSocketId?: string;
+    guestSocketId?: string;
+    hostUserId?: string | null;
+    guestUserId?: string | null;
 };
 
 export function TugOfWarArena({
@@ -25,6 +31,10 @@ export function TugOfWarArena({
     onReturnToLobby,
     hostPlayerName = 'HOST',
     guestPlayerName = 'GUEST',
+    hostSocketId,
+    guestSocketId,
+    hostUserId,
+    guestUserId,
 }: TugOfWarArenaProps) {
     const { localTugOfWar, isLockedOut, submitAnswer, matchResult } = useTugOfWarSocket(
         socket,
@@ -34,19 +44,83 @@ export function TugOfWarArena({
         initialTugOfWar,
     );
 
-    if (!localTugOfWar) {
-        return <TugOfWarArenaSkeleton />;
-    }
-
-    const threshold = Math.max(1, localTugOfWar.winningThreshold || 5);
-    const momentum = Math.max(-threshold, Math.min(threshold, localTugOfWar.momentum));
+    const threshold = Math.max(1, localTugOfWar?.winningThreshold || 5);
+    const momentum = Math.max(-threshold, Math.min(threshold, localTugOfWar?.momentum ?? 0));
     const hostWidth = `${Math.max(0, (-momentum / threshold) * 50)}%`;
     const guestWidth = `${Math.max(0, (momentum / threshold) * 50)}%`;
+    const matchWinnerUserId = matchResult?.winnerUserId;
     const isWinner = matchResult?.winnerSocketId === socket?.id
-        || (Boolean(matchResult?.winnerUserId) && matchResult.winnerUserId === currentUserId);
+        || (Boolean(matchWinnerUserId) && matchWinnerUserId === currentUserId);
     const completionMessage = matchResult?.completionReason === 'forfeit'
         ? 'MATCH ENDED BY SURRENDER'
         : 'MOMENTUM THRESHOLD REACHED';
+    const winnerIsHost = matchResult?.winnerSocketId === hostSocketId
+        || Boolean(matchResult?.winnerUserId && hostUserId && matchResult.winnerUserId === hostUserId);
+    const winnerIsGuest = matchResult?.winnerSocketId === guestSocketId
+        || Boolean(matchResult?.winnerUserId && guestUserId && matchResult.winnerUserId === guestUserId);
+    const hostScore = winnerIsHost ? threshold : Math.max(0, -momentum);
+    const guestScore = winnerIsGuest ? threshold : Math.max(0, momentum);
+    const savedResultRef = useRef(false);
+
+    useEffect(() => {
+        if (!matchResult || !supabase || savedResultRef.current) return;
+        const database = supabase;
+
+        const saveTugOfWarResult = async () => {
+            const { data: { session }, error: sessionError } = await database.auth.getSession();
+            if (sessionError || !session?.user?.id) return;
+
+            const localScore = isHost ? hostScore : guestScore;
+            const opponentScore = isHost ? guestScore : hostScore;
+            const companionUserId = isHost ? guestUserId : hostUserId;
+            const localWinner = isHost ? winnerIsHost : winnerIsGuest;
+
+            savedResultRef.current = true;
+            const { error } = await database.from('assessment_results').insert({
+                user_id: session.user.id,
+                companion_user_id: companionUserId || null,
+                assessment_type: 'tug-of-war-grammar',
+                score_percentage: localWinner ? 100 : 0,
+                correct_questions: Math.max(localScore, 0),
+                total_questions: threshold,
+                details: {
+                    mode: 'tug-of-war',
+                    room_code: roomCode,
+                    winning_threshold: threshold,
+                    score: localScore,
+                    opponent_score: opponentScore,
+                    result: localWinner ? 'WIN' : 'DEFEAT',
+                    winner_name: winnerIsHost ? hostPlayerName : guestPlayerName,
+                    loser_name: winnerIsHost ? guestPlayerName : hostPlayerName,
+                    completion_reason: matchResult.completionReason,
+                },
+            });
+
+            if (error) {
+                savedResultRef.current = false;
+                console.error('Unable to save Tug of War result:', error);
+            }
+        };
+
+        void saveTugOfWarResult();
+    }, [
+        guestPlayerName,
+        guestUserId,
+        guestScore,
+        hostPlayerName,
+        hostUserId,
+        hostScore,
+        isHost,
+        matchResult,
+        roomCode,
+        threshold,
+        winnerIsGuest,
+        winnerIsHost,
+    ]);
+
+    if (!localTugOfWar) {
+        return <TugOfWarArenaSkeleton />;
+    }
 
     const renderSentence = () => {
         const [before, after] = localTugOfWar.currentSentence.split('___');
@@ -197,6 +271,21 @@ export function TugOfWarArena({
                         {isWinner ? 'VICTORY' : 'DEFEAT'}
                     </h2>
                     <p className="mt-1 font-mono text-[11px] font-black uppercase text-neutral-300">{completionMessage}</p>
+                    <div className="mt-4 grid w-full max-w-md gap-3 sm:grid-cols-2">
+                        {[
+                            { label: hostPlayerName, score: hostScore, isWinner: winnerIsHost, accent: 'bg-[#70CFF8]' },
+                            { label: guestPlayerName, score: guestScore, isWinner: winnerIsGuest, accent: 'bg-[#A3E636]' },
+                        ].map((player) => (
+                            <div key={player.label} className={`border-2 border-black p-3 text-left text-black shadow-[3px_3px_0px_0px_#000] ${player.accent}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                    <span className="min-w-0 truncate font-mono text-xs font-black uppercase">{player.label}</span>
+                                    <span className="shrink-0 font-mono text-[9px] font-black uppercase">{player.isWinner ? 'WINNER' : 'DEFEATED'}</span>
+                                </div>
+                                <div className="mt-1 font-mono text-3xl font-black">{player.score}</div>
+                                <div className="font-mono text-[9px] font-black uppercase">FINAL SCORE</div>
+                            </div>
+                        ))}
+                    </div>
                     <button
                         type="button"
                         onClick={onReturnToLobby}
