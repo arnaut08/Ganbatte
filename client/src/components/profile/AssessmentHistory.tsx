@@ -336,7 +336,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                 type="button"
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="flex h-9 cursor-pointer items-center gap-1 border-2 border-black bg-white px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all enabled:hover:translate-x-[1px] enabled:hover:translate-y-[1px] enabled:hover:shadow-[1px_1px_0px_0px_#000] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-none disabled:cursor-not-allowed disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-10 sm:px-3 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000]"
+                className="flex h-9 cursor-pointer items-center gap-1 border-2 border-black bg-white px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all enabled:hover:translate-x-[1px] enabled:hover:translate-y-[1px] enabled:hover:shadow-[1px_1px_0px_0px_#000] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-none disabled:cursor-default disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-10 sm:px-3 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000]"
               >
                 <ChevronLeftIcon className="h-4 w-4 stroke-[2.5]" />
                 <span>Prev</span>
