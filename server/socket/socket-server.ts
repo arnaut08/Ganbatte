@@ -31,7 +31,7 @@ import { getPersistedVocabDeck } from '../repositories/vocab-repository.js';
 import { generateGrammarAssessment } from '../services/genki-grammar-service.js';
 import { generateKanaDeck } from '../services/gemini-kana-service.js';
 import { isCorrectRomajiAnswer } from '../utils/romaji.js';
-import { configureRoomManager, startMinefieldRound } from '../managers/roomManager.js';
+import { configureRoomManager, startMinefieldRound, startTugOfWarRound } from '../managers/roomManager.js';
 import { MINEFIELD_WINNING_SCORE } from '../services/minefieldService.js';
 import {
   advanceRoomIfReady,
@@ -43,7 +43,7 @@ import {
 
 type RoomDeckConfig = {
   type?: 'kana' | 'kanji' | 'vocab' | 'grammar';
-  mode?: 'standard' | 'gauntlet' | 'minefield';
+  mode?: 'standard' | 'gauntlet' | 'minefield' | 'tug-of-war';
   groups?: string[];
   maxLesson?: number;
   count?: number;
@@ -208,7 +208,9 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         ? 'gauntlet'
         : deckConfig?.mode === 'minefield'
           ? 'minefield'
-          : 'standard';
+          : deckConfig?.mode === 'tug-of-war'
+            ? 'tug-of-war'
+            : 'standard';
       let cards: PracticeCard[] = [];
       if (deckMode !== 'gauntlet' && deckType === 'kanji') {
         let deck;
@@ -609,6 +611,78 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       }
     });
 
+    socket.on('tug-start-request', async (roomCode: RoomCode) => {
+      const room = roomState.rooms.get(roomCode);
+      if (!room || room.mode !== 'tug-of-war' || room.status !== 'waiting') return;
+      if (room.players[0]?.id !== socket.id || room.players.length < 2) return;
+
+      room.status = 'active';
+      room.tugOfWar = undefined;
+      roomState.rooms.set(roomCode, room);
+
+      try {
+        await startTugOfWarRound(roomCode, getSupabaseClient());
+      } catch (error) {
+        room.status = 'waiting';
+        roomState.rooms.set(roomCode, room);
+        console.error(`Failed to start Tug of War room ${roomCode}:`, error);
+        socket.emit('assessment-action-denied', { message: 'Grammar questions are not available right now.' });
+      }
+    });
+
+    socket.on('tug-claim-attempt', async (roomCode: RoomCode, selectedOption: string) => {
+      const room = roomState.rooms.get(roomCode);
+      const tugOfWar = room?.tugOfWar;
+      const playerIndex = room?.players.findIndex((player) => player.id === socket.id) ?? -1;
+      if (!room || room.mode !== 'tug-of-war' || room.status !== 'active' || !tugOfWar || (playerIndex !== 0 && playerIndex !== 1)) return;
+
+      const lockoutKey = playerIndex === 0 ? 'hostLockoutUntil' : 'guestLockoutUntil';
+      const lockoutUntil = tugOfWar[lockoutKey];
+      if (lockoutUntil !== null && Date.now() < lockoutUntil) return;
+
+      if (selectedOption !== tugOfWar.targetAnswer) {
+        const nextLockoutUntil = Date.now() + 3000;
+        tugOfWar[lockoutKey] = nextLockoutUntil;
+        roomState.rooms.set(roomCode, room);
+        socket.emit('tug-penalty-applied', { lockoutUntil: nextLockoutUntil });
+        io.to(roomCode).emit('tug-sync', { room });
+        return;
+      }
+
+      tugOfWar.momentum = Math.max(-tugOfWar.winningThreshold, Math.min(
+        tugOfWar.winningThreshold,
+        tugOfWar.momentum + (playerIndex === 0 ? -1 : 1),
+      ));
+      tugOfWar.hostLockoutUntil = null;
+      tugOfWar.guestLockoutUntil = null;
+      roomState.rooms.set(roomCode, room);
+
+      if (Math.abs(tugOfWar.momentum) >= tugOfWar.winningThreshold) {
+        const winner = tugOfWar.momentum < 0 ? room.players[0] : room.players[1];
+        const loser = tugOfWar.momentum < 0 ? room.players[1] : room.players[0];
+        room.status = 'completed';
+        room.winnerUserId = winner?.userId ?? null;
+        room.winnerSocketId = winner?.id;
+        roomState.rooms.set(roomCode, room);
+        io.to(roomCode).emit('tug-match-completed', {
+          room,
+          winnerUserId: room.winnerUserId,
+          winnerPlayerName: winner?.name,
+          winnerSocketId: winner?.id,
+          loserSocketId: loser?.id,
+          forfeitedByUserId: null,
+          completionReason: 'score-target',
+        });
+        return;
+      }
+
+      try {
+        await startTugOfWarRound(roomCode, getSupabaseClient());
+      } catch (error) {
+        console.error(`Failed to generate next Tug of War round for ${roomCode}:`, error);
+      }
+    });
+
     socket.on('start-gauntlet', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       const player = room?.players.find((candidate) => candidate.id === socket.id);
@@ -657,6 +731,18 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
         });
         return;
       }
+      if (room.mode === 'tug-of-war') {
+        io.to(roomCode).emit('tug-match-completed', {
+          room,
+          winnerUserId: room.winnerUserId,
+          winnerPlayerName: winner.name,
+          winnerSocketId: winner.id,
+          loserSocketId: forfeitingPlayer.id,
+          forfeitedByUserId: room.forfeitedByUserId,
+          completionReason: 'forfeit',
+        });
+        return;
+      }
       const completionEvent = room.mode === 'gauntlet' ? 'gauntlet-match-completed' : 'assessment-completed';
       io.to(roomCode).emit(completionEvent, {
         room,
@@ -682,7 +768,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
     socket.on('return-to-lobby', (roomCode: RoomCode) => {
       const room = roomState.rooms.get(roomCode);
       if (!room) return;
-      if (room.mode !== 'gauntlet' && room.mode !== 'minefield' && room.players[0]?.id !== socket.id) {
+      if (room.mode !== 'gauntlet' && room.mode !== 'minefield' && room.mode !== 'tug-of-war' && room.players[0]?.id !== socket.id) {
         socket.emit('assessment-action-denied', { message: 'Waiting for the host to return the room to the lobby.' });
         return;
       }
@@ -693,6 +779,7 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       delete room.winnerSocketId;
       room.currentCardIndex = 0;
       if (room.mode === 'minefield') delete room.minefield;
+      if (room.mode === 'tug-of-war') delete room.tugOfWar;
       room.players.forEach((player) => {
         player.answers = [];
         player.hintsUsed = [];

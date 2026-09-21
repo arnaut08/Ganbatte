@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateMinefieldBoard } from '../services/minefieldService.js';
+import { generateTugOfWarRound } from '../services/tugOfWarService.js';
 import { roomState, type Room, type SocketServer } from '../utils/socket-room-utils.js';
 
 let socketServer: SocketServer | null = null;
@@ -31,5 +32,22 @@ export async function startMinefieldRound(
   };
   roomState.rooms.set(roomCode, room);
   socketServer?.to(roomCode).emit('minefield-sync', { room });
+  return room;
+}
+
+export async function startTugOfWarRound(
+  roomCode: string,
+  supabaseClient: SupabaseClient,
+): Promise<Room | undefined> {
+  const room = roomState.rooms.get(roomCode);
+  if (!room) return undefined;
+
+  const round = await generateTugOfWarRound(supabaseClient, room.grammarSettings?.maxLesson ?? 3);
+  room.tugOfWar = {
+    ...round,
+    momentum: room.tugOfWar?.momentum ?? 0,
+  };
+  roomState.rooms.set(roomCode, room);
+  socketServer?.to(roomCode).emit('tug-sync', { room });
   return room;
 }
