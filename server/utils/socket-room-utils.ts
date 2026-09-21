@@ -1,12 +1,12 @@
 import type { PracticeCard } from '../services/card-service.js';
 import type { MinefieldState } from '../services/minefieldService.js';
-import type { TugOfWarState } from '../services/tugOfWarService.js';
+import type { TugOfWarQuestion, TugOfWarState } from '../services/tugOfWarService.js';
 
 export type RoomCard = PracticeCard;
 
 export interface RoomPlayer { [key: string]: unknown; name: string; id?: string; userId?: string; user_id?: string; answers: unknown[]; hintsUsed: number[]; ready?: boolean; connected?: boolean; status?: string; presence?: string; disconnectedAt?: number; sessionKey?: string }
 
-export interface Room { [key: string]: unknown; players: RoomPlayer[]; cards: RoomCard[]; currentCardIndex: number; status: string; leftPlayers: RoomPlayer[]; deckType?: string; selectedGroups?: string[]; grammarSettings?: { maxLesson?: number; count?: number } | null; questions?: unknown[]; minefield?: MinefieldState; tugOfWar?: TugOfWarState }
+export interface Room { [key: string]: unknown; players: RoomPlayer[]; cards: RoomCard[]; currentCardIndex: number; status: string; leftPlayers: RoomPlayer[]; deckType?: string; selectedGroups?: string[]; grammarSettings?: { maxLesson?: number; count?: number } | null; questions?: unknown[]; minefield?: MinefieldState; tugOfWar?: TugOfWarState; tugOfWarDeck?: TugOfWarQuestion[]; tugOfWarQuestionIndex?: number }
 
 export interface SocketServer { to: (roomCode: string) => { emit: (event: string, payload: unknown) => void } }
 

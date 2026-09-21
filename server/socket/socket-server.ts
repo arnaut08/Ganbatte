@@ -618,6 +618,8 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
 
       room.status = 'active';
       room.tugOfWar = undefined;
+      room.tugOfWarDeck = undefined;
+      room.tugOfWarQuestionIndex = undefined;
       roomState.rooms.set(roomCode, room);
 
       try {
@@ -779,7 +781,11 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       delete room.winnerSocketId;
       room.currentCardIndex = 0;
       if (room.mode === 'minefield') delete room.minefield;
-      if (room.mode === 'tug-of-war') delete room.tugOfWar;
+      if (room.mode === 'tug-of-war') {
+        delete room.tugOfWar;
+        delete room.tugOfWarDeck;
+        delete room.tugOfWarQuestionIndex;
+      }
       room.players.forEach((player) => {
         player.answers = [];
         player.hintsUsed = [];

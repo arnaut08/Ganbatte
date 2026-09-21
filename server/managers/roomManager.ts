@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateMinefieldBoard } from '../services/minefieldService.js';
-import { generateTugOfWarRound } from '../services/tugOfWarService.js';
+import { generateDynamicTugOfWarDeck, tugOfWarQuestionToState } from '../services/tugOfWarService.js';
 import { roomState, type Room, type SocketServer } from '../utils/socket-room-utils.js';
 
 let socketServer: SocketServer | null = null;
@@ -42,11 +42,16 @@ export async function startTugOfWarRound(
   const room = roomState.rooms.get(roomCode);
   if (!room) return undefined;
 
-  const round = await generateTugOfWarRound(supabaseClient, room.grammarSettings?.maxLesson ?? 3);
-  room.tugOfWar = {
-    ...round,
-    momentum: room.tugOfWar?.momentum ?? 0,
-  };
+  if (!room.tugOfWarDeck) {
+    room.tugOfWarDeck = await generateDynamicTugOfWarDeck(room.grammarSettings?.maxLesson ?? 3);
+    room.tugOfWarQuestionIndex = 0;
+  } else {
+    room.tugOfWarQuestionIndex = (room.tugOfWarQuestionIndex ?? 0) + 1;
+  }
+
+  const question = room.tugOfWarDeck[room.tugOfWarQuestionIndex ?? 0];
+  if (!question) throw new Error('Tug of War question deck is exhausted.');
+  room.tugOfWar = tugOfWarQuestionToState(question, room.tugOfWar?.momentum ?? 0);
   roomState.rooms.set(roomCode, room);
   socketServer?.to(roomCode).emit('tug-sync', { room });
   return room;
