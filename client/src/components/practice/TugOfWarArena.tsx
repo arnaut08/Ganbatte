@@ -1,6 +1,7 @@
 import useTugOfWarSocket from '../../hooks/useTugOfWarSocket';
 import type { TugOfWarState } from '../../types/room';
 import type { RoomSocket } from '../../types/socket-events';
+import TugOfWarArenaSkeleton from './TugOfWarArenaSkeleton';
 
 type TugOfWarArenaProps = {
     roomCode: string;
@@ -34,7 +35,7 @@ export function TugOfWarArena({
     );
 
     if (!localTugOfWar) {
-        return <div className="flex h-64 items-center justify-center font-mono text-xl font-black uppercase text-white animate-pulse">Generating Protocol...</div>;
+        return <TugOfWarArenaSkeleton />;
     }
 
     const threshold = Math.max(1, localTugOfWar.winningThreshold || 5);
