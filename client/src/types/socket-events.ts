@@ -1,6 +1,6 @@
 import type { Socket } from 'socket.io-client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { MinefieldState, MinefieldTile, Room, RoomPlayer, SocketAck } from './room';
+import type { MinefieldState, MinefieldTile, Room, RoomPlayer, SocketAck, TugOfWarState } from './room';
 
 export type IdentityPayload = { display_name?: string };
 
@@ -77,6 +77,9 @@ type RoomSocketEvents = {
     guestScore: number;
   };
   'minefield-match-completed': RoomEventPayload;
+  'tug-sync': RoomEventPayload;
+  'tug-penalty-applied': { lockoutUntil: number };
+  'tug-match-completed': RoomEventPayload;
 };
 
 type RoomSocketCommands = {
@@ -90,6 +93,8 @@ type RoomSocketCommands = {
   }) => void;
   'minefield-claim-attempt': (roomCode: string, tileId: string) => void;
   'minefield-start-request': (roomCode: string) => void;
+  'tug-start-request': (roomCode: string) => void;
+  'tug-claim-attempt': (roomCode: string, selectedOption: string) => void;
   'forfeit-match': (roomCode: string) => void;
 };
 

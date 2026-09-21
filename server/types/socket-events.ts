@@ -19,6 +19,8 @@ export interface ClientToServerEvents {
   'leave-room': (roomCode: RoomCode, callback: RoomCallback) => void;
   'start-assessment': (roomCode: RoomCode, refreshDeck?: boolean) => void;
   'start-gauntlet': (roomCode: RoomCode) => void;
+  'tug-start-request': (roomCode: RoomCode) => void;
+  'tug-claim-attempt': (roomCode: RoomCode, selectedOption: string) => void;
   'replay-assessment': (roomCode: RoomCode) => void;
   'return-to-lobby': (roomCode: RoomCode) => void;
   'exit-lobby': (roomCode: RoomCode, callback: RoomCallback) => void;
