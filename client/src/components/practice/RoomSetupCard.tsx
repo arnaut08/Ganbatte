@@ -7,7 +7,7 @@ type LegacyProps = { children?: ReactNode;[key: string]: unknown };
 const LegacyButton = Button as unknown as (props: LegacyProps) => JSX.Element;
 
 type RoomSetupVariant = 'host' | 'client';
-type SubmitTone = 'host' | 'gauntlet' | 'client';
+type SubmitTone = 'host' | 'gauntlet' | 'minefield' | 'grammar' | 'client';
 
 export type RoomSetupCardProps = {
   variant: RoomSetupVariant;
@@ -42,6 +42,8 @@ const variantStyles = {
 const submitStyles: Record<SubmitTone, string> = {
   host: 'bg-white hover:bg-[#FFDE59]',
   gauntlet: 'bg-[#FF6B6B] hover:bg-white',
+  minefield: 'bg-[#A3E636] hover:bg-white',
+  grammar: 'bg-[#C084FC] hover:bg-white',
   client: 'bg-white hover:bg-[#A3E636]',
 };
 

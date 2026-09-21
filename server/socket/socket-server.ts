@@ -621,12 +621,14 @@ export async function configureSocketServer(server: HttpServer, app: Express): P
       room.tugOfWarDeck = undefined;
       room.tugOfWarQuestionIndex = undefined;
       roomState.rooms.set(roomCode, room);
+      io.to(roomCode).emit('tug-preparing', { room });
 
       try {
         await startTugOfWarRound(roomCode, getSupabaseClient());
       } catch (error) {
         room.status = 'waiting';
         roomState.rooms.set(roomCode, room);
+        io.to(roomCode).emit('room-returned-to-lobby', { room });
         console.error(`Failed to start Tug of War room ${roomCode}:`, error);
         socket.emit('assessment-action-denied', { message: 'Grammar questions are not available right now.' });
       }

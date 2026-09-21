@@ -65,7 +65,7 @@ export default function RoomLobby({
   const isGrammar = room?.deckType === 'grammar';
 
   // Gauntlet highlights with high-visibility red; standard uses deck accents
-  const themeAccent = isMinefield ? '#A3E636' : isTugOfWar ? '#FFDE59' : isGauntlet ? '#FF6B6B' : getDeckAccent(room?.deckType);
+  const themeAccent = isMinefield ? '#A3E636' : isTugOfWar ? '#C084FC' : isGauntlet ? '#FF6B6B' : getDeckAccent(room?.deckType);
   const themeLabel = isMinefield
     ? 'ARCADE // MINEFIELD RUSH'
     : isGauntlet
@@ -112,7 +112,7 @@ export default function RoomLobby({
           onBack={onLeaveRoom}
           punchline={typeof themeLabel === 'string' ? themeLabel : 'ARCADE // SURVIVAL GAUNTLET'}
           title="Match Setup"
-          accentClass={isMinefield ? 'text-[#A3E636]' : isTugOfWar ? 'text-[#FFDE59]' : isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
+          accentClass={isMinefield ? 'text-[#A3E636]' : isTugOfWar ? 'text-[#C084FC]' : isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
         />
       </div>
 
@@ -275,7 +275,7 @@ export default function RoomLobby({
                     className="flex items-center gap-2.5 border-2 border-black bg-[#151922] p-2.5 shadow-[2px_2px_0px_0px_#000] sm:gap-3 sm:p-3"
                   >
                     <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center border-2 border-black font-mono text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:h-9 sm:w-9 ${idx === 0 ? 'bg-[#FFDE59]' : 'bg-[#70CFF8]'
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center border-2 border-black font-mono text-xs font-black text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:h-9 sm:w-9 ${idx === 0 ? (isTugOfWar ? 'bg-[#C084FC]' : 'bg-[#FFDE59]') : 'bg-[#70CFF8]'
                         }`}
                     >
                       P{idx + 1}
@@ -415,7 +415,7 @@ export default function RoomLobby({
                 </>
               ) : isTugOfWar ? (
                 <>
-                  <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FFDE59]" /><span>Choose the correct particle to pull momentum toward your side.</span></li>
+                  <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#C084FC]" /><span>Choose the correct particle to pull momentum toward your side.</span></li>
                   <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FF6B6B]" /><span>Incorrect answers trigger a three-second personal lockout.</span></li>
                   <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#70CFF8]" /><span>Drag the gauge to your side of the threshold to win.</span></li>
                 </>

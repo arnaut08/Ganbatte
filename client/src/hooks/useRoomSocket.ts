@@ -408,6 +408,14 @@ export default function useRoomSocket({
       currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'tug-of-war' ? previous : [...previous, 'tug-of-war']);
     });
 
+    listen('tug-preparing', (data) => {
+      if (!data?.room || data.room.mode !== 'tug-of-war') return;
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom(data.room);
+      currentOptions.setStatus('tug-of-war');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'tug-of-war' ? previous : [...previous, 'tug-of-war']);
+    });
+
     listen('assessment-generation-failed', (data) => {
       const currentOptions = latestOptionsRef.current;
       currentOptions.setIsPreparingAssessment(false);

@@ -51,7 +51,7 @@ export function TugOfWarArena({
     const renderSentence = () => {
         const [before, after] = localTugOfWar.currentSentence.split('___');
         if (after === undefined) return localTugOfWar.currentSentence;
-        return <>{before}<span className="mx-1 text-[#FFDE59]">[ ? ]</span>{after}</>;
+        return <>{before}<span className="mx-1 text-[#C084FC]">[ ? ]</span>{after}</>;
     };
 
     return (
@@ -60,7 +60,7 @@ export function TugOfWarArena({
             {/* Header */}
             <header className="flex items-center justify-between gap-3 border-b-2 border-black/20 pb-3">
                 <div>
-                    <span className="font-mono text-xs font-black uppercase tracking-widest text-[#FFDE59] sm:text-sm">
+                    <span className="font-mono text-xs font-black uppercase tracking-widest text-[#C084FC] sm:text-sm">
             // TUG OF WAR PROTOCOL
                     </span>
                     <p className="mt-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-400">
@@ -82,14 +82,14 @@ export function TugOfWarArena({
 
                 {/* LEFT COLUMN: Protocol (Order 3 on mobile, Order 1 on Desktop) */}
                 <aside className="order-3 lg:order-1 w-full border-2 border-black bg-[#151922] p-4 text-white shadow-[4px_4px_0px_0px_#000]">
-                    <span className="font-mono text-xs font-black uppercase tracking-widest text-[#FFDE59]">// PROTOCOL</span>
+                    <span className="font-mono text-xs font-black uppercase tracking-widest text-[#C084FC]">// PROTOCOL</span>
                     <div className="mt-4 space-y-3 font-mono text-[11px] font-bold uppercase text-neutral-300">
                         <div className="flex gap-2">
                             <span className="text-[#A3E636]">01.</span>
                             <p>Read the Japanese prompt.</p>
                         </div>
                         <div className="flex gap-2">
-                            <span className="text-[#FFDE59]">02.</span>
+                            <span className="text-[#C084FC]">02.</span>
                             <p>Select the correct missing particle.</p>
                         </div>
                         <div className="flex gap-2">
@@ -115,7 +115,7 @@ export function TugOfWarArena({
                     <div className="relative h-12 w-full border-2 border-black bg-[#151922] shadow-[4px_4px_0px_0px_#000] overflow-hidden">
                         <div className="absolute inset-y-0 right-1/2 bg-[#70CFF8] transition-[width] duration-300" style={{ width: hostWidth }} />
                         <div className="absolute inset-y-0 left-1/2 bg-[#A3E636] transition-[width] duration-300" style={{ width: guestWidth }} />
-                        <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-[#FFDE59] shadow-[2px_0_0_#000] z-20" />
+                        <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-[#C084FC] shadow-[2px_0_0_#000] z-20" />
                         <div className="absolute inset-0 flex items-center justify-between px-3 font-mono text-xs font-black text-white mix-blend-difference z-10">
                             <span>-{threshold}</span>
                             <span>0</span>
@@ -137,7 +137,7 @@ export function TugOfWarArena({
                                 type="button"
                                 disabled={!socket || isLockedOut || Boolean(matchResult)}
                                 onClick={() => submitAnswer(option)}
-                                className="flex w-full min-h-[80px] sm:min-h-[110px] items-center justify-center cursor-pointer border-2 border-b-[6px] border-black bg-white px-3 py-4 font-mono text-xl font-black text-black transition-all hover:bg-[#FFDE59] active:translate-y-[4px] active:border-b-2 active:shadow-none disabled:cursor-not-allowed disabled:bg-[#283248] disabled:text-neutral-500 disabled:border-b-2 disabled:translate-y-[4px] disabled:shadow-none sm:text-3xl"
+                                className="flex w-full min-h-[80px] sm:min-h-[110px] items-center justify-center cursor-pointer border-2 border-b-[6px] border-black bg-white px-3 py-4 font-mono text-xl font-black text-black transition-all hover:bg-[#C084FC] active:translate-y-[4px] active:border-b-2 active:shadow-none disabled:cursor-not-allowed disabled:bg-[#283248] disabled:text-neutral-500 disabled:border-b-2 disabled:translate-y-[4px] disabled:shadow-none sm:text-3xl"
                             >
                                 {option}
                             </button>
@@ -148,7 +148,7 @@ export function TugOfWarArena({
                 {/* RIGHT COLUMN: Radar (Order 2 on mobile, Order 3 on Desktop) */}
                 <aside className="order-2 lg:order-3 w-full border-2 border-black bg-[#151922] p-4 text-white shadow-[4px_4px_0px_0px_#000]">
                     <div className="flex items-center justify-between border-b border-white/20 pb-3">
-                        <span className="font-mono text-xs font-black uppercase tracking-widest text-[#FFDE59]">// TENSION RADAR</span>
+                        <span className="font-mono text-xs font-black uppercase tracking-widest text-[#C084FC]">// TENSION RADAR</span>
                         <span className="h-2 w-2 animate-pulse rounded-full bg-[#A3E636]" aria-label="Live sync" />
                     </div>
                     <div className="mt-4 space-y-4 font-mono text-[11px] font-bold uppercase">
@@ -190,7 +190,7 @@ export function TugOfWarArena({
             {/* Match Completion Overlay */}
             {matchResult && (
                 <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-4 text-center backdrop-blur-xs">
-                    <span className="border border-black bg-[#151922] px-2 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-[#FFDE59]">
+                    <span className="border border-black bg-[#151922] px-2 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-[#C084FC]">
             // TENSION RELEASED
                     </span>
                     <h2 className={`mt-2 font-mono text-4xl font-black uppercase tracking-tight sm:text-6xl ${isWinner ? 'text-[#A3E636]' : 'text-[#FF6B6B]'}`}>
@@ -200,7 +200,7 @@ export function TugOfWarArena({
                     <button
                         type="button"
                         onClick={onReturnToLobby}
-                        className="mt-6 border-2 border-black bg-[#FFDE59] px-6 py-2.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+                        className="mt-6 border-2 border-black bg-[#C084FC] px-6 py-2.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
                     >
                         Return to Lobby →
                     </button>

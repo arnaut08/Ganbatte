@@ -77,6 +77,7 @@ type RoomSocketEvents = {
     guestScore: number;
   };
   'minefield-match-completed': RoomEventPayload;
+  'tug-preparing': RoomEventPayload;
   'tug-sync': RoomEventPayload;
   'tug-penalty-applied': { lockoutUntil: number };
   'tug-match-completed': RoomEventPayload;
