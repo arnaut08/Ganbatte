@@ -149,6 +149,7 @@ function App() {
     handleRejectFriendRequest: friendsState.handleRejectFriendRequest,
     handleStartAssessment: roomManager.handleStartAssessment,
     handleStartGauntlet: roomManager.handleStartGauntlet,
+    handleStartTugOfWar: roomManager.handleStartTugOfWar,
     handleReturnGauntletToLobby: roomManager.handleReturnGauntletToLobby,
     handleLeaveRoom: roomManager.handleLeaveRoom,
     handleInviteFriend: roomManager.handleInviteFriend,

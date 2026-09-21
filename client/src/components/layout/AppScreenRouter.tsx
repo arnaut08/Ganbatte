@@ -29,6 +29,7 @@ const ProfileScreen = lazy(() => import('../profile/ProfileScreen'));
 const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScreen'));
 const GauntletPvpScreen = lazy(() => import('../gauntlet/GauntletPvpScreen'));
 const MinefieldArena = lazy(() => import('../practice/MinefieldArena'));
+const TugOfWarArena = lazy(() => import('../practice/TugOfWarArena'));
 
 type ScreenRouterProps = AppContextValue & RoomContextValue;
 
@@ -83,6 +84,7 @@ function LegacyAppScreenRouter({
   isHydratingActiveMatch,
   handleStartAssessment,
   handleStartGauntlet,
+  handleStartTugOfWar,
   handleReturnGauntletToLobby,
   handleReturnToRoom,
   handleLeaveRoom,
@@ -122,6 +124,10 @@ function LegacyAppScreenRouter({
 
   const handleOpenMinefield = () => {
     if (socket && room?.code) socket.emit('minefield-start-request', room.code);
+  };
+
+  const handleOpenTugOfWar = () => {
+    if (socket && room?.code) socket.emit('tug-start-request', room.code);
   };
 
   const { toast, showToast, clearToast } = useToast();
@@ -244,6 +250,18 @@ function LegacyAppScreenRouter({
           hostUserId={room.players[0]?.userId}
           guestUserId={room.players[1]?.userId}
           selectedGroups={room.selectedGroups}
+        />
+      ) : status === 'tug-of-war' && room ? (
+        <TugOfWarArena
+          roomCode={room.code || roomCode}
+          socket={socket as never}
+          currentUserId={user?.id || ''}
+          isHost={Boolean(isCurrentPlayerHost)}
+          initialTugOfWar={room.tugOfWar}
+          onForfeit={handleForfeitMatch}
+          onReturnToLobby={handleReturnGauntletToLobby}
+          hostPlayerName={room.players[0]?.name}
+          guestPlayerName={room.players[1]?.name}
         />
       ) : (
         <>
@@ -378,6 +396,7 @@ function LegacyAppScreenRouter({
               onStartAssessment={handleStartAssessment}
               onOpenGauntlet={handleStartGauntlet}
               onOpenMinefield={handleOpenMinefield}
+              onOpenTugOfWar={handleOpenTugOfWar}
               onLeaveRoom={handleLeaveRoom}
               currentSocketId={socket?.id || ''}
               currentUserId={user?.id || null}

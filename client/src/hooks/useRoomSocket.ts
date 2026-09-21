@@ -400,6 +400,14 @@ export default function useRoomSocket({
       currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'minefield' ? previous : [...previous, 'minefield']);
     });
 
+    listen('tug-sync', (data) => {
+      if (!data?.room?.tugOfWar) return;
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom(data.room);
+      currentOptions.setStatus('tug-of-war');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'tug-of-war' ? previous : [...previous, 'tug-of-war']);
+    });
+
     listen('assessment-generation-failed', (data) => {
       const currentOptions = latestOptionsRef.current;
       currentOptions.setIsPreparingAssessment(false);
@@ -464,6 +472,15 @@ export default function useRoomSocket({
       currentOptions.setIsPreparingAssessment(false);
       currentOptions.setStatus('minefield');
       currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'minefield' ? previous : [...previous, 'minefield']);
+    });
+
+    listen('tug-match-completed', (data) => {
+      if (!data?.room) return;
+      const currentOptions = latestOptionsRef.current;
+      currentOptions.setRoom({ ...data.room, winnerSocketId: data.winnerSocketId });
+      currentOptions.setIsPreparingAssessment(false);
+      currentOptions.setStatus('tug-of-war');
+      currentOptions.setScreenHistory((previous) => previous[previous.length - 1] === 'tug-of-war' ? previous : [...previous, 'tug-of-war']);
     });
 
     listen('match-forfeited', (data) => {

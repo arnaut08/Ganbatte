@@ -29,6 +29,7 @@ export type RoomContextValue = {
   handleRejectFriendRequest: (requestId: string) => Promise<void>;
   handleStartAssessment: () => void;
   handleStartGauntlet: () => void;
+  handleStartTugOfWar: () => void;
   handleReturnGauntletToLobby: () => void;
   handleLeaveRoom: () => void;
   handleInviteFriend: (friendId: string) => void;

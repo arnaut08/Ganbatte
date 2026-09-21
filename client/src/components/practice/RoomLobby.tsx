@@ -14,6 +14,7 @@ type RoomLobbyProps = {
   onStartAssessment: () => void;
   onOpenGauntlet?: () => void;
   onOpenMinefield?: () => void;
+  onOpenTugOfWar?: () => void;
   onLeaveRoom: () => void;
   currentSocketId?: string;
   currentUserId?: string | null;
@@ -36,6 +37,7 @@ export default function RoomLobby({
   onStartAssessment,
   onOpenGauntlet,
   onOpenMinefield,
+  onOpenTugOfWar,
   onLeaveRoom,
   currentSocketId,
   currentUserId,
@@ -57,16 +59,19 @@ export default function RoomLobby({
 
   const isGauntlet = room?.mode === 'gauntlet';
   const isMinefield = room?.mode === 'minefield';
+  const isTugOfWar = room?.mode === 'tug-of-war';
   const isKanji = room?.deckType === 'kanji';
   const isVocab = room?.deckType === 'vocab';
   const isGrammar = room?.deckType === 'grammar';
 
   // Gauntlet highlights with high-visibility red; standard uses deck accents
-  const themeAccent = isMinefield ? '#A3E636' : isGauntlet ? '#FF6B6B' : getDeckAccent(room?.deckType);
+  const themeAccent = isMinefield ? '#A3E636' : isTugOfWar ? '#FFDE59' : isGauntlet ? '#FF6B6B' : getDeckAccent(room?.deckType);
   const themeLabel = isMinefield
     ? 'ARCADE // MINEFIELD RUSH'
     : isGauntlet
     ? <><LightningBoltIcon className="inline-block h-3 w-3" aria-hidden="true" /> ARCADE // SURVIVAL GAUNTLET</>
+    : isTugOfWar
+      ? 'ARCADE // TUG OF WAR PROTOCOL'
     : isKanji
       ? '02 // KANJI 1v1'
       : isVocab
@@ -91,6 +96,8 @@ export default function RoomLobby({
   const handlePrimaryLaunch = () => {
     if (isMinefield && onOpenMinefield) {
       onOpenMinefield();
+    } else if (isTugOfWar && onOpenTugOfWar) {
+      onOpenTugOfWar();
     } else if (isGauntlet && onOpenGauntlet) {
       onOpenGauntlet();
     } else {
@@ -105,7 +112,7 @@ export default function RoomLobby({
           onBack={onLeaveRoom}
           punchline={typeof themeLabel === 'string' ? themeLabel : 'ARCADE // SURVIVAL GAUNTLET'}
           title="Match Setup"
-          accentClass={isMinefield ? 'text-[#A3E636]' : isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
+          accentClass={isMinefield ? 'text-[#A3E636]' : isTugOfWar ? 'text-[#FFDE59]' : isGauntlet ? 'text-[#FF6B6B]' : isKanji ? 'text-[#70CFF8]' : isVocab ? 'text-[#A3E636]' : isGrammar ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
         />
       </div>
 
@@ -351,10 +358,12 @@ export default function RoomLobby({
                   : !isHost
                     ? 'Wait for Host'
                     : isReady
-                      ? isGauntlet
-                        ? isMinefield
-                          ? 'Start Minefield →'
-                          : <span className="flex items-center justify-center gap-1">Start Gauntlet <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /></span>
+                      ? isMinefield
+                        ? 'Start Minefield →'
+                        : isTugOfWar
+                          ? 'Start Tug of War →'
+                          : isGauntlet
+                            ? <span className="flex items-center justify-center gap-1">Start Gauntlet <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /></span>
                         : 'Start Match →'
                       : 'Waiting...'}
               </LegacyButton>
@@ -367,7 +376,7 @@ export default function RoomLobby({
               className="mb-2 font-mono text-[10px] font-black uppercase tracking-widest sm:text-xs"
               style={{ color: themeAccent }}
             >
-              // {isGauntlet ? 'GAUNTLET RULES' : 'HOW TO PLAY'}
+              // {isTugOfWar ? 'TUG OF WAR RULES' : isGauntlet ? 'GAUNTLET RULES' : 'HOW TO PLAY'}
             </h3>
             <ul className="space-y-2 font-mono text-[11px] font-medium leading-snug text-neutral-300 sm:text-xs">
               {isGauntlet ? (
@@ -403,6 +412,12 @@ export default function RoomLobby({
                     <span className="mt-1 h-1.5 w-1.5 shrink-0" style={{ backgroundColor: themeAccent }} />
                     <span>The player with the highest territory control and score wins.</span>
                   </li>
+                </>
+              ) : isTugOfWar ? (
+                <>
+                  <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FFDE59]" /><span>Choose the correct particle to pull momentum toward your side.</span></li>
+                  <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#FF6B6B]" /><span>Incorrect answers trigger a three-second personal lockout.</span></li>
+                  <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 bg-[#70CFF8]" /><span>Drag the gauge to your side of the threshold to win.</span></li>
                 </>
               ) : (
                 <>

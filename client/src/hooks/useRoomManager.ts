@@ -245,6 +245,8 @@ export default function useRoomManager({
                 transitionToStatus('gauntlet');
               } else if (ack.room.mode === 'minefield') {
                 transitionToStatus('minefield');
+              } else if (ack.room.mode === 'tug-of-war') {
+                transitionToStatus('tug-of-war');
               } else {
                 transitionToStatus('assessment');
               }
@@ -272,6 +274,8 @@ export default function useRoomManager({
         transitionToStatus('gauntlet');
       } else if (room.mode === 'minefield') {
         transitionToStatus('minefield');
+      } else if (room.mode === 'tug-of-war') {
+        transitionToStatus('tug-of-war');
       } else {
         transitionToStatus('assessment');
       }
@@ -312,6 +316,11 @@ export default function useRoomManager({
   const handleStartGauntlet = useCallback(() => {
     if (!activeSocket || !roomCode || !room || room.players.length < 2) return;
     activeSocket.emit('start-gauntlet', roomCode);
+  }, [activeSocket, room, roomCode]);
+
+  const handleStartTugOfWar = useCallback(() => {
+    if (!activeSocket || !roomCode || !room || room.players.length < 2) return;
+    activeSocket.emit('tug-start-request', roomCode);
   }, [activeSocket, room, roomCode]);
 
   const handleReplayAssessment = useCallback(() => {
@@ -444,6 +453,7 @@ export default function useRoomManager({
     handleInviteFriend,
     handleStartAssessment,
     handleStartGauntlet,
+    handleStartTugOfWar,
     handleReplayAssessment,
     handleRequestHost,
     handleSubmitAnswer,
@@ -471,6 +481,7 @@ export default function useRoomManager({
     handleRequestHost,
     handleStartAssessment,
     handleStartGauntlet,
+    handleStartTugOfWar,
     handleStartNewSession,
     handleSubmitAnswer,
     handleUseHint,
