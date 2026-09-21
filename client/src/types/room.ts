@@ -7,7 +7,7 @@ export type RoomStatus = 'waiting' | 'preparing' | 'active' | 'completed';
 export type PlayerPresence = 'online' | 'away' | 'offline' | 'disconnected' | 'in_lobby' | 'ready';
 
 /** Format of the 1v1 match. */
-export type MatchMode = 'standard' | 'gauntlet' | 'minefield';
+export type MatchMode = 'standard' | 'gauntlet' | 'minefield' | 'tug-of-war';
 
 export type MinefieldTile = {
   id: string;
@@ -26,6 +26,16 @@ export type MinefieldState = {
   roundLimit: number;
   winningScore: number;
   usedPromptMeanings: string[];
+};
+
+export type TugOfWarState = {
+  momentum: number;
+  currentSentence: string;
+  options: string[];
+  targetAnswer: string;
+  hostLockoutUntil: number | null;
+  guestLockoutUntil: number | null;
+  winningThreshold: number;
 };
 
 /** A player currently (or previously) part of a room. */
@@ -57,6 +67,7 @@ export type Room = ApiRecord & RoomSelectionHint & {
   forfeitedByUserId?: string | null;
   winnerSocketId?: string;
   minefield?: MinefieldState;
+  tugOfWar?: TugOfWarState;
 };
 
 /** Normalized per-player result shown on the results screen. */

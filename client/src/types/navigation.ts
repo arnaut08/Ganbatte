@@ -23,6 +23,7 @@ export type AppStatus =
   | 'lobby'
   | 'assessment'
   | 'minefield'
+  | 'tug-of-war'
   | 'gauntlet'
   | 'results'
   | 'assessment-preparing';
@@ -38,6 +39,7 @@ export const ROOM_VIEW_STATUSES: readonly AppStatus[] = [
   'lobby',
   'assessment',
   'minefield',
+  'tug-of-war',
   'results',
   'assessment-preparing',
 ];
