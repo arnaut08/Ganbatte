@@ -71,17 +71,20 @@ function CreateRoomCard({
     { type: 'grammar', label: 'Grammar', color: '#C084FC' },
   ];
 
-  const subMenuOptions = isMinefield
-    ? defaultOptions.filter((option) => option.type === 'vocab')
-    : isTugOfWar
-      ? defaultOptions.filter((option) => option.type === 'grammar')
-    : isGauntlet
-      ? defaultOptions.filter((option) => option.type === 'kana' || option.type === 'kanji')
-      : defaultOptions;
+  const subMenuOptions = isGauntlet
+    ? defaultOptions.filter((option) => option.type === 'kana' || option.type === 'kanji')
+    : defaultOptions;
 
   const selectionItems = isKanji
     ? kanjiGroups.map((group) => ({ id: group.id, label: group.name }))
     : vocabStages.map((stage) => ({ id: String(stage.stage_number), label: stage.theme }));
+
+  // Centralized theme color for active borders
+  const themeBorderColor =
+    deckType === 'grammar' ? 'border-l-[#C084FC]' :
+      deckType === 'vocab' ? 'border-l-[#A3E636]' :
+        deckType === 'kanji' ? 'border-l-[#70CFF8]' :
+          'border-l-[#FFDE59]';
 
   return (
     <RoomSetupCard
@@ -92,7 +95,7 @@ function CreateRoomCard({
       title="Create a Room"
       description="Configure a duel format, pick a curriculum, and challenge a study partner."
       watermark="創"
-      submitTone={isGauntlet ? 'gauntlet' : 'host'}
+      submitTone={isGauntlet ? 'gauntlet' : isTugOfWar ? 'grammar' : isMinefield ? 'minefield' : 'host'}
       submitLabel={
         isSocketReady
           ? isGauntlet
@@ -110,11 +113,19 @@ function CreateRoomCard({
             <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
               MATCH FORMAT
             </span>
-            <span className="font-mono text-[9px] font-black uppercase tracking-wider text-[#FFDE59]">
+            <span className={`font-mono text-[9px] font-black uppercase tracking-wider ${isGauntlet ? 'text-[#FF6B6B]' :
+                isMinefield ? 'text-[#A3E636]' :
+                  isTugOfWar ? 'text-[#C084FC]' :
+                    'text-[#FFDE59]'
+              }`}>
               {isGauntlet ? (
                 <span className="inline-flex items-center gap-1">
                   <LightningBoltIcon className="h-3 w-3" aria-hidden="true" /> ARCADE SURVIVAL
                 </span>
+              ) : isMinefield ? (
+                '// MINEFIELD RUSH'
+              ) : isTugOfWar ? (
+                '// TUG OF WAR PROTOCOL'
               ) : (
                 '// CLASSIC 1v1 ASSESSMENT'
               )}
@@ -139,7 +150,7 @@ function CreateRoomCard({
                 onModeChange('gauntlet');
                 if (deckType === 'vocab' || deckType === 'grammar') {
                   onDeckTypeChange('kana');
-                  onClearSelectedGroups(); // Prevent carry-over when forcing Kana
+                  onClearSelectedGroups();
                 }
                 onGroupMenuOpenChange(false);
                 setIsGrammarMenuOpen(false);
@@ -185,7 +196,7 @@ function CreateRoomCard({
                 setIsGrammarMenuOpen(false);
               }}
               className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'tug-of-war'
-                ? 'border-2 border-black bg-[#FFDE59] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                ? 'border-2 border-black bg-[#C084FC] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
                 : 'border-2 border-transparent text-neutral-400 hover:text-white'
                 }`}
             >
@@ -194,60 +205,66 @@ function CreateRoomCard({
           </div>
         </div>
 
-        {/* Select Deck Segment Control */}
-        {!isMinefield && (<div className="space-y-1 sm:space-y-1.5">
-          <div className="flex flex-wrap items-center justify-between gap-1">
-            <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-              SELECT DECK
-            </span>
-            {isGauntlet && (
-              <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#FF6B6B]">
-                [KANA &amp; N5 KANJI ONLY]
+        {/* Select Deck Segment Control - HIDDEN ENTIRELY FOR MINEFIELD & TUG OF WAR */}
+        {!isMinefield && !isTugOfWar && (
+          <div className="space-y-1 sm:space-y-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+                SELECT DECK
               </span>
-            )}
-          </div>
+              {isGauntlet && (
+                <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#FF6B6B]">
+                  [KANA &amp; N5 KANJI ONLY]
+                </span>
+              )}
+            </div>
 
-          <div
-            className={`grid ${isGauntlet ? 'grid-cols-2' : isMinefield ? 'grid-cols-1' : 'grid-cols-4'
-              } gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1`}
-          >
-            {subMenuOptions.map(({ type, label, color }) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => {
-                  if (deckType !== type) {
-                    onClearSelectedGroups(); // Flush selections when changing decks
-                  }
-                  onDeckTypeChange(type as Deck);
-                  onGroupMenuOpenChange(false);
-                  setIsGrammarMenuOpen(false);
-                }}
-                style={{
-                  backgroundColor: deckType === type ? color : 'transparent',
-                }}
-                className={`py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all cursor-pointer ${deckType === type
-                  ? 'border-2 border-black text-black shadow-[1.5px_1.5px_0px_0px_#000]'
-                  : 'border-2 border-transparent text-neutral-400 hover:text-white'
-                  }`}
-              >
-                {label}
-              </button>
-            ))}
+            <div className={`grid ${isGauntlet ? 'grid-cols-2' : 'grid-cols-4'} gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1`}>
+              {subMenuOptions.map(({ type, label, color }) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    if (deckType !== type) {
+                      onClearSelectedGroups();
+                    }
+                    onDeckTypeChange(type as Deck);
+                    onGroupMenuOpenChange(false);
+                    setIsGrammarMenuOpen(false);
+                  }}
+                  style={{
+                    backgroundColor: deckType === type ? color : 'transparent',
+                  }}
+                  className={`py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all cursor-pointer ${deckType === type
+                    ? 'border-2 border-black text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                    : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                    }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>)}
+        )}
 
-        {/* Grammar Level Selector (Standard Mode Only) */}
+        {/* Grammar Level Selector */}
         {!isGauntlet && deckType === 'grammar' && (
           <div className="relative z-50 space-y-1 sm:space-y-1.5">
-            <label className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-              LESSON LEVEL
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+                LESSON LEVEL
+              </span>
+              {isTugOfWar && (
+                <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#C084FC]">
+                  [GRAMMAR ONLY]
+                </span>
+              )}
+            </div>
 
             <button
               type="button"
               onClick={() => setIsGrammarMenuOpen((prev) => !prev)}
-              className="flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]"
+              className={`flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black border-l-4 ${themeBorderColor} bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]`}
             >
               <span>Lesson {grammarLevel}</span>
               <ChevronDownIcon className="h-4 w-4 stroke-[3] text-white" />
@@ -286,20 +303,21 @@ function CreateRoomCard({
         {/* Kanji Themes / Vocab Stages Selector */}
         {(isKanji || (!isGauntlet && isVocab)) && (
           <div className="relative z-50 space-y-1 sm:space-y-1.5">
-          <div className="flex flex-wrap items-center justify-between gap-1">
-            <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-              {isKanji ? 'KANJI THEMES' : 'VOCAB STAGES'}
-            </span>
-            {isMinefield && (
-              <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
-                [VOCAB ONLY]
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+                {isKanji ? 'KANJI THEMES' : 'VOCAB STAGES'}
               </span>
-            )}
-          </div>
+              {isMinefield && (
+                <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#A3E636]">
+                  [VOCAB ONLY]
+                </span>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => onGroupMenuOpenChange(!isGroupMenuOpen)}
-              className="flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]"
+              className={`flex h-9 sm:h-10 w-full cursor-pointer items-center justify-between border-2 border-black border-l-4 ${themeBorderColor} bg-[#151922] px-3 font-mono text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_#000] transition-colors hover:bg-[#252c3d]`}
             >
               <span className="truncate">
                 {selectedGroups.length === 0 ? 'All Groups' : `${selectedGroups.length} Selected`}
@@ -354,8 +372,7 @@ function CreateRoomCard({
                 {selectedGroups.map((groupId) => (
                   <span
                     key={groupId}
-                    className={`inline-flex min-w-0 max-w-full items-center gap-1 break-words border-2 border-black bg-[#151922] border-l-4 ${isKanji ? 'border-l-[#70CFF8]' : 'border-l-[#A3E636]'
-                      } px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-[1px_1px_0px_0px_#000]`}
+                    className={`inline-flex min-w-0 max-w-full items-center gap-1 break-words border-2 border-black bg-[#151922] border-l-4 ${themeBorderColor} px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-[1px_1px_0px_0px_#000]`}
                   >
                     {selectionItems.find((item) => item.id === groupId)?.label || groupId}
                   </span>
@@ -391,9 +408,11 @@ function JoinRoomCard({
     >
       <div className="space-y-2.5 sm:space-y-3">
         <div className="space-y-1 sm:space-y-1.5">
-          <label className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
-            ROOM ACCESS CODE
-          </label>
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-neutral-200">
+              ROOM ACCESS CODE
+            </span>
+          </div>
           <LegacyInput
             ref={joinCodeInputRef}
             type="text"
@@ -430,6 +449,8 @@ export default function PracticeScreen({
   kanjiGroups = [],
   vocabStages = [],
 }: PracticeScreenProps) {
+  const isTugOfWar = mode === 'tug-of-war';
+
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 pb-20 sm:pb-24">
       {/* Header */}
@@ -445,7 +466,7 @@ export default function PracticeScreen({
         </button>
 
         <div className="flex min-w-0 flex-col -mt-1 sm:-mt-1.5">
-          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59] leading-tight">
+          <span className={`font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider ${isTugOfWar ? 'text-[#C084FC]' : 'text-[#FFDE59]'} leading-tight`}>
             // MULTIPLAYER: 1V1 ARENA
           </span>
           <h2 className="mt-0.5 text-lg sm:text-2xl font-black uppercase tracking-tight text-white leading-none">
