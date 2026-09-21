@@ -62,6 +62,7 @@ function CreateRoomCard({
   const isVocab = deckType === 'vocab';
   const isGauntlet = mode === 'gauntlet';
   const isMinefield = mode === 'minefield';
+  const isTugOfWar = mode === 'tug-of-war';
 
   const defaultOptions = [
     { type: 'kana', label: 'Kana', color: '#FFDE59' },
@@ -72,6 +73,8 @@ function CreateRoomCard({
 
   const subMenuOptions = isMinefield
     ? defaultOptions.filter((option) => option.type === 'vocab')
+    : isTugOfWar
+      ? defaultOptions.filter((option) => option.type === 'grammar')
     : isGauntlet
       ? defaultOptions.filter((option) => option.type === 'kana' || option.type === 'kanji')
       : defaultOptions;
@@ -118,7 +121,7 @@ function CreateRoomCard({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-1.5 border-2 border-black bg-[#151922] p-0.5 sm:p-1">
             <button
               type="button"
               onClick={() => onModeChange('standard')}
@@ -168,6 +171,25 @@ function CreateRoomCard({
                 }`}
             >
               Minefield
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onModeChange('tug-of-war');
+                if (deckType !== 'grammar') {
+                  onDeckTypeChange('grammar');
+                  onClearSelectedGroups();
+                }
+                onGroupMenuOpenChange(false);
+                setIsGrammarMenuOpen(false);
+              }}
+              className={`cursor-pointer py-1.5 sm:py-2 text-[11px] sm:text-xs font-black uppercase transition-all ${mode === 'tug-of-war'
+                ? 'border-2 border-black bg-[#FFDE59] text-black shadow-[1.5px_1.5px_0px_0px_#000]'
+                : 'border-2 border-transparent text-neutral-400 hover:text-white'
+                }`}
+            >
+              Tug of War
             </button>
           </div>
         </div>
