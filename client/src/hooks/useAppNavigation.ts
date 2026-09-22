@@ -24,6 +24,7 @@ const screenPriority: Record<AppStatus, number> = {
   profile: 0,
   lobby: 0,
   gauntlet: 0,
+  minefield: 1,
   assessment: 1,
   results: 1,
   'assessment-preparing': 0,
@@ -32,7 +33,7 @@ const screenPriority: Record<AppStatus, number> = {
 type NavigationOptions = {
   socketRef: MutableRefObject<Socket | null>;
   roomCodeRef: MutableRefObject<string | null>;
-  roomStatus?: 'lobby' | 'preparing' | 'active' | 'completed' | null;
+  roomStatusRef: MutableRefObject<'lobby' | 'preparing' | 'active' | 'completed' | null>;
   setGrammarQuestions: Dispatch<SetStateAction<GrammarQuestion[]>>;
   setSelectedKana: Dispatch<SetStateAction<Set<string>>>;
   showToast: (message: string, type?: ToastType) => void;
@@ -41,12 +42,21 @@ type NavigationOptions = {
 export default function useAppNavigation({
   socketRef,
   roomCodeRef,
-  roomStatus,
+  roomStatusRef,
   setGrammarQuestions,
   setSelectedKana,
   showToast,
 }: NavigationOptions) {
-  const [status, setStatus] = useState<AppStatus>('selector');
+  
+  const getInitialStatus = () => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const testState = params.get('visualState');
+      if (testState && testState in screenPriority) return testState as AppStatus;
+    }
+    return 'selector'; // default status
+  };
+  const [status, setStatus] = useState(getInitialStatus);
   const [selectorScreen, setSelectorScreen] = useState<SelectorScreen>('home');
   const [appHomeKey, setAppHomeKey] = useState(0);
   const [screenHistory, setScreenHistory] = useState<AppStatus[]>(['selector']);
@@ -111,7 +121,7 @@ export default function useAppNavigation({
       currentStatus: statusRef.current,
       selectorScreen: selectorScreenRef.current,
       activeRoomCode: roomCodeRef.current,
-      roomStatus,
+      roomStatus: roomStatusRef.current,
     });
 
     const socket = socketRef.current;
@@ -132,7 +142,7 @@ export default function useAppNavigation({
     });
 
     setStatus(destination.nextStatus);
-  }, [roomCodeRef, roomStatus, socketRef]);
+  }, [roomCodeRef, roomStatusRef, showToast, socketRef]);
 
   const handleBackToPractice = useCallback(() => {
     if (statusRef.current === 'assessment' || statusRef.current === 'assessment-preparing') {
@@ -177,6 +187,7 @@ export default function useAppNavigation({
   return useMemo(
     () => ({
       status,
+      isMatchLocked: status === 'assessment' || status === 'assessment-preparing',
       setStatus,
       screenHistory,
       setScreenHistory,

@@ -1,5 +1,6 @@
 import { ChevronRightIcon, RocketIcon, TimerIcon } from '@radix-ui/react-icons';
 import type { KanjiGroupOverview } from '../../../types';
+import BrutalistCard from '../../common/BrutalistCard';
 
 type Props = {
     groups: KanjiGroupOverview[];
@@ -28,45 +29,43 @@ export default function KanjiGroupMap({ groups, onSelect, onQuiz }: Props) {
                     : 0;
 
                 return (
-                    <article
+                    <BrutalistCard
                         key={group.group_id}
                         onClick={() => onSelect(group.group_id)}
-                        className="group relative flex min-h-[220px] cursor-pointer flex-col justify-between overflow-hidden border-2 border-black border-l-8 border-l-[#70CFF8] bg-[#1f2637] p-4 text-white shadow-[4px_4px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:p-5"
-                    >
-                        {/* Outlined Wireframe Group Number Watermark */}
-                        <span
-                            className="pointer-events-none absolute -bottom-3 -right-2 select-none font-mono text-[80px] sm:text-[105px] font-black leading-none text-transparent transition-all duration-300 group-hover:scale-105"
-                            style={{ WebkitTextStroke: '2px rgba(112, 207, 248, 0.15)' }}
-                            onMouseEnter={(e) => {
-                                (e.currentTarget as HTMLElement).style.webkitTextStroke = '2px rgba(112, 207, 248, 0.35)';
-                            }}
-                            onMouseLeave={(e) => {
-                                (e.currentTarget as HTMLElement).style.webkitTextStroke = '2px rgba(112, 207, 248, 0.15)';
-                            }}
-                            aria-hidden="true"
-                        >
-                            #{groupNum}
-                        </span>
-
-                        {/* TOP BAR & TITLE */}
-                        <div className="relative z-10">
-                            <div className="flex items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
-                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                    <span className="border-2 border-black bg-[#151922] px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-[#70CFF8] shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[10px]">
+                        accentColor="#70CFF8"
+                        className="min-h-[220px] p-4 sm:p-5"
+                        watermark={(
+                            <span
+                                className="pointer-events-none absolute -bottom-3 -right-2 select-none font-mono text-[80px] font-black leading-none text-transparent transition-all duration-300 group-hover:scale-105 sm:text-[105px]"
+                                style={{ WebkitTextStroke: '2px rgba(112, 207, 248, 0.15)' }}
+                                onMouseEnter={(event) => {
+                                    event.currentTarget.style.webkitTextStroke = '2px rgba(112, 207, 248, 0.35)';
+                                }}
+                                onMouseLeave={(event) => {
+                                    event.currentTarget.style.webkitTextStroke = '2px rgba(112, 207, 248, 0.15)';
+                                }}
+                                aria-hidden="true"
+                            >
+                                #{groupNum}
+                            </span>
+                        )}
+                        badges={(
+                            <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-2 border-white/10 pb-2.5 sm:pb-3">
+                                <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span className="shrink-0 border-2 border-black bg-[#151922] px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-[#70CFF8] shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[10px]">
                                         GROUP {groupNum}
                                     </span>
 
-                                    {/* MASTERED BADGE - strictly Cyan Blue (#70CFF8) for Kanji */}
                                     {group.is_mastered ? (
-                                        <span className="border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
+                                        <span className="shrink-0 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                                             ★ MASTERED
                                         </span>
                                     ) : group.is_cleared ? (
-                                        <span className="border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
+                                        <span className="shrink-0 border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                                             ✓ CLEARED
                                         </span>
                                     ) : needsQuiz ? (
-                                        <span className="flex items-center gap-1 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
+                                        <span className="flex shrink-0 items-center gap-1 border-2 border-black bg-[#70CFF8] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000] sm:px-2 sm:text-[9px]">
                                             <RocketIcon className="h-2.5 w-2.5 text-black" />
                                             QUIZ READY
                                         </span>
@@ -77,18 +76,18 @@ export default function KanjiGroupMap({ groups, onSelect, onQuiz }: Props) {
                                     <ChevronRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
                                 </div>
                             </div>
-
-                            {/* THEME */}
+                        )}
+                        title={(
                             <div className="mt-2.5 sm:mt-3.5">
                                 <span className="font-mono text-[8px] font-black uppercase tracking-widest text-neutral-400 sm:text-[9px]">
-                  // KANJI GROUP
+                                    // KANJI GROUP
                                 </span>
                                 <h2 className="text-lg font-black uppercase tracking-tight text-white sm:text-2xl">
                                     {group.theme}
                                 </h2>
                             </div>
-                        </div>
-
+                        )}
+                    >
                         {/* QUIZ PROMPT */}
                         {needsQuiz && (
                             <div
@@ -149,7 +148,7 @@ export default function KanjiGroupMap({ groups, onSelect, onQuiz }: Props) {
                                 )}
                             </div>
                         </div>
-                    </article>
+                    </BrutalistCard>
                 );
             })}
         </div>

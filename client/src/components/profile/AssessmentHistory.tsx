@@ -3,6 +3,8 @@ import { supabase } from '../../config/supabase';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import type { AssessmentHistoryRecord } from '../../types';
 import AssessmentHistorySkeleton from './AssessmentHistorySkeleton';
+import DataRow from '@/components/common/DataRow';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 const PAGE_SIZE = 10;
 
@@ -19,9 +21,20 @@ interface GauntletDetails {
   selected_groups?: string[];
   hints_used?: number[];
   groups?: string[];
+  round_limit?: number;
+  rounds_played?: number;
+  completion_reason?: string;
 }
 
 function getDomainMeta(type: string, details?: GauntletDetails) {
+  const isMinefield =
+    details?.mode === 'minefield' ||
+    (type || '').toLowerCase().includes('minefield');
+
+  if (isMinefield) {
+    return { accent: '#A3E636', label: 'MINEFIELD // VOCAB', isGauntlet: true };
+  }
+
   const isGauntlet =
     details?.mode === 'survival-gauntlet' ||
     (type || '').toLowerCase().includes('gauntlet');
@@ -53,6 +66,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [stageTitles, setStageTitles] = useState<Record<string, string>>({});
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -87,7 +101,31 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
         if (queryError) {
           setError('Failed to load assessment records');
         } else {
-          setResults((data || []) as AssessmentHistoryRecord[]);
+          const historyResults = (data || []) as AssessmentHistoryRecord[];
+          const stageNumbers = Array.from(new Set(
+            historyResults.flatMap((record) => {
+              const details = record.details;
+              const groups = Array.isArray(details?.selected_groups)
+                ? details.selected_groups
+                : details?.groups ?? [];
+              return groups.filter((group) => /^\d+$/.test(group));
+            }),
+          ))
+
+          if (stageNumbers.length > 0) {
+            const { data: stages } = await supabase
+              .from('vocab_items')
+              .select('stage_number, theme')
+              .in('stage_number', stageNumbers.map(Number));
+
+            const titles = (stages ?? []).reduce<Record<string, string>>((map, stage) => {
+              if (stage.theme) map[String(stage.stage_number)] = stage.theme;
+              return map;
+            }, {});
+            if (!cancelled) setStageTitles(titles);
+          }
+
+          setResults(historyResults);
           setTotalCount(count ?? (data ? data.length : 0));
         }
       } catch {
@@ -121,33 +159,17 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
 
   return (
     <main className="container mx-auto max-w-4xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8 pb-20 sm:pb-28">
-      {/* 1. Header Bar */}
-      <div className="flex items-center justify-between gap-2.5 sm:gap-4">
-        <div className="flex items-center gap-2.5 sm:gap-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:h-11 sm:w-11 sm:shadow-[3px_3px_0px_0px_#000]"
-            title="Back to previous screen"
-            aria-label="Back"
-          >
-            <span className="font-mono text-base font-black sm:text-lg">&lt;</span>
-          </button>
-
-          <div className="flex flex-col justify-center text-left">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#FFDE59] sm:text-xs">
-              // ARCHIVE: LOGS
-            </span>
-            <h1 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-3xl">
-              Assessment History
-            </h1>
-          </div>
-        </div>
-
-        <div className="border-2 border-black bg-[#70CFF8] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-3 sm:text-xs sm:shadow-[2px_2px_0px_0px_#000]">
-          {totalCount} RECORD{totalCount === 1 ? '' : 'S'}
-        </div>
-      </div>
+      <GlobalPageHeader
+        onBack={onBack}
+        punchline="// ARCHIVE: LOGS"
+        title="Assessment History"
+        accentClass="text-[#FFDE59]"
+        rightSlot={(
+          <span className="border-2 border-black bg-[#70CFF8] px-2.5 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] sm:px-3 sm:text-xs sm:shadow-[2px_2px_0px_0px_#000]">
+            {totalCount} RECORD{totalCount === 1 ? '' : 'S'}
+          </span>
+        )}
+      />
 
       {/* 2. Loading Skeleton */}
       {isLoading && <AssessmentHistorySkeleton />}
@@ -176,6 +198,8 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
           {results.map((result) => {
             const details = (result.details || {}) as GauntletDetails;
             const isGauntlet =
+              details?.mode === 'minefield' ||
+              result.assessment_type?.toLowerCase().includes('minefield') ||
               details?.mode === 'survival-gauntlet' ||
               result.assessment_type?.toLowerCase().includes('gauntlet');
 
@@ -183,6 +207,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
             const isVictory = details?.result === 'WIN';
             const gauntletScore = details?.score ?? 0;
             const opponentScore = details?.opponent_score ?? 0;
+            const resultGroups = Array.isArray(details?.groups) ? details.groups : details?.selected_groups;
 
             // Standard metrics
             const isPerfect = result.score_percentage === 100;
@@ -194,13 +219,13 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
               : 0;
 
             return (
-              <div
+              <DataRow
                 key={result.id}
-                style={{ borderLeftColor: domain.accent }}
-                className="flex flex-col justify-between gap-3 border-2 border-black border-l-8 bg-[#1f2637] p-3.5 text-white shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] sm:flex-row sm:items-center sm:p-4 sm:shadow-[4px_4px_0px_0px_#000]"
-              >
-                {/* Left: Metadata */}
-                <div className="space-y-1.5 min-w-0">
+                accentColor={domain.accent}
+                left={(
+                  <>
+                    {/* Left: Metadata */}
+                    <div className="space-y-1.5 min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     {/* Mode / Domain Tag */}
                     <span
@@ -232,13 +257,12 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                     )}
 
                     {/* Groups Filtered */}
-                    {Array.isArray(details?.groups) &&
-                      details.groups.map((group) => (
+                    {resultGroups?.map((group) => (
                         <span
                           key={group}
                           className="border border-white/10 bg-[#151922] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-neutral-400 sm:text-[10px]"
                         >
-                          {group}
+                          {stageTitles[group] || group}
                         </span>
                       ))}
                   </div>
@@ -255,12 +279,15 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                       </>
                     )}
                   </div>
-                </div>
+                    </div>
+                  </>
+                )}
 
-                {/* Right: Score Display */}
-                {isGauntlet ? (
+                right={(
+                  /* Right: Score Display */
+                  isGauntlet ? (
                   /* Gauntlet Specific Layout */
-                  <div className="flex items-center justify-between border-t-2 border-white/10 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end sm:gap-4">
+                  <>
                     <div className="text-left sm:text-right font-mono">
                       <span className="text-[9px] font-black uppercase tracking-wider text-neutral-400 sm:text-[10px]">
                         OPPONENT SCORE
@@ -278,10 +305,10 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                         {gauntletScore.toLocaleString()}
                       </span>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   /* Standard Assessment Layout */
-                  <div className="flex items-center justify-between border-t-2 border-white/10 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end sm:gap-4">
+                  <>
                     <div className="text-left sm:text-right">
                       <span className="font-mono text-[9px] font-black uppercase tracking-wider text-neutral-400 sm:text-[10px]">
                         ACCURACY
@@ -296,9 +323,9 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                     >
                       {result.score_percentage}%
                     </div>
-                  </div>
-                )}
-              </div>
+                  </>
+                ))}
+              />
             );
           })}
 
@@ -309,7 +336,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                 type="button"
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="flex h-9 items-center gap-1 border-2 border-black bg-white px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-10 sm:px-3 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000]"
+                className="flex h-9 cursor-pointer items-center gap-1 border-2 border-black bg-white px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all enabled:hover:translate-x-[1px] enabled:hover:translate-y-[1px] enabled:hover:shadow-[1px_1px_0px_0px_#000] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-none disabled:cursor-default disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-10 sm:px-3 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000]"
               >
                 <ChevronLeftIcon className="h-4 w-4 stroke-[2.5]" />
                 <span>Prev</span>
@@ -323,9 +350,9 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                       key={page}
                       type="button"
                       onClick={() => goToPage(page)}
-                      className={`flex h-9 w-9 items-center justify-center border-2 border-black font-mono text-[10px] font-black transition-all sm:h-10 sm:w-10 sm:text-xs ${isActive
+                      className={`flex h-9 w-9 cursor-pointer items-center justify-center border-2 border-black font-mono text-[10px] font-black transition-all sm:h-10 sm:w-10 sm:text-xs ${isActive
                           ? 'bg-[#FFDE59] text-black shadow-none ring-2 ring-black'
-                          : 'bg-[#151922] text-white shadow-[2px_2px_0px_0px_#000] hover:bg-[#1f2637] sm:shadow-[3px_3px_0px_0px_#000]'
+                          : 'bg-[#151922] text-white shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#1f2637] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:shadow-[3px_3px_0px_0px_#000]'
                         }`}
                     >
                       {page}
@@ -338,7 +365,7 @@ export default function AssessmentHistory({ onBack }: AssessmentHistoryProps) {
                 type="button"
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="flex h-9 items-center gap-1 border-2 border-black bg-white px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-10 sm:px-3 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000]"
+                className="flex h-9 cursor-pointer items-center gap-1 border-2 border-black bg-white px-2.5 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all enabled:hover:translate-x-[1px] enabled:hover:translate-y-[1px] enabled:hover:shadow-[1px_1px_0px_0px_#000] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-none disabled:cursor-not-allowed disabled:bg-[#151922] disabled:text-neutral-500 disabled:shadow-none sm:h-10 sm:px-3 sm:text-xs sm:shadow-[3px_3px_0px_0px_#000]"
               >
                 <span>Next</span>
                 <ChevronRightIcon className="h-4 w-4 stroke-[2.5]" />

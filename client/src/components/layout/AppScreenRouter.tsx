@@ -28,6 +28,7 @@ const FriendsPanel = lazy(() => import('../social/FriendsPanel'));
 const ProfileScreen = lazy(() => import('../profile/ProfileScreen'));
 const MasteryPassportScreen = lazy(() => import('../profile/MasteryPassportScreen'));
 const GauntletPvpScreen = lazy(() => import('../gauntlet/GauntletPvpScreen'));
+const MinefieldArena = lazy(() => import('../practice/MinefieldArena'));
 
 type ScreenRouterProps = AppContextValue & RoomContextValue;
 
@@ -60,7 +61,6 @@ function LegacyAppScreenRouter({
   prefillRoomCode,
   isSocketReady,
   roomCode,
-  currentSessionKey,
   username,
   friends,
   friendSearchResults,
@@ -120,6 +120,10 @@ function LegacyAppScreenRouter({
     setIsStampAnimating(true);
   }, []);
 
+  const handleOpenMinefield = () => {
+    if (socket && room?.code) socket.emit('minefield-start-request', room.code);
+  };
+
   const { toast, showToast, clearToast } = useToast();
 
   const grammarSessionQuestions = (room?.cards ?? []).filter(isGrammarQuestion);
@@ -172,12 +176,15 @@ function LegacyAppScreenRouter({
       !shouldRenderPreparing &&
       !shouldRenderResults);
 
-  // Show AuthPage if auth is required AND (no user OR stamp animation is still playing)
-  const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating;
+  // 1. Detect if the URL contains a Supabase auth token
+  const isAuthVerification = typeof window !== 'undefined' && window.location.search.includes('token_hash=');
+
+  // 2. Force the AuthPage to render if verifying a token, regardless of current user state
+  const shouldShowAuth = (authRequired && !user) || isLoggingOut || isStampAnimating || isAuthVerification;
 
   if (isFullyHydrating) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#11141d] px-4 text-white font-mono">
+      <div className="app-match-restoring flex items-center justify-center px-4 text-white font-mono">
         <div className="w-full max-w-md space-y-3 border-2 border-black bg-[#1f2637] p-6 text-center shadow-[6px_6px_0px_0px_#000]">
           <span className="text-xs font-black uppercase tracking-widest text-[#FFDE59]">
             // SYS: RE-ESTABLISHING SESSION
@@ -215,11 +222,28 @@ function LegacyAppScreenRouter({
           deckType={room?.deckType}
           selectedGroups={room?.selectedGroups}
           matchWinnerUserId={room?.winnerUserId}
-          matchWinnerSocketId={room?.winnerSocketId as string | undefined}
+          matchWinnerSocketId={room?.winnerSocketId}
           currentSocketId={socket?.id}
           onForfeit={handleForfeitMatch}
           onReturnToLobby={handleReturnGauntletToLobby}
           onExit={handleReturnToRoom}
+        />
+      ) : status === 'minefield' && room ? (
+        <MinefieldArena
+          roomCode={room.code || roomCode}
+          socket={socket as never}
+          currentUserId={user?.id || ''}
+          isHost={Boolean(isCurrentPlayerHost)}
+          initialMinefield={room.minefield}
+          onForfeit={handleForfeitMatch}
+          onReturnToLobby={handleReturnGauntletToLobby}
+          hostPlayerName={room.players[0]?.name}
+          guestPlayerName={room.players[1]?.name}
+          hostSocketId={room.players[0]?.id}
+          guestSocketId={room.players[1]?.id}
+          hostUserId={room.players[0]?.userId}
+          guestUserId={room.players[1]?.userId}
+          selectedGroups={room.selectedGroups}
         />
       ) : (
         <>
@@ -340,7 +364,7 @@ function LegacyAppScreenRouter({
                     ? 'Preparing the kanji drill'
                     : room?.deckType === 'vocab'
                       ? 'Preparing the vocabulary drill'
-                    : 'Preparing the reading deck'
+                      : 'Preparing the reading deck'
               }
               description="Generating the question set and synchronizing operators..."
               accent={getDeckAccent(room?.deckType)}
@@ -353,10 +377,10 @@ function LegacyAppScreenRouter({
               room={room}
               onStartAssessment={handleStartAssessment}
               onOpenGauntlet={handleStartGauntlet}
+              onOpenMinefield={handleOpenMinefield}
               onLeaveRoom={handleLeaveRoom}
               currentSocketId={socket?.id || ''}
               currentUserId={user?.id || null}
-              currentSessionKey={currentSessionKey}
               isPreparingAssessment={isPreparingAssessment}
               friends={friends}
               onInviteFriend={handleInviteFriend}

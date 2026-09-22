@@ -9,6 +9,7 @@ import { supabase } from '../../config/supabase';
 import useActivityRecorder from '../../hooks/useActivityRecorder';
 import { getDeckAccent } from '../../utils/deck-theme';
 import type { AssessmentResult, DiffSegment, KanaCard, KanjiCard } from '../../types';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 type ResultPlayer = Partial<AssessmentResult>;
 type ResultCard = Partial<KanaCard & KanjiCard> & {
@@ -227,21 +228,12 @@ export default function Results({
 
   return (
     <main className="container mx-auto max-w-4xl space-y-3.5 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
-      {/* 1. Header Bar */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <span
-            className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider"
-            style={{ color: themeAccent }}
-          >
-            // SESSION COMPLETE
-          </span>
-          <h1 className="text-lg sm:text-3xl font-black uppercase tracking-tight text-white leading-tight">
-            Assessment Results
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2 self-start sm:self-auto">
+      <GlobalPageHeader
+        punchline="// SESSION COMPLETE"
+        title="Assessment Results"
+        accentClass={isKanjiDeck ? 'text-[#70CFF8]' : isVocabDeck ? 'text-[#A3E636]' : isGrammarDeck ? 'text-[#C084FC]' : 'text-[#FFDE59]'}
+        rightSlot={(
+          <>
           {roomCode && (
             <span className="border-2 border-black bg-[#151922] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-neutral-300 shadow-[1.5px_1.5px_0px_0px_#000]">
               ROOM: {roomCode}
@@ -250,8 +242,9 @@ export default function Results({
           <span className="border-2 border-black bg-[#A3E636] px-2 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000]">
             COMPLETED
           </span>
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       {/* 2. Podium Scoreboard */}
       <div className="grid gap-2.5 sm:gap-4 sm:grid-cols-2">

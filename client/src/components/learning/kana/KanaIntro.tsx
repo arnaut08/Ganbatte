@@ -1,4 +1,5 @@
 import { CheckIcon } from '@radix-ui/react-icons';
+import GlobalPageHeader from '../../common/GlobalPageHeader';
 
 type KanaIntroProps = {
   onBack: () => void;
@@ -76,25 +77,14 @@ export default function KanaIntro({ onBack, onContinue }: KanaIntroProps) {
   return (
     <main className="mx-auto w-full max-w-4xl px-3 py-3 sm:px-4 sm:py-8 pb-20 sm:pb-24">
       {/* HEADER */}
-      <header className="mb-3 flex items-start gap-2.5 sm:mb-6 sm:gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-          title="Back to learning"
-          aria-label="Back to learning"
-        >
-          <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
-        </button>
-        <div className="flex flex-col -mt-1 sm:-mt-1.5 text-left">
-          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59] leading-tight">
-            // PRACTICE: KANA CHARACTERS
-          </span>
-          <h1 className="mt-0.5 text-lg sm:text-3xl font-black uppercase tracking-tight text-white leading-none">
-            Hiragana &amp; Katakana Recall
-          </h1>
-        </div>
-      </header>
+      <div className="mb-3 sm:mb-6">
+        <GlobalPageHeader
+          onBack={onBack}
+          punchline="// PRACTICE: KANA CHARACTERS"
+          title="Hiragana &amp; Katakana Recall"
+          accentClass="text-[#FFDE59]"
+        />
+      </div>
 
       {/* MAIN CONTAINER */}
       <section className="border-2 border-black border-l-6 sm:border-l-8 border-l-[#FFDE59] bg-[#1f2637] p-3.5 sm:p-7 text-white shadow-[3.5px_3.5px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] space-y-3 sm:space-y-5">
@@ -195,7 +185,7 @@ export default function KanaIntro({ onBack, onContinue }: KanaIntroProps) {
           <button
             type="button"
             onClick={onContinue}
-            className="w-full sm:w-auto cursor-pointer border-2 border-black bg-white px-5 py-2.5 sm:px-6 sm:py-3 font-mono text-xs font-black uppercase text-black shadow-[2.5px_2.5px_0px_0px_#000] hover:bg-[#FFDE59] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all text-center"
+            className="w-full sm:w-auto cursor-pointer border-2 border-black bg-white px-5 py-2.5 sm:px-6 sm:py-3 font-mono text-xs font-black uppercase text-black shadow-[2.5px_2.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FFDE59] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none text-center"
           >
             CHOOSE CHARACTERS →
           </button>

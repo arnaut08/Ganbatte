@@ -106,8 +106,8 @@ export default function Assessment({
     (isExactTextAnswer
       ? String(otherAnswer || '').trim().toLowerCase() === String(currentCard.correctAnswer || '').trim().toLowerCase()
       : (isKanjiAssessment || isVocabAssessment)
-      ? areRomajiAnswersEqual(otherAnswer, currentCard?.romaji || '')
-      : scoreRomajiAnswer(String(otherAnswer), currentCard?.romaji || '').percentage === 100);
+        ? areRomajiAnswersEqual(otherAnswer, currentCard?.romaji || '')
+        : scoreRomajiAnswer(String(otherAnswer), currentCard?.romaji || '').percentage === 100);
 
   useEffect(() => {
     setAnswer('');
@@ -188,15 +188,15 @@ export default function Assessment({
     <main className="container mx-auto max-w-3xl space-y-3.5 sm:space-y-5 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
       {/* 1. Header & Progress HUD */}
       <div className="space-y-2 sm:space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div>
+        <div className="flex w-full flex-row items-center justify-between gap-2">
+          <div className="min-w-0">
             <span
               className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider"
               style={{ color: themeAccent }}
             >
               {domainLabel}
             </span>
-            <h1 className="text-lg sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
+            <h1 className="truncate text-lg sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
               {isKanjiAssessment ? 'Kanji Assessment' : isVocabAssessment ? 'Vocab Assessment' : isGrammarAssessment ? 'Grammar Assessment' : 'Reading Assessment'}
             </h1>
           </div>
@@ -223,31 +223,31 @@ export default function Assessment({
         {/* Target Phrase Stage */}
         <div className="relative border-2 border-black bg-[#151922] p-4 sm:p-7 shadow-[3px_3px_0px_0px_#000]">
           {/* Stage Top Bar */}
-          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
-            <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+            <div className="flex shrink-0 flex-row items-center justify-end gap-2">
               <span
-                className="border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]"
+                className="shrink-0 border-2 border-black px-1.5 py-0.5 sm:px-2 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_0px_#000]"
                 style={{ backgroundColor: themeAccent }}
               >
                 TARGET PROMPT
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               {username && (
-                <span className="border-2 border-black bg-[#1f2637] px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-300 shadow-[1px_1px_0px_0px_#000]">
+                <span className="shrink-0 max-w-full truncate border-2 border-black bg-[#1f2637] px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-300 shadow-[1px_1px_0px_0px_#000]">
                   OP: {username}
                 </span>
               )}
 
               {/* Anchored Top-Right Hint Button */}
               {isKanjiAssessment && !submitted && (
-                <div>
+                <div className="shrink-0">
                   {canUseHint ? (
                     <button
                       type="button"
                       onClick={() => onUseHint?.(cardIndex)}
-                      className="flex cursor-pointer items-center gap-1.5 border-2 border-black bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#70CFF8] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                      className="flex shrink-0 cursor-pointer items-center gap-1.5 border-2 border-black bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#70CFF8] hover:shadow-[0.5px_0.5px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                       title="Reveal English meaning hint"
                     >
                       <QuestionMarkCircledIcon className="h-3.5 w-3.5 text-black" />
@@ -319,52 +319,52 @@ export default function Assessment({
               ))}
             </div>
           ) : (
-          <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
-            <div className="flex gap-2 sm:gap-3">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-2.5 sm:top-3.5 font-mono text-sm sm:text-base font-black text-neutral-500 select-none">
-                  &gt;
-                </span>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  autoFocus
-                  value={answer}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setAnswer(e.target.value)}
-                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === 'Enter') {
-                      handleSubmit(e);
+            <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
+              <div className="flex flex-row gap-2 sm:gap-3">
+                <div className="relative min-w-0 flex-1">
+                  <span className="absolute left-3 top-2.5 sm:top-3.5 font-mono text-sm sm:text-base font-black text-neutral-500 select-none">
+                    &gt;
+                  </span>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    autoFocus
+                    value={answer}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setAnswer(e.target.value)}
+                    onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Enter') {
+                        handleSubmit(e);
+                      }
+                    }}
+                    placeholder={
+                      isKanjiAssessment
+                        ? 'Type reading in romaji...'
+                        : isVocabAssessment && currentCard.answerType === 'text'
+                          ? 'Type the answer...'
+                          : 'Type romaji reading...'
                     }
-                  }}
-                  placeholder={
-                    isKanjiAssessment
-                      ? 'Type reading in romaji...'
-                      : isVocabAssessment && currentCard.answerType === 'text'
-                        ? 'Type the answer...'
-                      : 'Type romaji reading...'
-                  }
-                  className="h-10 sm:h-13 w-full border-2 border-black bg-[#151922] pl-8 pr-3 sm:pl-9 sm:pr-4 font-mono text-xs sm:text-base font-black text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] placeholder:font-mono placeholder:text-xs sm:placeholder:text-sm placeholder:font-bold placeholder:text-neutral-500 focus:border-white focus:outline-none"
-                />
-              </div>
+                    className="h-10 w-full min-w-0 flex-1 border-2 border-black bg-[#151922] pl-8 pr-3 font-mono text-xs font-black text-white shadow-[2px_2px_0px_0px_#000] placeholder:font-mono placeholder:text-xs placeholder:font-bold placeholder:text-neutral-500 focus:border-white focus:outline-none sm:h-13 sm:pl-9 sm:pr-4 sm:text-base sm:placeholder:text-sm"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={!answer.trim() || isSubmittingLocal}
-                style={{ backgroundColor: answer.trim() && !isSubmittingLocal ? themeAccent : undefined }}
-                className={`h-10 sm:h-13 min-w-[100px] sm:min-w-[130px] border-2 border-black px-4 sm:px-6 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all whitespace-nowrap ${!answer.trim() || isSubmittingLocal
+                <button
+                  type="submit"
+                  disabled={!answer.trim() || isSubmittingLocal}
+                  style={{ backgroundColor: answer.trim() && !isSubmittingLocal ? themeAccent : undefined }}
+                  className={`h-10 min-w-[100px] shrink-0 border-2 border-black px-4 sm:h-13 sm:min-w-[130px] sm:px-6 font-mono text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all whitespace-nowrap ${!answer.trim() || isSubmittingLocal
                     ? 'cursor-not-allowed bg-[#151922] text-neutral-500 opacity-60 shadow-none'
                     : 'cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
-                  }`}
-              >
-                {isSubmittingLocal ? 'Submitting...' : 'Submit →'}
-              </button>
-            </div>
-          </form>
+                    }`}
+                >
+                  {isSubmittingLocal ? 'Submitting...' : 'Submit →'}
+                </button>
+              </div>
+            </form>
           )
         ) : (
           /* Round Evaluation */
           <div className="space-y-3 sm:space-y-4 border-2 border-black bg-[#151922] p-3 sm:p-4 shadow-[2.5px_2.5px_0px_0px_#000]">
-            <div className="flex items-center justify-between border-b-2 border-white/10 pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-white/10 pb-2">
               <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-neutral-300">
                 // ROUND EVALUATION
               </span>
@@ -451,65 +451,71 @@ export default function Assessment({
         )}
 
         {/* 4. Bottom Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t-2 border-white/10 pt-3 sm:pt-4">
-          {/* Left: HUD Toggle Switch */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <LegacySwitch
-              id="show-opponent"
-              checked={showOpponentStatus}
-              onCheckedChange={setShowOpponentStatus}
-              style={showOpponentStatus ? { backgroundColor: themeAccent } : undefined}
-              className="border-2 border-black"
-            />
+        <div className="flex items-center justify-between gap-1.5 border-t-2 border-white/10 pt-3 sm:gap-3 sm:pt-4">
+          
+          {/* Left: Compact HUD Toggle */}
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <div className="origin-left scale-[0.8] sm:scale-100">
+              <LegacySwitch
+                id="show-opponent"
+                checked={showOpponentStatus}
+                onCheckedChange={setShowOpponentStatus}
+                style={showOpponentStatus ? { backgroundColor: themeAccent } : undefined}
+                className="border-2 border-black"
+              />
+            </div>
+            {/* Hide label on mobile to save space */}
             <LegacyLabel
               htmlFor="show-opponent"
-              className="font-mono text-[10px] sm:text-xs font-bold uppercase tracking-wider text-neutral-400 cursor-pointer select-none"
+              className="hidden cursor-pointer select-none font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 sm:block"
             >
               HUD
             </LegacyLabel>
           </div>
 
-          {/* Center: Opponent Status Box */}
-          <div className="min-w-[200px] sm:min-w-[240px] flex justify-center">
-            {showOpponentStatus ? (
-              <div className="flex items-center gap-2 sm:gap-3 border-2 border-black bg-[#151922] px-2.5 py-1.5 sm:px-3.5 sm:py-2 shadow-[1.5px_1.5px_0px_0px_#000]">
-                <span className="font-mono text-[10px] sm:text-xs font-black uppercase text-white truncate">
-                  VS {otherPlayer ? otherPlayer.name : 'OPPONENT'}:
+          {/* Center: Compact Opponent Status Box */}
+          <div className="flex min-w-0 flex-1 justify-center">
+            {showOpponentStatus && (
+              <div className="flex min-w-0 max-w-full items-center gap-1.5 border-2 border-black bg-[#151922] px-1.5 py-1 shadow-[1.5px_1.5px_0px_0px_#000] sm:gap-3 sm:px-3.5 sm:py-2">
+                <span className="min-w-0 truncate font-mono text-[9px] font-black uppercase text-white sm:text-xs">
+                  <span className="hidden sm:inline">VS </span>
+                  {otherPlayer ? otherPlayer.name : 'OPPONENT'}
                 </span>
-                <div>
+                <div className="shrink-0">
                   {otherPlayer && otherSubmitted && otherCorrect && (
-                    <span className="border-2 border-black bg-[#A3E636] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
-                      ✔ Correct
+                    <span className="border-2 border-black bg-[#A3E636] px-1 py-0.5 font-mono text-[8px] font-black uppercase text-black sm:text-[10px]">
+                      ✔<span className="hidden sm:inline"> Correct</span>
                     </span>
                   )}
                   {otherPlayer && otherSubmitted && !otherCorrect && (
-                    <span className="border-2 border-black bg-[#FF6B6B] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-black uppercase text-black">
-                      ✖ Wrong
+                    <span className="border-2 border-black bg-[#FF6B6B] px-1 py-0.5 font-mono text-[8px] font-black uppercase text-black sm:text-[10px]">
+                      ✖<span className="hidden sm:inline"> Wrong</span>
                     </span>
                   )}
                   {otherPlayer && !otherSubmitted && (
-                    <span className="border border-black bg-[#1f2637] px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase text-neutral-400">
+                    <span className="border border-black bg-[#1f2637] px-1 py-0.5 font-mono text-[8px] font-bold uppercase text-neutral-400 sm:text-[10px]">
                       Typing...
                     </span>
                   )}
                   {!otherPlayer && (
-                    <span className="font-mono text-[10px] sm:text-xs font-bold text-neutral-400">
-                      Waiting...
+                    <span className="font-mono text-[8px] font-bold text-neutral-400 sm:text-xs">
+                      Wait...
                     </span>
                   )}
                 </div>
               </div>
-            ) : null}
+            )}
           </div>
 
-          {/* Right: Forfeit Button */}
+          {/* Right: Compact Forfeit Button */}
           {onForfeit && (
             <button
               type="button"
               onClick={() => setShowForfeitConfirmation(true)}
-              className="cursor-pointer border-2 border-black bg-[#FF6B6B] px-4 py-2 font-mono text-[10px] sm:text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] hover:bg-[#ff5252] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all self-end sm:self-auto"
+              className="shrink-0 cursor-pointer border-2 border-black bg-[#FF6B6B] px-2 py-1 font-mono text-[9px] font-black uppercase text-black shadow-[1.5px_1.5px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#ff5252] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-4 sm:py-2 sm:text-xs sm:shadow-[2px_2px_0px_0px_#000]"
             >
-              Forfeit Match →
+              <span className="sm:hidden">Forfeit</span>
+              <span className="hidden sm:inline">Forfeit Match →</span>
             </button>
           )}
         </div>

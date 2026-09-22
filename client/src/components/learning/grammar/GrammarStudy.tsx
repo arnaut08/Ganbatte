@@ -4,6 +4,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import type { GrammarLesson, GrammarLessonOverview } from '../../../types';
 import GrammarStudySkeleton from './GrammarStudySkeleton';
 import AssessmentLoadingScreen from '@/components/practice/AssessmentLoadingScreen';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 const KANJI_CHARACTER = /\p{Script=Han}/u;
 const HIRAGANA_START = 0x3041;
@@ -175,24 +176,12 @@ function GrammarStudy({ onBack, onPracticeLesson }: GrammarStudyProps) {
   return (
     <main className="container mx-auto max-w-4xl space-y-3.5 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-6 pb-20 sm:pb-28">
       {/* Header Bar */}
-      <div className="flex items-end gap-2.5 sm:gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-          title="Back to learning"
-        >
-          <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
-        </button>
-        <div>
-          <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#C084FC]">
-            04 // GRAMMAR
-          </span>
-          <h1 className="text-base sm:text-2xl font-black uppercase tracking-tight text-white leading-tight">
-            Genki Volume 1
-          </h1>
-        </div>
-      </div>
+      <GlobalPageHeader
+        onBack={onBack}
+        punchline="04 // GRAMMAR"
+        title="Genki Volume 1"
+        accentClass="text-[#C084FC]"
+      />
 
       {isLoading && <GrammarStudySkeleton />}
 

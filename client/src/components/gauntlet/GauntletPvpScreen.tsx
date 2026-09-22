@@ -58,6 +58,7 @@ export default function GauntletPvpScreen({
     const [surgeAlert, setSurgeAlert] = useState<string | null>(null);
     const [, setFrame] = useState(0);
     const savedResultRef = useRef(false);
+    const surgeTimeoutRef = useRef<number | null>(null);
 
     const localItemsRef = useRef<FallingCard[]>([]);
     const rngRef = useRef(createSeededRNG(seed));
@@ -91,8 +92,12 @@ export default function GauntletPvpScreen({
         },
         onReceiveAttack: (attackType) => {
             if (attackType !== 'SPEED_SURGE') return;
+            if (surgeTimeoutRef.current !== null) window.clearTimeout(surgeTimeoutRef.current);
             setSurgeAlert('SPEED SURGE INCOMING!');
-            window.setTimeout(() => setSurgeAlert(null), 2000);
+            surgeTimeoutRef.current = window.setTimeout(() => {
+                surgeTimeoutRef.current = null;
+                setSurgeAlert(null);
+            }, 2000);
             localItemsRef.current.forEach((item) => {
                 item.speed *= 1.35;
             });
@@ -102,6 +107,10 @@ export default function GauntletPvpScreen({
             setIsGameOver(true);
         },
     });
+
+    useEffect(() => () => {
+        if (surgeTimeoutRef.current !== null) window.clearTimeout(surgeTimeoutRef.current);
+    }, []);
 
     useEffect(() => {
         if (!matchWinnerUserId && !matchWinnerSocketId) return;
@@ -305,13 +314,13 @@ export default function GauntletPvpScreen({
     return (
         <main className="container mx-auto max-w-5xl space-y-3 px-3 py-3 pb-24 sm:space-y-4 sm:px-4 sm:py-6">
             {/* 1. Header Bar */}
-            <div className="flex items-center justify-between border-2 border-black bg-[#1f2637] px-3 py-2.5 shadow-[3px_3px_0px_0px_#000] sm:px-4 sm:py-3">
-                <div className="flex items-center gap-2">
+            <div className="flex w-full flex-row items-center justify-between gap-2 border-2 border-black bg-[#1f2637] px-3 py-2.5 shadow-[3px_3px_0px_0px_#000] sm:px-4 sm:py-3">
+                <div className="min-w-0 flex flex-1 items-center gap-2">
                     <span
                         className="h-2.5 w-2.5 border border-black animate-pulse"
                         style={{ backgroundColor: themeAccent }}
                     />
-                    <span className="font-mono text-xs font-black uppercase tracking-tight text-white sm:text-sm">
+                    <span className="truncate font-mono text-xs font-black uppercase tracking-tight text-white sm:text-sm">
                         1v1 GAUNTLET // {headerModeLabel}
                     </span>
                 </div>
@@ -319,7 +328,7 @@ export default function GauntletPvpScreen({
                 <button
                     type="button"
                     onClick={onForfeit || onExit}
-                    className="cursor-pointer border-2 border-black bg-white px-3 py-1 font-mono text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:bg-[#FF6B6B] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    className="shrink-0 cursor-pointer border-2 border-black bg-white px-2 py-1 font-mono text-[10px] font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:bg-[#FF6B6B] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:px-3 sm:text-[11px]"
                 >
                     Forfeit Match
                 </button>
@@ -332,11 +341,11 @@ export default function GauntletPvpScreen({
                 <div className="space-y-2.5 lg:col-span-8 flex flex-col justify-between">
 
                     {/* Top Status Bar */}
-                    <div className="flex items-center justify-between border-2 border-black border-l-6 sm:border-l-8 border-l-[#FFDE59] bg-[#1f2637] p-2.5 sm:p-3 font-mono text-xs font-black text-white shadow-[3px_3px_0px_0px_#000]">
+                    <div className="grid grid-cols-3 gap-2 border-2 border-black border-l-6 sm:border-l-8 border-l-[#FFDE59] bg-[#1f2637] p-2.5 sm:p-3 font-mono text-xs font-black text-white shadow-[3px_3px_0px_0px_#000]">
                         {/* Lives Indicator */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 flex-col items-start gap-1">
                             <span className="text-[10px] font-black uppercase text-neutral-400">LIVES:</span>
-                            <div className="flex gap-1.5">
+                            <div className="flex h-5 items-center gap-1.5">
                                 {[0, 1, 2].map((i) => (
                                     <span
                                         key={i}
@@ -348,7 +357,7 @@ export default function GauntletPvpScreen({
                         </div>
 
                         {/* Streak Counter */}
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex min-w-0 flex-col items-start gap-1">
                             <span className="text-[10px] font-black uppercase text-neutral-400">STREAK:</span>
                             <span className="border border-black bg-[#151922] px-2 py-0.5 text-[#FFDE59]">
                                 {streak}x
@@ -356,7 +365,7 @@ export default function GauntletPvpScreen({
                         </div>
 
                         {/* Score Counter */}
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex min-w-0 flex-col items-start gap-1">
                             <span className="text-[10px] font-black uppercase text-neutral-400">SCORE:</span>
                             <span className="text-sm font-black text-white">{score}</span>
                         </div>

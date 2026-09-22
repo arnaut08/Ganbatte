@@ -7,3 +7,4 @@ build/
 *.log
 .vscode/
 .idea/
+test-results/

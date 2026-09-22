@@ -1,16 +1,12 @@
-import { useState, useRef, useCallback, useMemo, useEffect, Suspense } from 'react';
-import type { MutableRefObject } from 'react';
+import { useState, useRef, useCallback, useMemo, Suspense } from 'react';
 import type { Socket } from 'socket.io-client';
 import AppHeader from './components/layout/AppHeader';
 import AppToast from './components/layout/AppToast';
 import AppScreenRouter from './components/layout/AppScreenRouter';
+import AppShell from './components/layout/AppShell';
 import './App.css';
-import {
-  clearRoomSession,
-  getSessionKey,
-  readRoomSession,
-} from './utils/roomSession';
 import useAuth from './hooks/useAuth';
+import useAccountActions from './hooks/useAccountActions';
 import useToast from './hooks/useToast';
 import type { ToastValue, UserProfileRecord } from './types';
 import useRoomManager from './hooks/useRoomManager';
@@ -20,11 +16,9 @@ import { AppProvider } from './contexts/AppContext';
 import { RoomProvider } from './contexts/RoomContext';
 import { CelebrationProvider } from './contexts/CelebrationContext';
 import UpdatePasswordPage from './components/auth/UpdatePasswordPage';
-import { deleteAccount } from './services/api';
 
 function App() {
   const [selectedKana, setSelectedKana] = useState<Set<string>>(new Set());
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [profile, setProfile] = useState<UserProfileRecord>();
   const { toast, showToast, clearToast } = useToast();
   const setToast = useCallback((nextToast: ToastValue) => {
@@ -37,27 +31,22 @@ function App() {
   const { user, authLoading, authRequired, isPasswordRecovery, setIsPasswordRecovery, getDisplayName, handleLogout: signOut, isEmailVerifiedSignup, setIsEmailVerifiedSignup } = useAuth({ showToast });
   const socketRef = useRef<Socket | null>(null);
   const roomCodeRef = useRef<string | null>(null);
+  const roomStatusRef = useRef<'lobby' | 'preparing' | 'active' | 'completed' | null>(null);
   const roomManagerRef = useRef<ReturnType<typeof useRoomManager> | null>(null);
-
-  useEffect(() => {
-    if (!user) setIsLoggingOut(false);
-  }, [user]);
   const navigation = useAppNavigation({
     socketRef,
     roomCodeRef,
+    roomStatusRef,
     setGrammarQuestions: (questions) => roomManagerRef.current?.setGrammarQuestions(questions),
     setSelectedKana,
     showToast,
   });
   const {
     status,
-    setStatus,
     selectorScreen,
     setSelectorScreen,
     appHomeKey,
   } = navigation;
-  const isMatchLocked = status === 'assessment' || status === 'assessment-preparing';
-
   const friendsState = useFriends({ user, status, showToast });
 
   const roomManager = useRoomManager({
@@ -71,72 +60,31 @@ function App() {
     refreshFriendRequests: friendsState.refreshFriendRequests,
     socketRef,
     roomCodeRef,
+    roomStatusRef,
   });
   roomManagerRef.current = roomManager;
-  const { roomCode, room, username, kanaCards, results, grammarQuestions, prefillRoomCode, isPreparingAssessment, socket, isSocketReady } = roomManager;
-  const hasAssessmentData = (kanaCards.length > 0 || Boolean(room?.cards?.length))
-    && Boolean(room?.players?.length);
-  const isRestoringMatch = roomManager.isHydratingActiveMatch || (status === 'assessment' && !hasAssessmentData);
-
-  const handleLogout = async () => {
-    if (isMatchLocked) {
-      showToast('Cannot sign out during an active match. Finish or forfeit first.', 'error');
-      return;
-    }
-    setIsLoggingOut(true);
-    setStatus('selector');
-    setSelectorScreen('home');
-
-    if (socket) {
-      socket.disconnect();
-    }
-
-    clearRoomSession();
-    friendsState.clearSocialDataCache();
-    localStorage.removeItem('ganbatte-session-key');
-    roomManager.clearRoomState();
-
-    try {
-      await signOut();
-    } catch (error) {
-      setIsLoggingOut(false);
-      console.error('Logout failed:', error);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (isMatchLocked) {
-      showToast('Cannot delete your account during an active match. Finish or forfeit first.', 'error');
-      return;
-    }
-
-    await deleteAccount();
-    setStatus('selector');
-    setSelectorScreen('home');
-
-    if (socket) {
-      socket.disconnect();
-    }
-
-    clearRoomSession();
-    friendsState.clearSocialDataCache();
-    localStorage.removeItem('ganbatte-session-key');
-    roomManager.clearRoomState();
-
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Account deletion sign-out failed:', error);
-    }
-  };
-
-  const handleHomeNavigation = () => {
-    if (isMatchLocked) {
-      showToast('Cannot leave during an active match. Finish or forfeit first.', 'error');
-      return;
-    }
-    navigation.handleBackToHome();
-  };
+  const {
+    roomCode,
+    room,
+    username,
+    kanaCards,
+    results,
+    grammarQuestions,
+    prefillRoomCode,
+    isPreparingAssessment,
+    isRestoringMatch,
+    socket,
+    isSocketReady,
+  } = roomManager;
+  const { isLoggingOut, handleLogout, handleDeleteAccount } = useAccountActions({
+    isMatchLocked: navigation.isMatchLocked,
+    socket,
+    clearRoomState: roomManager.clearRoomState,
+    clearSocialDataCache: friendsState.clearSocialDataCache,
+    onNavigateHome: navigation.handleBackToHome,
+    signOut,
+    showToast,
+  });
 
   const appContextValue = useMemo(() => ({
     authLoading,
@@ -178,9 +126,8 @@ function App() {
     socket,
     isSocketReady,
     room,
-    roomCode: roomCode || readRoomSession()?.roomCode || '',
-    currentSessionKey: getSessionKey(),
-    username: readRoomSession()?.username || username,
+    roomCode: roomCode || '',
+    username,
     kanaCards,
     results,
     grammarQuestions,
@@ -219,7 +166,7 @@ function App() {
   // Force password update screen if in recovery mode
   if (isPasswordRecovery) {
     return (
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center font-mono text-white bg-[#11141d]">Loading Protocol...</div>}>
+      <Suspense fallback={<div className="flex min-h-[100dvh] items-center justify-center bg-[#11141d] font-mono text-white">Loading Protocol...</div>}>
         <UpdatePasswordPage
           showToast={showToast}
           onSuccess={() => {
@@ -233,7 +180,7 @@ function App() {
   }
 
   return (
-    <div className="app-container min-h-screen">
+    <div className="app-container">
       <CelebrationProvider>
         <AppToast
           toast={toast}
@@ -243,26 +190,29 @@ function App() {
           }}
         />
 
-        {!isRestoringMatch && (
-          <AppHeader
-            onHome={handleHomeNavigation}
-            onOpenFriends={navigation.handleOpenFriends}
-            onOpenProfile={navigation.handleOpenProfile}
-            onProfileLoaded={setProfile}
-            onLogout={handleLogout}
-            onOpenHistory={navigation.handleOpenHistory}
-            onOpenPassport={navigation.handleOpenPassport}
-            isAuthenticated={Boolean(user)}
-            user={user}
-            pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
-          />
-        )}
-
-        <AppProvider value={appContextValue}>
-          <RoomProvider value={roomContextValue}>
-            <AppScreenRouter />
-          </RoomProvider>
-        </AppProvider>
+        <AppShell
+          showHeader={!isRestoringMatch}
+          header={(
+            <AppHeader
+              onHome={navigation.handleBackToHome}
+              onOpenFriends={navigation.handleOpenFriends}
+              onOpenProfile={navigation.handleOpenProfile}
+              onProfileLoaded={setProfile}
+              onLogout={handleLogout}
+              onOpenHistory={navigation.handleOpenHistory}
+              onOpenPassport={navigation.handleOpenPassport}
+              isAuthenticated={Boolean(user)}
+              user={user}
+              pendingFriendRequestCount={friendsState.friendRequests.filter((request) => request?.direction !== 'outgoing').length}
+            />
+          )}
+        >
+          <AppProvider value={appContextValue}>
+            <RoomProvider value={roomContextValue}>
+              <AppScreenRouter />
+            </RoomProvider>
+          </AppProvider>
+        </AppShell>
       </CelebrationProvider>
     </div>
   );

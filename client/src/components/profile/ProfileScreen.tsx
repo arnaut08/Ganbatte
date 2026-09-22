@@ -4,6 +4,7 @@ import { AvatarPickerModal } from './AvatarPickerModal';
 import { AVATAR_OPTIONS } from '@/data/avatars';
 import { supabase } from '@/config/supabase';
 import type { UserProfileRecord } from '@/types';
+import GlobalPageHeader from '@/components/common/GlobalPageHeader';
 
 type EditProfilePageProps = {
     user: User;
@@ -138,27 +139,12 @@ export default function EditProfilePage({
 
     return (
         <main className="container mx-auto max-w-5xl space-y-4 px-3 py-3 sm:space-y-6 sm:px-4 sm:py-8 pb-20 sm:pb-28">
-            {/* 1. Header: 1:1 Pixel & Proportion Match with MasteryPassportScreen */}
-            <div className="flex items-start gap-2.5 sm:gap-4">
-                <button
-                    type="button"
-                    onClick={handleBack}
-                    className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                    title="Back to previous screen"
-                    aria-label="Back"
-                >
-                    <span className="font-mono text-sm sm:text-lg font-black">&lt;</span>
-                </button>
-
-                <div className="flex flex-col -mt-1 sm:-mt-1.5 text-left">
-                    <span className="font-mono text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#FFDE59] leading-tight">
-            // IDENTITY MODULE
-                    </span>
-                    <h1 className="mt-0.5 font-mono text-lg sm:text-3xl font-black uppercase tracking-tight text-white leading-none">
-                        EDIT PROFILE
-                    </h1>
-                </div>
-            </div>
+            <GlobalPageHeader
+                onBack={handleBack}
+                punchline="// IDENTITY MODULE"
+                title="EDIT PROFILE"
+                accentClass="text-[#FFDE59]"
+            />
 
             {/* 2. Unified Master Identity Form Arena */}
             <form onSubmit={handleFormSubmit} className="space-y-4 sm:space-y-6">

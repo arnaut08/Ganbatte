@@ -124,6 +124,16 @@
     monospace;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
 @layer base {
   * {
     @apply border-border;
